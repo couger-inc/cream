@@ -4,8 +4,14 @@
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "./scripts/setup.sh"
   },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "circom": "0.0.35",
+    "circomlib": "0.0.20",
+    "snarkjs": "^0.1.20",
+    "websnark": "0.0.5"
+  }
 }

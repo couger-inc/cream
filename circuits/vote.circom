@@ -52,4 +52,4 @@ template Vote(levels) {
     }
 }
 
-component main = Vote(16);
+component main = Vote(1);
