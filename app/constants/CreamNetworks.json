@@ -1,0 +1,69 @@
+{
+ "1577600145700": {
+  "events": {
+   "0xa945e51eec50ab98c161376f0db4cf2aeba3ec92755fe2fcd388bdbbb80ff196": {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "commitment",
+      "type": "bytes32"
+     },
+     {
+      "indexed": false,
+      "internalType": "uint32",
+      "name": "leafIndex",
+      "type": "uint32"
+     },
+     {
+      "indexed": false,
+      "internalType": "uint256",
+      "name": "timestamp",
+      "type": "uint256"
+     }
+    ],
+    "name": "Deposit",
+    "type": "event",
+    "signature": "0xa945e51eec50ab98c161376f0db4cf2aeba3ec92755fe2fcd388bdbbb80ff196"
+   },
+   "0xe9e508bad6d4c3227e881ca19068f099da81b5164dd6d62b2eaf1e8bc6c34931": {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": false,
+      "internalType": "address",
+      "name": "to",
+      "type": "address"
+     },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "nullifierHash",
+      "type": "bytes32"
+     },
+     {
+      "indexed": true,
+      "internalType": "address",
+      "name": "relayer",
+      "type": "address"
+     },
+     {
+      "indexed": false,
+      "internalType": "uint256",
+      "name": "fee",
+      "type": "uint256"
+     }
+    ],
+    "name": "Withdrawal",
+    "type": "event",
+    "signature": "0xe9e508bad6d4c3227e881ca19068f099da81b5164dd6d62b2eaf1e8bc6c34931"
+   }
+  },
+  "links": {
+   "Hasher": "0x9DBC1FAeB3bFaf3564532D924E88Bd4F87CB7f9d"
+  },
+  "address": "0x149fA946d37C47eFa9f912D8C59B3dfE1350397e",
+  "transactionHash": "0xee727f442fde78ec903b42e3a2756ef9aa863838915059b0551d8765d5892413"
+ }
+}
