@@ -6,12 +6,17 @@ CIRCUITS_DIR=circuits
 BUILD_CIRCUITS_DIR=build/circuits
 CONTRACTS_DIR=contracts
 
-if [[ ! -e $BUILD_CIRCUITS_DIR ]]; then
-  mkdir -p $BUILD_CIRCUITS_DIR
+if [[ ! -f ./.env ]]; then
+  echo "No such file found. Exiting..."
+  exit 0
+else
+  MERKLE_TREE_HEIGHT=$(grep MERKLE_TREE_HEIGHT .env | xargs)
+  MERKLE_TREE_HEIGHT=${MERKLE_TREE_HEIGHT#*=}
+  sed -i '' "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
 fi
 
-if [[ ! -e $CONTRACTS_DIR ]]; then
-  mkdir -p $CONTRACTS_DIR
+if [[ ! -e $BUILD_CIRCUITS_DIR ]]; then
+  mkdir -p $BUILD_CIRCUITS_DIR
 fi
 
 # circuit compile
@@ -28,6 +33,10 @@ npx snarkjs setup --protocol groth -c $BUILD_CIRCUITS_DIR/vote.json --pk $BUILD_
 # build public key bin file
 # create output file: vote_proving_key.bin
 node node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
+
+if [[ ! -e $CONTRACTS_DIR ]]; then
+  mkdir -p $CONTRACTS_DIR
+fi
 
 # generate verifier contract
 # create output file: Verifier.sol
