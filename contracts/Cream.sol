@@ -7,12 +7,13 @@ pragma solidity >=0.4.21 <0.6.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../node_modules/@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract IVerifier {
     function verifyProof(bytes memory _proof, uint256[6] memory _input) public returns(bool);
 }
 
-contract Cream is MerkleTreeWithHistory, ReentrancyGuard {
+contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
     uint256 public denomination;
@@ -90,5 +91,11 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard {
 
     function getRecipients() public view returns(address[] memory) {
         return recipients;
+    }
+
+    function updateVerifier(
+        address _newVerifier
+    ) external onlyOwner {
+        verifier = IVerifier(_newVerifier);
     }
 }

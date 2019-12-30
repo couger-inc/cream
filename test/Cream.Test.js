@@ -8,6 +8,7 @@ const websnarkUtils = require('websnark/src/utils')
 const buildGroth16 = require('websnark/src/groth16')
 const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
 const Cream = artifacts.require('./Cream.sol')
+const Verifier = artifacts.require('./Verifier.sol')
 const truffleAssert = require('truffle-assertions')
 
 contract('Cream', accounts => {
@@ -48,6 +49,25 @@ contract('Cream', accounts => {
       const expected = "0x65A5B0f4eD2170Abe0158865E04C4FF24827c529"
       const returned = await instance.recipients(0)
       assert.equal(expected, returned)
+    })
+
+    it('should be able to update verifier contract by owner', async () => {
+      const oldVerifier = await instance.verifier()
+      const newVerifier = await Verifier.new()
+      await instance.updateVerifier(newVerifier.address)
+      const result = await instance.verifier()
+      assert.notEqual(oldVerifier, result)
+    })
+
+    it('should prevent update verifier contract by non-owner', async () => {
+      const newVerifier = await Verifier.new()
+      try {
+        await instance.updateVerifier(newVerifier.address, {from: accounts[2]})
+      } catch(error) {
+        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.')
+        return
+      }
+      assert.fail('Expected revert not received')
     })
   })
 
