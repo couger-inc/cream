@@ -1,4 +1,8 @@
 .env
 build/*
 node_modules
-contracts/Verifier.sol
+
+# exported files
+*ABI.json
+*Networks.json
+Verifier.sol

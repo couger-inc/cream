@@ -6,6 +6,10 @@ CIRCUITS_DIR=circuits
 BUILD_CIRCUITS_DIR=build/circuits
 CONTRACTS_DIR=contracts
 
+# setup node options
+export NODE_OPTIONS=--experimental-worker
+
+# check if .env exists
 if [[ ! -f ./.env ]]; then
   echo "No such file found. Exiting..."
   exit 0
@@ -15,6 +19,7 @@ else
   sed -i '' "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
 fi
 
+# check if buid circuits directory exists
 if [[ ! -e $BUILD_CIRCUITS_DIR ]]; then
   mkdir -p $BUILD_CIRCUITS_DIR
 fi
@@ -34,6 +39,7 @@ npx snarkjs setup --protocol groth -c $BUILD_CIRCUITS_DIR/vote.json --pk $BUILD_
 # create output file: vote_proving_key.bin
 node node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
 
+# check if build contracts directory exists
 if [[ ! -e $CONTRACTS_DIR ]]; then
   mkdir -p $CONTRACTS_DIR
 fi

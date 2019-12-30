@@ -1,4 +1,4 @@
-const { revertSnapshot, takeSnapshot, toFixedHex } = require('./util')
+const { revertSnapshot, takeSnapshot, toFixedHex } = require('./TestUtil')
 const MerkleTree = require('../lib/MerkleTree')
 const hasherImpl = require('../lib/MiMC')
 
