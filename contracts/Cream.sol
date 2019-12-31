@@ -29,8 +29,8 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
         uint32 _merkleTreeHeight,
         address[] memory _recipients
     ) MerkleTreeWithHistory(_merkleTreeHeight) public {
-        require(_denomination > 0, "denomination should be greater than 0");
-        require(_recipients.length > 0, "recipients number be more than one");
+        require(_denomination > 0, "Denomination should be greater than 0");
+        require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
         denomination = _denomination;
         recipients = _recipients;
@@ -45,19 +45,19 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
         address payable _relayer,
         uint256 _fee
     ) internal {
-        require(msg.value == 0, "Message value is supposed to be zero for ETH mixer");
+        require(msg.value == 0, "Message value is supposed to be zero for withdrawal");
         // consider using "transfer" instead of call.value()() ?
         (bool success, ) = _recipient.call.value(denomination - _fee)("");
-        require(success, "payment to _recipient did not go thru");
+        require(success, "Payment to _recipient did not go thru");
         if(_fee > 0) {
             // consider using "transfer" instead of call.value()() ?
             (success, ) = _relayer.call.value(_fee)("");
-            require(success, "payment to _relayer did not go thru");
+            require(success, "Payment to _relayer did not go thru");
         }
     }
 
     function deposit(bytes32 _commitment) external payable nonReentrant {
-        require(!commitments[_commitment], "already submitted");
+        require(!commitments[_commitment], "Already submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
         _processDeposit();
