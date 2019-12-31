@@ -23,7 +23,6 @@ contract('Cream', accounts => {
   const value = DENOMINATION || '1000000000000000000' // 1 ether
   const recipient = getRandomRecipient()
   const fee = bigInt(value).shr(1)
-  const refund = bigInt(0)
   const relayer = accounts[1]
 
   before(async () => {
@@ -113,7 +112,6 @@ contract('Cream', accounts => {
         relayer: accounts[1],
         recipient,
         fee,
-        refund,
         secret: deposit.secret,
         pathElements: path_elements,
         pathIndices: path_index
@@ -142,7 +140,6 @@ contract('Cream', accounts => {
         relayer: relayer,
         recipient,
         fee,
-        refund,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
         pathElements: path_elements,
@@ -159,8 +156,7 @@ contract('Cream', accounts => {
         toFixedHex(input.nullifierHash),
         toFixedHex(input.recipient, 20),
         toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee),
-        toFixedHex(input.refund)
+        toFixedHex(input.fee)
       ]
 
       const tx = await instance.withdraw(proof, ...args, { from: relayer })
@@ -182,7 +178,6 @@ contract('Cream', accounts => {
         relayer: relayer,
         recipient,
         fee,
-        refund,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
         pathElements: path_elements,
@@ -197,8 +192,7 @@ contract('Cream', accounts => {
         toFixedHex(input.nullifierHash),
         toFixedHex(input.recipient, 20),
         toFixedHex(input.relayer, 20),
-        toFixedHex(fake),
-        toFixedHex(input.refund)
+        toFixedHex(fake)
       ]
 
       try {
@@ -221,7 +215,6 @@ contract('Cream', accounts => {
         relayer: relayer,
         recipient,
         fee,
-        refund,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
         pathElements: path_elements,
@@ -235,8 +228,7 @@ contract('Cream', accounts => {
         toFixedHex(input.nullifierHash),
         toFixedHex(input.recipient, 20),
         toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee),
-        toFixedHex(input.refund)
+        toFixedHex(input.fee)
       ]
       await instance.withdraw(proof, ...args, { from: relayer })
       try {
@@ -259,7 +251,6 @@ contract('Cream', accounts => {
         relayer: relayer,
         recipient,
         fee,
-        refund,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
         pathElements: path_elements,
@@ -273,8 +264,7 @@ contract('Cream', accounts => {
         toFixedHex(toBN(input.nullifierHash).add(toBN('21888242871839275222246405745257275088548364400416034343698204186575808495617'))),
         toFixedHex(input.recipient, 20),
         toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee),
-        toFixedHex(input.refund)
+        toFixedHex(input.fee)
       ]
 
       try {
