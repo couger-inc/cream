@@ -16,6 +16,7 @@ contract IVerifier {
 contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
+    mapping(address => bool) Recipients;
     uint256 public denomination;
     address[] public recipients;
     IVerifier public verifier;
@@ -33,6 +34,7 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
         denomination = _denomination;
+        setRecipients(_recipients);
         recipients = _recipients;
     }
 
@@ -77,6 +79,7 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
         require(isKnownRoot(_root), "Cannot find your merkle root");
         require(verifier.verifyProof(
             _proof, [uint256(_root), uint256(_nullifierHash), uint256(_recipient), uint256(_relayer), _fee]), "Invalid withdraw proof");
+        require(isRecipient(_recipient), "Recipient do not exist");
         nullifierHashes[_nullifierHash] = true;
         _processWithdraw(_recipient, _relayer, _fee);
         emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
@@ -84,6 +87,20 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
 
     function isSpent(bytes32 _nullifierHash) public view returns(bool) {
         return nullifierHashes[_nullifierHash];
+    }
+
+    function setRecipients(
+        address[] memory _recipients
+    ) internal onlyOwner {
+        for (uint i; i < _recipients.length; i++) {
+            Recipients[_recipients[i]] = true;
+        }
+    }
+
+    function isRecipient(
+        address _recipient
+    ) internal view returns(bool) {
+        return Recipients[_recipient];
     }
 
     function getRecipients() public view returns(address[] memory) {

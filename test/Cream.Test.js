@@ -21,7 +21,7 @@ contract('Cream', accounts => {
   const prefix = 'test'
   const levels = MERKLE_TREE_HEIGHT || 4
   const value = DENOMINATION || '1000000000000000000' // 1 ether
-  const recipient = getRandomRecipient()
+  let recipient = '0x65A5B0f4eD2170Abe0158865E04C4FF24827c529'
   const fee = bigInt(value).shr(1)
   const relayer = accounts[1]
 
@@ -93,7 +93,7 @@ contract('Cream', accounts => {
       try {
         await instance.deposit(commitment, {value, from: accounts[0]})
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert already submitted -- Reason given: already submitted.')
+        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Already submitted -- Reason given: Already submitted.')
         return
       }
       assert.fail('Expected revert not received')
@@ -274,6 +274,51 @@ contract('Cream', accounts => {
         return
       }
       assert.fail('Expected revert not received')
+    })
+
+    it('should throw an error with random recipient', async() => {
+      recipient = getRandomRecipient()
+      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const user = accounts[2]
+      await tree.insert(deposit.commitment)
+      await instance.deposit(toFixedHex(deposit.commitment), { value, from: user })
+      const { root, path_elements, path_index } = await tree.path(0)
+      const input = stringifyBigInts({
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        relayer: relayer,
+        recipient,
+        fee,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        pathElements: path_elements,
+        pathIndices: path_index,
+      })
+      let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      assert.isFalse(isSpent)
+
+      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
+      const { proof } = websnarkUtils.toSolidityInput(proofData)
+
+      const args = [
+        toFixedHex(input.root),
+        toFixedHex(input.nullifierHash),
+        toFixedHex(input.recipient, 20),
+        toFixedHex(input.relayer, 20),
+        toFixedHex(input.fee)
+      ]
+
+      try {
+        await instance.withdraw(proof, ...args, { from: relayer })
+      } catch(error) {
+        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Recipient do not exist -- Reason given: Recipient do not exist.')
+        return
+      }
+      assert.fail('Expected revert not received')
+      truffleAssert.prettyPrintEmittedEvents(tx)
+      truffleAssert.eventEmitted(tx, 'Withdrawal')
+      isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      assert.isTrue(isSpent)
     })
   })
 
