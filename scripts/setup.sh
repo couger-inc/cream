@@ -2,19 +2,25 @@
 
 set -eu
 
-CIRCUITS_DIR=circuits
-BUILD_CIRCUITS_DIR=build/circuits
-CONTRACTS_DIR=contracts
+cd $(dirname $0)
+SCRIPT_DIR=$PWD
+cd ../
+PROJECT_DIR=$PWD
+
+CIRCUITS_DIR=$PROJECT_DIR/circuits
+BUILD_CIRCUITS_DIR=$PROJECT_DIR/build/circuits
+CONFIG_DIR=$PROJECT_DIR/config
+CONTRACTS_DIR=$PROJECT_DIR/contracts
 
 # setup node options
 export NODE_OPTIONS=--experimental-worker
 
-# check if .env exists
-if [[ ! -f ./config/default.json ]]; then
+# check if default.json file exists
+if [[ ! -f $CONFIG_DIR/default.json ]]; then
   echo "No such file found. Exiting..."
   exit 0
 else
-  MERKLE_TREE_HEIGHT=$(cat ./config/default.json | jq .MERKLE_TREE_HEIGHT)
+  MERKLE_TREE_HEIGHT=$(cat $CONFIG_DIR/default.json | jq .MERKLE_TREE_HEIGHT)
   sed -i '' "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
 fi
 
@@ -36,7 +42,7 @@ npx snarkjs setup --protocol groth -c $BUILD_CIRCUITS_DIR/vote.json --pk $BUILD_
 
 # build public key bin file
 # create output file: vote_proving_key.bin
-node node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
+node $PROJECT_DIR/node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
 
 # check if build contracts directory exists
 if [[ ! -e $CONTRACTS_DIR ]]; then

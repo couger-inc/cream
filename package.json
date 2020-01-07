@@ -4,10 +4,13 @@
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "main": "index.js",
   "scripts": {
-    "build": "./scripts/setup.sh && npm run compile && npm run migrate",
+    "build": "npm run setup && npm run compile && npm run migrate",
     "compile": "npx truffle compile",
+    "exit": "lsof -i :8545 | grep node | grep -v grep | awk '{ print \"kill -9\", $2 }' | sh",
     "migrate": "npx truffle migrate",
-    "test": "npx truffle test"
+    "setup": "./scripts/setup.sh",
+    "test": "npx truffle test",
+    "test:workflow": "ganache-cli & npm run compile && npm run migrate && npm run test && npm run exit"
   },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
   "license": "ISC",
