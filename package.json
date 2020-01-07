@@ -16,6 +16,7 @@
     "@truffle/artifactor": "^4.0.42",
     "circom": "0.0.35",
     "circomlib": "0.0.20",
+    "config": "^3.2.4",
     "crypto": "^1.0.1",
     "dotenv": "^8.2.0",
     "eth-gas-reporter": "^0.2.14",

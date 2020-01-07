@@ -1,6 +1,6 @@
 const fs = require('fs')
 const { toBN } = require('web3-utils')
-const { DENOMINATION, MERKLE_TREE_HEIGHT } = process.env
+const config = require('config')
 const MerkleTree = require('../lib/MerkleTree')
 const { bigInt, createDeposit, pedersenHash, rbigint } = require('../lib/SnarkUtils')
 const { toFixedHex, getRandomRecipient, snarkVerify, revertSnapshot, takeSnapshot } = require('./TestUtil')
@@ -19,9 +19,9 @@ contract('Cream', accounts => {
   let groth16
   let circuit
   const prefix = 'test'
-  const levels = MERKLE_TREE_HEIGHT || 4
-  const value = DENOMINATION || '1000000000000000000' // 1 ether
-  let recipient = '0x65A5B0f4eD2170Abe0158865E04C4FF24827c529'
+  const levels = config.MERKLE_TREE_HEIGHT
+  const value = config.DENOMINATION
+  let recipient = config.RECIPIENTS[0]
   const fee = bigInt(value).shr(1)
   const relayer = accounts[1]
 
@@ -45,7 +45,7 @@ contract('Cream', accounts => {
     })
 
     it('should return correct address', async () => {
-      const expected = "0x65A5B0f4eD2170Abe0158865E04C4FF24827c529"
+      const expected = recipient
       const returned = await instance.recipients(0)
       assert.equal(expected, returned)
     })

@@ -10,12 +10,11 @@ CONTRACTS_DIR=contracts
 export NODE_OPTIONS=--experimental-worker
 
 # check if .env exists
-if [[ ! -f ./.env ]]; then
+if [[ ! -f ./config/default.json ]]; then
   echo "No such file found. Exiting..."
   exit 0
 else
-  MERKLE_TREE_HEIGHT=$(grep MERKLE_TREE_HEIGHT .env | xargs)
-  MERKLE_TREE_HEIGHT=${MERKLE_TREE_HEIGHT#*=}
+  MERKLE_TREE_HEIGHT=$(cat ./config/default.json | jq .MERKLE_TREE_HEIGHT)
   sed -i '' "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
 fi
 

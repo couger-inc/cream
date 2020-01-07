@@ -1,4 +1,4 @@
-.env
+config/default.json
 build/*
 node_modules
 
