@@ -1,5 +1,8 @@
+
+
 # C.R.E.A.M
 Confidential Reliable Ethereum Anonymous Mixer
+[![Actions Status](https://github.com/couger-inc/cream/workflows/cream%20contract%20test/badge.svg)](https://github.com/couger-inc/cream/actions)
 
 ## Requirement
 
