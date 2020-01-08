@@ -32,6 +32,7 @@
     "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
   },
   "devDependencies": {
+    "fs-extra": "^8.1.0",
     "truffle-assertions": "^0.9.2"
   }
 }

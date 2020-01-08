@@ -1,4 +1,5 @@
 const fs = require('fs')
+const FS = require('fs-extra')
 const path = require('path')
 const {promisify} = require('util')
 const Cream = artifacts.require('Cream')
@@ -16,6 +17,7 @@ module.exports = (deployer) => {
   })
   .then(async () => {
     const basePath = path.resolve(__dirname, '../app/constants')
+    FS.mkdirsSync(basePath)
     await promisify(fs.writeFile)(path.join(basePath, 'CreamABI.json'), JSON.stringify(Cream.abi, null, ' '))
     await promisify(fs.writeFile)(path.join(basePath, 'CreamNetworks.json'), JSON.stringify(Cream.networks, null, ' '))
   })
