@@ -15,13 +15,24 @@ CONTRACTS_DIR=$PROJECT_DIR/contracts
 # setup node options
 export NODE_OPTIONS=--experimental-worker
 
+# create alias for sed depends on os
+shopt -s expand_aliases
+make_sed_alias() {
+  if sed --version 2>/dev/null | grep -q GNU; then
+    alias sedi='sed -i ' # linux
+  else
+    alias sedi='sed -i "" ' # darwin
+  fi
+}
+make_sed_alias
+
 # check if default.json file exists
 if [[ ! -f $CONFIG_DIR/default.json ]]; then
   echo "No such file found. Exiting..."
   exit 0
 else
   MERKLE_TREE_HEIGHT=$(cat $CONFIG_DIR/default.json | jq .MERKLE_TREE_HEIGHT)
-  sed -i '' "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
+  sedi -e "$ s/.*/component main = Vote($MERKLE_TREE_HEIGHT);/" $CIRCUITS_DIR/vote.circom
 fi
 
 # check if buid circuits directory exists
