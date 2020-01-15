@@ -1,0 +1,8 @@
+config/default.json
+build/*
+node_modules
+
+# exported files
+*ABI.json
+*Networks.json
+Verifier.sol
