@@ -16,7 +16,10 @@ Create `default.json` file and edit your `MerkleTree` height and `Denomination`.
 Example:
 ```bash
 $ cp .sample.json ./config/default.json
+$ vi ./config/default.json
+# edit your settings....
 
+# sample default.json setting
 $ cat ./config/default.json
 {
   "MERKLE_TREE_HEIGHT": 4,
