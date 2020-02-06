@@ -3,7 +3,7 @@
 * C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer
 *
 */
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity >=0.4.21 <0.7.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";

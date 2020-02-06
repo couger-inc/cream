@@ -1,5 +1,5 @@
 // heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
-pragma solidity >=0.4.21 <0.6.0;
+pragma solidity >=0.4.21 <0.7.0;
 
 library Hasher {
     function MiMCSponge(uint256 in_xL, uint256 in_xR, uint256 in_k) public pure returns (uint256 xL, uint256 xR);
