@@ -34,8 +34,8 @@ template Vote(levels) {
     signal input fee;      // not taking part in any computations
     signal private input nullifier;
     signal private input secret;
-    signal private input pathElements[levels];
-    signal private input pathIndices[levels];
+    signal private input path_elements[levels];
+    signal private input path_index[levels];
 
     component hasher = CommitmentHasher();
     hasher.nullifier <== nullifier;
@@ -46,8 +46,8 @@ template Vote(levels) {
     tree.leaf <== hasher.commitment;
     tree.root <== root;
     for (var i = 0; i < levels; i++) {
-        tree.pathElements[i] <== pathElements[i];
-        tree.pathIndices[i] <== pathIndices[i];
+        tree.path_elements[i] <== path_elements[i];
+        tree.path_index[i] <== path_index[i];
     }
 }
 

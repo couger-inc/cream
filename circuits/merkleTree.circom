@@ -1,51 +1,70 @@
+include "../node_modules/circomlib/circuits/mux1.circom";
 include "../node_modules/circomlib/circuits/mimcsponge.circom";
 
 // Computes MiMC([left, right])
-template HashLeftRight() {
+template HashLeftRight(length) {
     signal input left;
     signal input right;
     signal output hash;
 
-    component hasher = MiMCSponge(2, 220, 1);
+    component hasher = MiMCSponge(length, 220, 1);
     hasher.ins[0] <== left;
     hasher.ins[1] <== right;
     hasher.k <== 0;
     hash <== hasher.outs[0];
 }
 
-// if s == 0 returns [in[0], in[1]]
-// if s == 1 returns [in[1], in[0]]
-template DualMux() {
-    signal input in[2];
-    signal input s;
-    signal output out[2];
+template Selector() {
+    signal input input_element;
+    signal input path_element;
+    signal input path_index;
 
-    s * (1 - s) === 0
-    out[0] <== (in[1] - in[0])*s + in[0];
-    out[1] <== (in[0] - in[1])*s + in[1];
+    signal output left;
+    signal output right;
+
+    path_index * (1 - path_index) === 0
+
+    component mux = MultiMux1(2)
+    mux.c[0][0] <== input_element;
+    mux.c[0][1] <== path_element;
+
+    mux.c[1][0] <== path_element;
+    mux.c[1][1] <== input_element;
+
+    mux.s <== path_index;
+
+    left <== mux.out[0];
+    right <== mux.out[1];
 }
 
 // Verifies that merkle proof is correct for given merkle root and a leaf
-// pathIndices input is an array of 0/1 selectors telling whether given pathElement is on the left or right side of merkle path
+// pathIndices input is an array of 0/1 selectors telling whether given path_elements is on the left or right side of merkle path
 template MerkleTree(levels) {
     signal input leaf;
-    signal input root;
-    signal input pathElements[levels];
-    signal input pathIndices[levels];
+    signal input path_elements[levels];
+    signal input path_index[levels];
+
+    signal output root;
 
     component selectors[levels];
     component hashers[levels];
 
     for (var i = 0; i < levels; i++) {
-        selectors[i] = DualMux();
-        selectors[i].in[0] <== i == 0 ? leaf : hashers[i - 1].hash;
-        selectors[i].in[1] <== pathElements[i];
-        selectors[i].s <== pathIndices[i];
+        selectors[i] = Selector();
+        hashers[i] = HashLeftRight(2);
 
-        hashers[i] = HashLeftRight();
-        hashers[i].left <== selectors[i].out[0];
-        hashers[i].right <== selectors[i].out[1];
+        selectors[i].path_element <== path_elements[i];
+        selectors[i].path_index <== path_index[i];
+
+        hashers[i].left <== selectors[i].left;
+        hashers[i].right <== selectors[i].right;
     }
 
-    root === hashers[levels - 1].hash;
+    selectors[0].input_element <== leaf;
+
+    for (var i = 1; i < levels; i++) {
+        selectors[i].input_element <== hashers[i-1].hash;
+    }
+
+    root <== hashers[levels - 1].hash;
 }

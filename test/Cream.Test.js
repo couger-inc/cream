@@ -113,8 +113,8 @@ contract('Cream', accounts => {
         recipient,
         fee,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index
+        path_elements,
+        path_index
       })
       let proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const originalProof = JSON.parse(JSON.stringify(proofData))
@@ -142,8 +142,8 @@ contract('Cream', accounts => {
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements,
+        path_index,
       })
       let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isFalse(isSpent)
@@ -180,8 +180,8 @@ contract('Cream', accounts => {
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements,
+        path_index,
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -217,8 +217,8 @@ contract('Cream', accounts => {
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements,
+        path_index,
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -253,8 +253,8 @@ contract('Cream', accounts => {
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements,
+        path_index,
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -291,8 +291,8 @@ contract('Cream', accounts => {
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements,
+        path_index,
       })
       let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isFalse(isSpent)
