@@ -1,7 +1,7 @@
 const fs = require('fs')
 const { toBN } = require('web3-utils')
 const config = require('config')
-const MerkleTree = require('../lib/MerkleTree')
+const { MerkleTree } = require('../lib/MerkleTree')
 const { bigInt, createDeposit, pedersenHash, rbigint } = require('../lib/SnarkUtils')
 const { toFixedHex, getRandomRecipient, snarkVerify, revertSnapshot, takeSnapshot } = require('./TestUtil')
 const websnarkUtils = require('websnark/src/utils')

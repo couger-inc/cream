@@ -1,5 +1,5 @@
 const { revertSnapshot, takeSnapshot, toFixedHex } = require('./TestUtil')
-const MerkleTree = require('../lib/MerkleTree')
+const { MerkleTree } = require('../lib/MerkleTree')
 const hasherImpl = require('../lib/MiMC')
 
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
