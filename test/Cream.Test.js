@@ -1,6 +1,13 @@
 const fs = require('fs')
 const { toBN } = require('web3-utils')
 const config = require('config')
+const websnarkUtils = require('websnark/src/utils')
+const buildGroth16 = require('websnark/src/groth16')
+const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
+
+const Cream = artifacts.require('./Cream.sol')
+const Verifier = artifacts.require('./Verifier.sol')
+
 const {
   MerkleTree,
   bigInt,
@@ -8,12 +15,14 @@ const {
   pedersenHash,
   rbigInt
 } = require('../lib/')
-const { toFixedHex, getRandomRecipient, snarkVerify, revertSnapshot, takeSnapshot } = require('./TestUtil')
-const websnarkUtils = require('websnark/src/utils')
-const buildGroth16 = require('websnark/src/groth16')
-const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
-const Cream = artifacts.require('./Cream.sol')
-const Verifier = artifacts.require('./Verifier.sol')
+const {
+  toFixedHex,
+  getRandomRecipient,
+  snarkVerify,
+  revertSnapshot,
+  takeSnapshot
+} = require('./TestUtil')
+
 const truffleAssert = require('truffle-assertions')
 
 contract('Cream', accounts => {
@@ -23,7 +32,6 @@ contract('Cream', accounts => {
   let tree
   let groth16
   let circuit
-  const prefix = 'test'
   const LEVELS = config.MERKLE_TREE_HEIGHT
   const ZERO_VALUE = config.ZERO_VALUE
   const value = config.DENOMINATION
