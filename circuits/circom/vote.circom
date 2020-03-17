@@ -1,29 +1,5 @@
-include "../node_modules/circomlib/circuits/bitify.circom";
-include "../node_modules/circomlib/circuits/pedersen.circom";
 include "merkleTree.circom";
-
-// computes Pedersen(nullifier + secret)
-template CommitmentHasher() {
-    signal input nullifier;
-    signal input secret;
-    signal output commitment;
-    signal output nullifierHash;
-
-    component commitmentHasher = Pedersen(496);
-    component nullifierHasher = Pedersen(248);
-    component nullifierBits = Num2Bits(248);
-    component secretBits = Num2Bits(248);
-    nullifierBits.in <== nullifier;
-    secretBits.in <== secret;
-    for (var i = 0; i < 248; i++) {
-        nullifierHasher.in[i] <== nullifierBits.out[i];
-        commitmentHasher.in[i] <== nullifierBits.out[i];
-        commitmentHasher.in[i + 248] <== secretBits.out[i];
-    }
-
-    commitment <== commitmentHasher.out[0];
-    nullifierHash <== nullifierHasher.out[0];
-}
+include "hasher.circom"
 
 // Verifies that commitment that corresponds to given secret and nullifier is included in the merkle tree of deposits
 template Vote(levels) {
@@ -37,7 +13,7 @@ template Vote(levels) {
     signal private input path_elements[levels];
     signal private input path_index[levels];
 
-    component hasher = CommitmentHasher();
+    component hasher = Hasher();
     hasher.nullifier <== nullifier;
     hasher.secret <== secret;
     hasher.nullifierHash === nullifierHash;

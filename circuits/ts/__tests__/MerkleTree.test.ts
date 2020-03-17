@@ -1,5 +1,7 @@
-import snarkjs from 'snarkjs'
-import { compileAndLoadCircuit } from '../'
+import {
+    SnarkBigInt,
+    compileAndLoadCircuit
+} from '../'
 import {
     MerkleTree,
     hashOne
@@ -9,7 +11,6 @@ import { toFixedHex } from '../../../test/TestUtil'
 const DEPTH = 4
 const ZERO_VALUE = 0
 
-type SnarkBigInt = snarkjs.bigInt
 
 describe('MerkleTree circuit', () => {
     describe('LeafExists', () => {

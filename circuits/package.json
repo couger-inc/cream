@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npx tsc",
     "test": "npx jest",
-    "test:merkleTree": "npx jest merkleTree.test.ts"
+    "test:merkleTree": "npx jest MerkleTree.test.ts",
+    "test:hasher": "jest Hasher.test.ts"
   },
   "author": "",
   "license": "ISC",

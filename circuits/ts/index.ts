@@ -1,7 +1,8 @@
-import * as fs from 'fs'
 import * as path from 'path'
-import { Circuit } from 'snarkjs'
+import { Circuit, snarkjs } from 'snarkjs'
 const compiler = require('circom')
+
+type SnarkBigInt = snarkjs.bigInt
 
 const compileAndLoadCircuit = async (
     circuitFilename: string
@@ -11,6 +12,7 @@ const compileAndLoadCircuit = async (
 }
 
 export {
+    SnarkBigInt,
     compileAndLoadCircuit
 }
 
