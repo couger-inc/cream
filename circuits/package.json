@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx tsc",
+    "test": "npx jest",
+    "test:merkleTree": "npx jest merkleTree.test.ts"
   },
   "author": "",
   "license": "ISC",

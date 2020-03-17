@@ -1,10 +1,13 @@
 import snarkjs from 'snarkjs'
 import { compileAndLoadCircuit } from '../'
-import { MerkleTree } from '../../../lib/MerkleTree'
+import {
+    MerkleTree,
+    hashOne
+} from '../../../lib'
 import { toFixedHex } from '../../../test/TestUtil'
 
-const LEVELS = 4
-const PREFIX = 'test'
+const DEPTH = 4
+const ZERO_VALUE = 0
 
 type SnarkBigInt = snarkjs.bigInt
 
@@ -17,53 +20,53 @@ describe('MerkleTree circuit', () => {
         })
 
         it('should work with valid input for LeafExists', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
-                const index = tree.getIndexByElement(leaves[i])
-                const { root, path_elements, path_index } = await tree.path(index)
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** DEPTH; i++) {
+                const proof = tree.getPathUpdate(i)
                 const circuitInputs = {
                     leaf: leaves[i],
-                    path_elements,
-                    path_index,
-                    root
+                    path_elements: proof[0],
+                    path_index: proof[1],
+                    root,
                 }
+
                 const witness = circuit.calculateWitness(circuitInputs)
                 expect(circuit.checkWitness(witness)).toBeTruthy()
             }
         })
 
         it('should return error with invalid LeafExists input', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
-                const index = tree.getIndexByElement(leaves[i])
-                const { root, path_elements, path_index } = await tree.path(index)
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** DEPTH; i++) {
+                const proof = tree.getPathUpdate(i)
+
                 const circuitInputs = {
                     leaf: leaves[i],
-                    // swapping input elements
-                    path_elements: path_index,
-                    path_index: path_elements,
+                    //    swapping input elements
+                    path_elements: proof[1],
+                    path_index: proof[0],
                     root
                 }
 
@@ -82,19 +85,17 @@ describe('MerkleTree circuit', () => {
         })
 
         it('should return valid root', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            const root = await tree.root()
+            const root = tree.root
 
             const circuitInputs = { leaves }
 
@@ -110,21 +111,19 @@ describe('MerkleTree circuit', () => {
         })
 
         it('should generate different root from different leaves', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
 
                 // Give the circuit a different leaf
                 leaves.push(toFixedHex(randVal + 1))
             }
 
-            const root = await tree.root()
+            const root = tree.root
             const circuitInputs = { leaves }
             const witness = circuit.calculateWitness(circuitInputs)
             expect(witness[circuit.getSignalIdx('main.root')].toString()).not.toEqual(root.toString())
@@ -140,25 +139,25 @@ describe('MerkleTree circuit', () => {
         })
 
         it('should work with valid input', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
-                const index = tree.getIndexByElement(leaves[i])
-                const { root, path_elements, path_index } = await tree.path(index)
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** DEPTH; i++) {
+                const proof = tree.getPathUpdate(i)
                 const circuitInputs = {
                     leaf: leaves[i],
-                    path_elements,
-                    path_index,
+                    path_elements: proof[0],
+                    path_index: proof[1],
+                    root
                 }
 
                 const witness = circuit.calculateWitness(circuitInputs)
@@ -168,25 +167,26 @@ describe('MerkleTree circuit', () => {
         })
 
         it('should return error with invalid proof', async () => {
-            const tree = new MerkleTree(LEVELS, null, PREFIX)
+            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
+            for (let i = 0; i < 2 ** DEPTH; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
-
-                // TODO: use alternative hash function below instead of toFixedhex
-                const leaf = toFixedHex(randVal)
-                await tree.insert(leaf)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            for (let i = 0; i < 2 ** LEVELS; i++) {
-                const index = tree.getIndexByElement(leaves[i])
-                const { path_elements, path_index } = await tree.path(index)
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** DEPTH; i++) {
+                const proof = tree.getPathUpdate(i)
                 const circuitInputs = {
                     leaf: leaves[i],
-                    path_elements: path_index,
-                    path_index: path_elements,
+                    // swapped proof
+                    path_elements: proof[1],
+                    path_index: proof[0],
+                    root
                 }
 
                 expect(() => {
