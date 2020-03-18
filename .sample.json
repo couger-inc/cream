@@ -1,5 +1,6 @@
 {
   "MERKLE_TREE_HEIGHT": ,
   "DENOMINATION": "",
-  "RECIPIENTS": []
+  "RECIPIENTS": [],
+  "ZERO_VALUE": ""
 }

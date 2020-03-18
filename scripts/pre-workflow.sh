@@ -3,7 +3,6 @@
 set -eu
 
 cd $(dirname $0)
-SCRIPT_DIR=$PWD
 cd ../
 PROJECT_DIR=$PWD
 

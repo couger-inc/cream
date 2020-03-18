@@ -4,14 +4,14 @@
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "main": "index.js",
   "scripts": {
+    "bootstrap": "npx lerna bootstrap",
     "build": "npm run setup && npm run compile && npm run migrate",
-    "lerna:build": "lerna run build",
-    "bootstrap": "lerna bootstrap",
+    "build:lerna": "npx lerna run build",
     "compile": "npx truffle compile",
     "exit": "lsof -i :8545 | grep node | grep -v grep | awk '{ print \"kill -9\", $2 }' | sh",
     "migrate": "npx truffle migrate",
     "preworkflow": "./scripts/pre-workflow.sh",
-    "setup": "./scripts/setup.sh",
+    "setup": "cd circuits && ./scripts/setup.sh",
     "test": "export NODE_OPTIONS=--experimental-worker && npx truffle test",
     "test:workflow": "ganache-cli & npm run compile && npm run migrate && npm run test && npm run exit"
   },
@@ -36,7 +36,6 @@
   "devDependencies": {
     "fs-extra": "^8.1.0",
     "lerna": "^3.20.2",
-    "truffle-assertions": "^0.9.2",
     "typescript": "^3.8.3"
   }
 }

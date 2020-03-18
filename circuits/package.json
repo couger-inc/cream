@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc",
+    "setup": "./scripts/setup.sh",
     "test": "npx jest",
     "test:merkleTree": "npx jest MerkleTree.test.ts",
     "test:hasher": "jest Hasher.test.ts"
@@ -19,6 +20,7 @@
     "jest": "^25.1.0",
     "snarkjs": "^0.1.20",
     "ts-jest": "^25.2.1",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "websnark": "0.0.5"
   }
 }
