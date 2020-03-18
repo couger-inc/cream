@@ -1,14 +1,28 @@
 const fs = require('fs')
 const { toBN } = require('web3-utils')
 const config = require('config')
-const MerkleTree = require('../lib/MerkleTree')
-const { bigInt, createDeposit, pedersenHash, rbigint } = require('../lib/SnarkUtils')
-const { toFixedHex, getRandomRecipient, snarkVerify, revertSnapshot, takeSnapshot } = require('./TestUtil')
 const websnarkUtils = require('websnark/src/utils')
 const buildGroth16 = require('websnark/src/groth16')
 const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
+
 const Cream = artifacts.require('./Cream.sol')
 const Verifier = artifacts.require('./Verifier.sol')
+
+const {
+  MerkleTree,
+  bigInt,
+  createDeposit,
+  pedersenHash,
+  rbigInt
+} = require('../lib/')
+const {
+  toFixedHex,
+  getRandomRecipient,
+  snarkVerify,
+  revertSnapshot,
+  takeSnapshot
+} = require('./TestUtil')
+
 const truffleAssert = require('truffle-assertions')
 
 contract('Cream', accounts => {
@@ -18,8 +32,8 @@ contract('Cream', accounts => {
   let tree
   let groth16
   let circuit
-  const prefix = 'test'
-  const levels = config.MERKLE_TREE_HEIGHT
+  const LEVELS = config.MERKLE_TREE_HEIGHT
+  const ZERO_VALUE = config.ZERO_VALUE
   const value = config.DENOMINATION
   let recipient = config.RECIPIENTS[0]
   const fee = bigInt(value).shr(1)
@@ -27,9 +41,8 @@ contract('Cream', accounts => {
 
   before(async () => {
     tree = new MerkleTree(
-      levels,
-      null,
-      prefix,
+      LEVELS,
+      ZERO_VALUE
     )
     instance = await Cream.deployed()
     snapshotId = await takeSnapshot()
@@ -102,9 +115,10 @@ contract('Cream', accounts => {
 
   describe('snark proof verification on js side', () => {
     it('should detect tampering', async () => {
-      const deposit = createDeposit(rbigint(31), rbigint(31))
-      await tree.insert(deposit.commitment)
-      const { root, path_elements, path_index } = await tree.path(0)
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      tree.insert(deposit.commitment)
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
         nullifierHash: deposit.nullifierHash,
@@ -113,8 +127,8 @@ contract('Cream', accounts => {
         recipient,
         fee,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       let proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const originalProof = JSON.parse(JSON.stringify(proofData))
@@ -129,21 +143,22 @@ contract('Cream', accounts => {
 
   describe('withdraw', () => {
     it('should work', async () => {
-      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       const user = accounts[2]
-      await tree.insert(deposit.commitment)
+      tree.insert(deposit.commitment)
       await instance.deposit(toFixedHex(deposit.commitment), { value, from: user })
-      const { root, path_elements, path_index } = await tree.path(0)
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
-        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
         recipient,
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isFalse(isSpent)
@@ -167,21 +182,21 @@ contract('Cream', accounts => {
     })
 
     it('should prevent excess withdrawal', async() => {
-      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
       await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
-      const { root, path_elements, path_index } = await tree.path(0)
-
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
-        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
         recipient,
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -205,20 +220,21 @@ contract('Cream', accounts => {
     })
 
     it('should prevent double spend', async () => {
-      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
       await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
-      const { root, path_elements, path_index } = await tree.path(0)
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
-        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
         recipient,
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -241,20 +257,21 @@ contract('Cream', accounts => {
     })
 
     it('should prevent double sepnd with overflow', async () => {
-      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
       await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
-      const { root, path_elements, path_index } = await tree.path(0)
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
-        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
         recipient,
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
@@ -278,21 +295,22 @@ contract('Cream', accounts => {
 
     it('should throw an error with random recipient', async() => {
       recipient = getRandomRecipient()
-      const deposit = createDeposit(rbigint(31), rbigint(31))
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       const user = accounts[2]
       await tree.insert(deposit.commitment)
       await instance.deposit(toFixedHex(deposit.commitment), { value, from: user })
-      const { root, path_elements, path_index } = await tree.path(0)
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
         root,
-        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)),
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
         recipient,
         fee,
         nullifier: deposit.nullifier,
         secret: deposit.secret,
-        pathElements: path_elements,
-        pathIndices: path_index,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
       })
       let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isFalse(isSpent)
@@ -327,9 +345,8 @@ contract('Cream', accounts => {
     // eslint-disable-next-line require-atomic-updates
     snapshotId = await takeSnapshot()
     tree = new MerkleTree(
-      levels,
-      null,
-      prefix,
+      LEVELS,
+      ZERO_VALUE
     )
   })
 })

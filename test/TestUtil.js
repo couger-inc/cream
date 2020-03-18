@@ -3,12 +3,12 @@ const crypto = require('crypto')
 const { toHex } = require('web3-utils')
 const snarkjs = require('snarkjs')
 const unstringifyBigInts = require('snarkjs/src/stringifybigint').unstringifyBigInts
-const { bigInt, pedersenHash, rbigint } = require('../lib/SnarkUtils')
+const { bigInt, pedersenHash, rbigInt } = require('../lib')
 
 const getRandomRecipient = () => {
-  let recipient = rbigint(20)
+  let recipient = rbigInt(20)
   while(toHex(recipient.toString()).length !== 42) {
-    recipient = rbigint(20)
+    recipient = rbigInt(20)
   }
   return recipient
 }

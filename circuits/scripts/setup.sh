@@ -3,11 +3,10 @@
 set -eu
 
 cd $(dirname $0)
-SCRIPT_DIR=$PWD
-cd ../
+cd ../../
 PROJECT_DIR=$PWD
 
-CIRCUITS_DIR=$PROJECT_DIR/circuits
+CIRCUITS_DIR=$PROJECT_DIR/circuits/circom
 BUILD_CIRCUITS_DIR=$PROJECT_DIR/build/circuits
 CONFIG_DIR=$PROJECT_DIR/config
 CONTRACTS_DIR=$PROJECT_DIR/contracts
@@ -53,7 +52,7 @@ npx snarkjs setup --protocol groth -c $BUILD_CIRCUITS_DIR/vote.json --pk $BUILD_
 
 # build public key bin file
 # create output file: vote_proving_key.bin
-node $PROJECT_DIR/node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
+node $PROJECT_DIR/circuits/node_modules/websnark/tools/buildpkey.js -i $BUILD_CIRCUITS_DIR/vote_proving_key.json -o $BUILD_CIRCUITS_DIR/vote_proving_key.bin
 
 # check if build contracts directory exists
 if [[ ! -e $CONTRACTS_DIR ]]; then
