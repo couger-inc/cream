@@ -15,6 +15,7 @@
     "@types/jest": "^25.1.4",
     "circom": "0.0.35",
     "circomlib": "0.0.21",
+    "cream-lib": "1.0.0",
     "jest": "^25.1.0",
     "snarkjs": "^0.1.20",
     "ts-jest": "^25.2.1",

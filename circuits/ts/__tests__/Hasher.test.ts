@@ -1,9 +1,7 @@
 import {
-    SnarkBigInt,
     compileAndLoadCircuit
 } from '../'
 import {
-    SNARK_FIELD_SIZE,
     createDeposit,
     rbigInt
 } from '../../../lib'
