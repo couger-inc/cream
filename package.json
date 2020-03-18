@@ -13,7 +13,7 @@
     "preworkflow": "./scripts/pre-workflow.sh",
     "setup": "cd circuits && ./scripts/setup.sh",
     "test": "export NODE_OPTIONS=--experimental-worker && npx truffle test",
-    "test:workflow": "ganache-cli && npm run compile && npm run migrate && npm run test && npm run exit"
+    "test:workflow": "ganache-cli & npm run compile && npm run migrate && npm run test && npm run exit"
   },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
   "license": "ISC",
