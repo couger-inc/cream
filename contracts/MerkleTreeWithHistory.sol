@@ -7,8 +7,7 @@ library Hasher {
 
 contract MerkleTreeWithHistory {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617; // precompiled prime
-    uint256 public constant ZERO_VALUE =
-        2558267815324835836571784235309882327407732303445109280607932348234378166811;
+    uint256 public constant ZERO_VALUE = uint256(keccak256(abi.encodePacked('cream'))) % FIELD_SIZE;
 
     uint32 public levels;
 
