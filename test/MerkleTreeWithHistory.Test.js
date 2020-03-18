@@ -12,7 +12,7 @@ const {
 
 contract('MerkleTreeWithHistory', accounts => {
   let tree
-  const LEVELS = config.MERKLE_TREE_HEIGHT
+  let LEVELS = config.MERKLE_TREE_HEIGHT
   const ZERO_VALUE = config.ZERO_VALUE
   let hasherInstance
   let instance
@@ -42,7 +42,7 @@ contract('MerkleTreeWithHistory', accounts => {
   describe('insert', () => {
     it('should insert', async () => {
       let rootFromContract
-      for(let i = 1; i < 11; i++) {
+      for(let i = 1; i < LEVELS; i++) {
         await instance.insert(toFixedHex(i), {from: accounts[0]})
         tree.insert(i)
         const root = tree.root
@@ -51,9 +51,9 @@ contract('MerkleTreeWithHistory', accounts => {
       }
     })
     it('should reject if tree is full', async () => {
-      const levels = 6
-      const instance = await MerkleTreeContract.new(levels)
-      for (let i = 0; i < 2 ** levels; i++) {
+      LEVELS = 6
+      const instance = await MerkleTreeContract.new(LEVELS)
+      for (let i = 0; i < 2 ** LEVELS; i++) {
         await instance.insert(toFixedHex(i+42))
       }
       try {
