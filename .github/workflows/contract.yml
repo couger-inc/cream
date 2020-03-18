@@ -20,6 +20,8 @@ jobs:
       run: |
         npm ci
         npm run preworkflow
+        npm run bootstrap
+        npm run build:lerna
         npm run setup
     - name: Test
       env:
