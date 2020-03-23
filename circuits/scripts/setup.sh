@@ -8,8 +8,8 @@ PROJECT_DIR=$PWD
 
 CIRCUITS_DIR=$PROJECT_DIR/circuits/circom
 BUILD_CIRCUITS_DIR=$PROJECT_DIR/build/circuits
-CONFIG_DIR=$PROJECT_DIR/config
-CONTRACTS_DIR=$PROJECT_DIR/contracts
+CONTRACTS_DIR=$PROJECT_DIR/contracts/contracts
+CONFIG_DIR=$CONTRACTS_DIR/config
 
 # setup node options
 export NODE_OPTIONS=--experimental-worker

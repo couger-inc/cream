@@ -1,0 +1,27 @@
+{
+  "name": "cream-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "npx truffle compile",
+    "compile": "npx truffle compile",
+    "ganache": "./scripts/runGanache.sh",
+    "migrate": "npx truffle migrate",
+    "test": "npx truffle test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.5.0",
+    "@truffle/artifactor": "^4.0.52",
+    "config": "^3.3.0",
+    "truffle": "^5.1.18"
+  },
+  "devDependencies": {
+    "ganache-cli": "^6.9.1"
+  }
+}
