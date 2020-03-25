@@ -5,15 +5,16 @@
   "main": "index.js",
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
-    "build": "npm run setup && npm run compile && npm run migrate",
-    "build:lerna": "npx lerna run build",
-    "compile": "npx truffle compile",
+    "build": "npm run setup && npm lerna run build",
     "exit": "lsof -i :8545 | grep node | grep -v grep | awk '{ print \"kill -9\", $2 }' | sh",
     "migrate": "npx truffle migrate",
     "preworkflow": "./scripts/pre-workflow.sh",
-    "setup": "cd circuits && ./scripts/setup.sh",
-    "test": "export NODE_OPTIONS=--experimental-worker && npx truffle test",
-    "test:workflow": "ganache-cli & npm run compile && npm run migrate && npm run test && npm run exit"
+    "setup": "cd circuits && npm run setup",
+    "test:compile": "cd contracts && npm run compile",
+    "test:contracts": "cd contracts && npm run test",
+    "test:ganache": "cd contracts && npm run ganache",
+    "test:migrate": "cd contracts && npm run migrate",
+    "test:workflow": "npm run test:ganache & npm run test:compile && npm run test:migrate && npm run test:contracts && npm run exit"
   },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
   "license": "ISC",

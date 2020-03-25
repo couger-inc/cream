@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 const { toBN } = require('web3-utils')
 const config = require('config')
 const websnarkUtils = require('websnark/src/utils')
@@ -14,7 +15,7 @@ const {
   createDeposit,
   pedersenHash,
   rbigInt
-} = require('../lib/')
+} = require('../../lib')
 const {
   toFixedHex,
   getRandomRecipient,
@@ -24,6 +25,11 @@ const {
 } = require('./TestUtil')
 
 const truffleAssert = require('truffle-assertions')
+
+const loadVk = (binName) => {
+  const p = path.join(__dirname, '../../build/circuits/' + binName + '.bin')
+  return fs.readFileSync(p).buffer
+}
 
 contract('Cream', accounts => {
   let instance
@@ -47,8 +53,8 @@ contract('Cream', accounts => {
     instance = await Cream.deployed()
     snapshotId = await takeSnapshot()
     groth16 = await buildGroth16()
-    circuit = require('../build/circuits/vote.json')
-    proving_key = fs.readFileSync('build/circuits/vote_proving_key.bin').buffer
+    circuit = require('../../build/circuits/vote.json')
+    proving_key = loadVk('vote_proving_key')
   })
 
   describe('contructor', () => {

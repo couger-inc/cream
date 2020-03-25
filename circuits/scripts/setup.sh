@@ -9,7 +9,7 @@ PROJECT_DIR=$PWD
 CIRCUITS_DIR=$PROJECT_DIR/circuits/circom
 BUILD_CIRCUITS_DIR=$PROJECT_DIR/build/circuits
 CONTRACTS_DIR=$PROJECT_DIR/contracts/contracts
-CONFIG_DIR=$CONTRACTS_DIR/config
+CONFIG_DIR=$PROJECT_DIR/config
 
 # setup node options
 export NODE_OPTIONS=--experimental-worker
@@ -27,7 +27,7 @@ make_sed_alias
 
 # check if default.json file exists
 if [[ ! -f $CONFIG_DIR/default.json ]]; then
-  echo "No such file found. Exiting..."
+  echo "No config file found. Exiting..."
   exit 0
 else
   MERKLE_TREE_HEIGHT=$(cat $CONFIG_DIR/default.json | jq .MERKLE_TREE_HEIGHT)
@@ -44,7 +44,7 @@ fi
 npx circom $CIRCUITS_DIR/vote.circom -o $BUILD_CIRCUITS_DIR/vote.json &>/dev/null
 
 # optional: showing cuicuit information
-#npx snarkjs info -c $BUILD_CIRCUITS_DIR/vote.json
+npx snarkjs info -c $BUILD_CIRCUITS_DIR/vote.json
 
 # setup with groth16
 # create output files: vote_proving_key.json vote_verification_key.json
@@ -61,4 +61,5 @@ fi
 
 # generate verifier contract
 # create output file: Verifier.sol
+echo "Generating Verifier.sol contract"
 npx snarkjs generateverifier -v $CONTRACTS_DIR/Verifier.sol --vk $BUILD_CIRCUITS_DIR/vote_verification_key.json

@@ -3,7 +3,7 @@ const config = require('config')
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('Hasher.sol')
 
-const { MerkleTree } = require('../lib')
+const { MerkleTree } = require('../../lib')
 const {
   revertSnapshot,
   takeSnapshot,
