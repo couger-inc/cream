@@ -1,4 +1,5 @@
 config/default.json
+**/config/default.json
 **/build/
 node_modules
 

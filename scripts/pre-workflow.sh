@@ -10,6 +10,9 @@ if [[ ! -f $PROJECT_DIR/config/*.json ]]; then
   if [[ ! -d $PROJECT_DIR/config ]]; then
     mkdir config
   fi
+  if [[ ! -d $PROJECT_DIR/contracts/config ]]; then
+    mkdir contracts/config
+  fi
   cat <<EOF > $PROJECT_DIR/config/default.json
 {
   "MERKLE_TREE_HEIGHT": 1,
@@ -22,4 +25,5 @@ if [[ ! -f $PROJECT_DIR/config/*.json ]]; then
   "ZERO_VALUE": "2558267815324835836571784235309882327407732303445109280607932348234378166811"
 }
 EOF
+  cp $PROJECT_DIR/config/default.json $PROJECT_DIR/contracts/config
 fi
