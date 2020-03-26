@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
-    "build": "npm run setup && npm lerna build",
+    "build": "npm run setup && npx lerna build",
     "exit": "lsof -i :8545 | grep node | grep -v grep | awk '{ print \"kill -9\", $2 }' | sh",
     "migrate": "npx truffle migrate",
     "preworkflow": "./scripts/pre-workflow.sh",
