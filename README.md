@@ -35,17 +35,15 @@ $ cat ./config/default.json
 
 ```bash
 $ npm install
-$ npm run bootstrap && build:lerna
-$ ganache-cli
-
-# another process
+$ npm run bootstrap && \
 $ npm run build
+$ ganache-cli // or cd contracts && npm run ganache
 ```
 
 ## Test
 
 ```bash
-$ npm run test
+$ cd contracts && npm run test
 ```
 
 if you get an error after `npm run test`, such as `Error: Cannot find module 'worker_threads'`, please run following command.
