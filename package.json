@@ -10,9 +10,11 @@
     "migrate": "npx truffle migrate",
     "preworkflow": "./scripts/pre-workflow.sh",
     "setup": "cd circuits && npm run setup",
+    "test:circuits": "cd circuits && npm run test",
     "test:compile": "cd contracts && npm run compile",
     "test:contracts": "cd contracts && npm run test",
     "test:ganache": "cd contracts && npm run ganache",
+    "test:lib": "cd lib && npm run test",
     "test:migrate": "cd contracts && npm run migrate",
     "test:workflow": "npm run test:ganache & npm run test:compile && npm run test:migrate && npm run test:contracts && npm run exit"
   },

@@ -15,7 +15,8 @@ const {
   createDeposit,
   pedersenHash,
   rbigInt
-} = require('../../lib')
+} = require('cream-lib')
+
 const {
   toFixedHex,
   getRandomRecipient,

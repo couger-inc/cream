@@ -1,10 +1,11 @@
 import {
     compileAndLoadCircuit
 } from '../'
+
 import {
     createDeposit,
     rbigInt
-} from '../../../lib'
+} from 'cream-lib'
 
 const LENGTH = 31
 

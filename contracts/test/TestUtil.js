@@ -3,7 +3,12 @@ const crypto = require('crypto')
 const { toHex } = require('web3-utils')
 const snarkjs = require('snarkjs')
 const unstringifyBigInts = require('snarkjs/src/stringifybigint').unstringifyBigInts
-const { bigInt, pedersenHash, rbigInt } = require('../../lib')
+
+const {
+  bigInt,
+  pedersenHash,
+  rbigInt
+} = require('cream-lib')
 
 const getRandomRecipient = () => {
   let recipient = rbigInt(20)
