@@ -2,11 +2,13 @@ import {
     SnarkBigInt,
     compileAndLoadCircuit
 } from '../'
+
 import {
     MerkleTree,
     hashOne
-} from '../../../lib'
-import { toFixedHex } from '../../../test/TestUtil'
+} from 'cream-lib'
+
+import { toFixedHex } from '../../../contracts/test/TestUtil'
 
 const DEPTH = 4
 const ZERO_VALUE = 0

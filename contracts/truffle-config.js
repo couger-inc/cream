@@ -7,12 +7,6 @@ module.exports = {
       port: 8545
     }
   },
-  mocha: {
-    reporter: 'eth-gas-reporter',
-		reporterOptions: {
-			onlyCalledMethods: false
-		}
-  },
   compilers: {
     solc: {
        optimizer: {
