@@ -22,7 +22,6 @@ jobs:
         npm run preworkflow
         npm run bootstrap
         npm run build
-        npm run setup
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
