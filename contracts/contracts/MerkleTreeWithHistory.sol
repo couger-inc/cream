@@ -1,7 +1,7 @@
 // heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
 pragma solidity >=0.4.21 <0.7.0;
 
-library Hasher {
+library MiMC {
     function MiMCSponge(uint256 in_xL, uint256 in_xR, uint256 in_k) public pure returns (uint256 xL, uint256 xR);
 }
 
@@ -40,9 +40,9 @@ contract MerkleTreeWithHistory {
         require(uint256(_right) < FIELD_SIZE, "_right should be inside the field");
         uint256 R = uint256(_left);
         uint256 C = 0;
-        (R, C) = Hasher.MiMCSponge(R, C, 0);
+        (R, C) = MiMC.MiMCSponge(R, C, 0);
         R = addmod(R, uint256(_right), FIELD_SIZE);
-        (R, C) = Hasher.MiMCSponge(R, C, 0);
+        (R, C) = MiMC.MiMCSponge(R, C, 0);
         return bytes32(R);
     }
 

@@ -1,7 +1,7 @@
 const config = require('config')
 
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
-const hasherContract = artifacts.require('Hasher.sol')
+const hasherContract = artifacts.require('MiMC.sol')
 
 const { MerkleTree } = require('cream-lib')
 

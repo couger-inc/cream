@@ -4,7 +4,7 @@ const path = require('path')
 const {promisify} = require('util')
 const Cream = artifacts.require('Cream')
 const Verifier = artifacts.require('Verifier')
-const hasherContract = artifacts.require('Hasher')
+const hasherContract = artifacts.require('MiMC')
 
 module.exports = (deployer) => {
   deployer
