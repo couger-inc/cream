@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { toBN } = require('web3-utils')
+const { toBN, randomHex } = require('web3-utils')
 const config = require('config')
 const websnarkUtils = require('websnark/src/utils')
 const buildGroth16 = require('websnark/src/groth16')
@@ -59,7 +59,7 @@ contract('Cream', accounts => {
   })
 
   describe('contructor', () => {
-    it('should initialize', async () => {
+    it('should correctly initialize', async () => {
       const denomination = await instance.denomination()
       assert.equal(denomination, value)
     })
@@ -83,7 +83,8 @@ contract('Cream', accounts => {
       try {
         await instance.updateVerifier(newVerifier.address, {from: accounts[2]})
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.')
         return
       }
       assert.fail('Expected revert not received')
@@ -91,7 +92,7 @@ contract('Cream', accounts => {
   })
 
   describe('deposit', () => {
-    it('should emit event', async () => {
+    it('should correctly emit event', async () => {
       const commitment = toFixedHex(42)
       const tx = await instance.deposit(commitment, {value, from: accounts[0]})
       truffleAssert.prettyPrintEmittedEvents(tx)
@@ -107,13 +108,14 @@ contract('Cream', accounts => {
 
     })
 
-    it('should throw an error', async () => {
+    it('should throw an error for same commirment submittion', async () => {
       const commitment = toFixedHex(42)
       await instance.deposit(commitment, {value, from: accounts[0]})
       try {
         await instance.deposit(commitment, {value, from: accounts[0]})
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Already submitted -- Reason given: Already submitted.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Already submitted -- Reason given: Already submitted.')
         return
       }
       assert.fail('Expected revert not received')
@@ -142,6 +144,7 @@ contract('Cream', accounts => {
       let result = snarkVerify(proofData)
       assert.equal(result, true)
 
+      /* fake public signal */
       proofData.publicSignals[1] = '133792158246920651341275668520530514036799294649489851421007411546007850802'
       result = snarkVerify(proofData)
       assert.equal(result, false)
@@ -220,7 +223,8 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Fee exceeds transfer value -- Reason given: Fee exceeds transfer value.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Fee exceeds transfer value -- Reason given: Fee exceeds transfer value.')
         return
       }
       assert.fail('Expected revert not received')
@@ -257,7 +261,8 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert The note has been already spent -- Reason given: The note has been already spent.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert The note has been already spent -- Reason given: The note has been already spent.')
         return
       }
       assert.fail('Expected revert not received')
@@ -294,10 +299,90 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert verifier-gte-snark-scalar-field -- Reason given: verifier-gte-snark-scalar-field.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert verifier-gte-snark-scalar-field -- Reason given: verifier-gte-snark-scalar-field.')
         return
       }
       assert.fail('Expected revert not received')
+    })
+
+    it('should throw for corrupted merkle tree root', async() => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await tree.insert(deposit.commitment)
+      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
+      const input = stringifyBigInts({
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        relayer: relayer,
+        recipient,
+        fee,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
+      })
+      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
+      const { proof } = websnarkUtils.toSolidityInput(proofData)
+
+      const args = [
+        toFixedHex(randomHex(32)),
+        toFixedHex(input.nullifierHash),
+        toFixedHex(input.recipient, 20),
+        toFixedHex(input.relayer, 20),
+        toFixedHex(input.fee)
+      ]
+      try {
+        await instance.withdraw(proof, ...args, { from: relayer })
+      } catch(error) {
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Cannot find your merkle root -- Reason given: Cannot find your merkle root.')
+        return
+      }
+      assert.fail('Expected revert not received')
+      
+    })
+
+    it('should reject tampered public input on contract side', async() => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await tree.insert(deposit.commitment)
+      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
+      const input = stringifyBigInts({
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        relayer: relayer,
+        recipient,
+        fee,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
+      })
+      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
+      const { proof } = websnarkUtils.toSolidityInput(proofData)
+
+      // incorrect nullifierHash, using constant hash value
+      let incorrectArgs = [
+        toFixedHex(input.root),
+        toFixedHex('0x00abdfc78211f8807b9c6504a6e537e71b8788b2f529a95f1399ce124a8642ad'),
+        toFixedHex(input.recipient, 20),
+        toFixedHex(input.relayer, 20),
+        toFixedHex(input.fee)
+      ]
+
+      try {
+        await instance.withdraw(proof, ...incorrectArgs, { from: relayer })
+      } catch(error) {
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Invalid withdraw proof -- Reason given: Invalid withdraw proof.')
+        return
+      }
+      assert.fail('Expected revert not received')
+
+
     })
 
     it('should throw an error with random recipient', async() => {
@@ -336,7 +421,8 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Recipient do not exist -- Reason given: Recipient do not exist.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Recipient do not exist -- Reason given: Recipient do not exist.')
         return
       }
       assert.fail('Expected revert not received')
