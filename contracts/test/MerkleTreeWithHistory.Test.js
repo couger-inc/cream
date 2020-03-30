@@ -31,36 +31,46 @@ contract('MerkleTreeWithHistory', accounts => {
   })
 
   describe('constructor', () => {
-    it('should initialze', async () => {
+    it('should correctly initialze', async () => {
       const zeroValue = await instance.ZERO_VALUE()
       const firstSubtree = await instance.filledSubtrees(0)
-      assert.equal(firstSubtree, toFixedHex(zeroValue))
       const firstZero = await instance.zeros(0)
+      const rootFromContract = await instance.getLastRoot()
+
+      assert.equal(firstSubtree, toFixedHex(zeroValue))
       assert.equal(firstZero, toFixedHex(zeroValue))
+      assert.equal(toFixedHex(tree.root), rootFromContract.toString())
     })
   })
 
   describe('insert', () => {
-    it('should insert', async () => {
+    it('should correctly insert', async () => {
       let rootFromContract
+      
       for(let i = 1; i < LEVELS; i++) {
         await instance.insert(toFixedHex(i), {from: accounts[0]})
         tree.insert(i)
         const root = tree.root
         rootFromContract = await instance.getLastRoot()
+
         assert.equal(toFixedHex(root), rootFromContract.toString())
       }
     })
+    
     it('should reject if tree is full', async () => {
       LEVELS = 6
+      
       const instance = await MerkleTreeContract.new(LEVELS)
+      
       for (let i = 0; i < 2 ** LEVELS; i++) {
         await instance.insert(toFixedHex(i+42))
       }
+      
       try {
-        await instance.insert(toFixedHex(1337))
+        await instance.insert(toFixedHex(1))
       } catch(error) {
-        assert.equal(error.message, 'Returned error: VM Exception while processing transaction: revert Merkle tree is full -- Reason given: Merkle tree is full.')
+        assert.equal(error.message,
+		     'Returned error: VM Exception while processing transaction: revert Merkle tree is full -- Reason given: Merkle tree is full.')
         return
       }
       assert.fail('Expected revert not received')
