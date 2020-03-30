@@ -7,6 +7,7 @@ const buildGroth16 = require('websnark/src/groth16')
 const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
 
 const Cream = artifacts.require('./Cream.sol')
+const SignUpToken = artifacts.require('./SignUpToken.sol')
 const Verifier = artifacts.require('./Verifier.sol')
 
 const {
@@ -34,6 +35,7 @@ const loadVk = (binName) => {
 
 contract('Cream', accounts => {
   let instance
+  let tokenContract
   let snapshotId
   let proving_key
   let tree
@@ -52,19 +54,25 @@ contract('Cream', accounts => {
       ZERO_VALUE
     )
     instance = await Cream.deployed()
+    tokenContract = await SignUpToken.deployed()
     snapshotId = await takeSnapshot()
     groth16 = await buildGroth16()
     circuit = require('../../build/circuits/vote.json')
     proving_key = loadVk('vote_proving_key')
   })
 
-  describe('contructor', () => {
+  describe('constructor', () => {
     it('should correctly initialize', async () => {
       const denomination = await instance.denomination()
       assert.equal(denomination, value)
     })
 
-    it('should return correct address', async () => {
+    it('should return correct signuptoken address', async () => {
+      const tokenAddress = await instance.signUpToken.call()
+      assert.equal(tokenAddress, tokenContract.address)
+    })
+
+    it('should return correct recipient address', async () => {
       const expected = recipient
       const returned = await instance.recipients(0)
       assert.equal(expected, returned)

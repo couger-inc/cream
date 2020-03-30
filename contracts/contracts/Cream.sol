@@ -6,6 +6,7 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "./MerkleTreeWithHistory.sol";
+import "./SignUpToken.sol";
 import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../node_modules/@openzeppelin/contracts/ownership/Ownable.sol";
 
@@ -20,12 +21,14 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
     uint256 public denomination;
     address[] public recipients;
     IVerifier public verifier;
+    SignUpToken public signUpToken;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
     event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
     constructor(
         IVerifier _verifier,
+	SignUpToken _signUpToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients
@@ -33,6 +36,7 @@ contract Cream is MerkleTreeWithHistory, ReentrancyGuard, Ownable {
         require(_denomination > 0, "Denomination should be greater than 0");
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
+	signUpToken = _signUpToken;
         denomination = _denomination;
         setRecipients(_recipients);
         recipients = _recipients;

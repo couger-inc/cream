@@ -4,16 +4,18 @@ const path = require('path')
 const {promisify} = require('util')
 const Cream = artifacts.require('Cream')
 const Verifier = artifacts.require('Verifier')
+const SignUpToken = artifacts.require('SignUpToken')
 const hasherContract = artifacts.require('MiMC')
 
 module.exports = (deployer) => {
   deployer
   .then(async () => {
     const verifier = await Verifier.deployed()
+    const signUpToken = await SignUpToken.deployed()
     const hasherInstance = await hasherContract.deployed()
     const config = require('config')
     await Cream.link(hasherContract, hasherInstance.address)
-    await deployer.deploy(Cream, verifier.address, config.DENOMINATION, config.MERKLE_TREE_HEIGHT, config.RECIPIENTS)
+    await deployer.deploy(Cream, verifier.address, signUpToken.address, config.DENOMINATION, config.MERKLE_TREE_HEIGHT, config.RECIPIENTS)
   })
 //  .then(async () => {
 //    const basePath = path.resolve(__dirname, '../app/constants')
