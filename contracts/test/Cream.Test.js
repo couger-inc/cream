@@ -135,10 +135,30 @@ contract('Cream', accounts => {
       try {
 	await instance.deposit(commitment, {from: badUser})
       } catch(error) {
-	assert.equal(error.reason, 'Sender does not own token')
+	assert.equal(error.reason, 'Sender does not own appropreate amount of token')
 	return
       }
       assert.fail('Expected revert not received')
+    })
+
+    // voter and bad user collude pattern
+    it('should throw an error for more than two tokens holder', async () => {
+      await tokenContract.giveToken(badUser);
+      await tokenContract.setApprovalForAll(instance.address, true, { from: badUser })
+      await tokenContract.setApprovalForAll(badUser, true, { from: voter })
+      await tokenContract.safeTransferFrom(voter, badUser, 1, {from: voter})
+      
+      const commitment = toFixedHex(42)
+      try {
+	await instance.deposit(commitment, {from: badUser})
+      } catch(error) {
+	assert.equal(error.reason, 'Sender does not own appropreate amount of token')
+	return
+      }
+      assert.fail('Expected revert not received')
+
+      const balance = await tokenContract.balanceOf(badUser)
+      assert.equal(2, balance)
     })
 
     it('should throw an error for same commitment submittion', async () => {
