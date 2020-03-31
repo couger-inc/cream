@@ -69,8 +69,7 @@ contract('MerkleTreeWithHistory', accounts => {
       try {
         await instance.insert(toFixedHex(1))
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Merkle tree is full -- Reason given: Merkle tree is full.')
+        assert.equal(error.reason, 'Merkle tree is full')
         return
       }
       assert.fail('Expected revert not received')

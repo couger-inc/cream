@@ -45,8 +45,11 @@ contract('Cream', accounts => {
   const ZERO_VALUE = config.ZERO_VALUE
   const value = config.DENOMINATION
   let recipient = config.RECIPIENTS[0]
-  const fee = bigInt(value).shr(1)
-  const relayer = accounts[1]
+  const fee = bigInt(value).shr(0)
+  const contractOwner = accounts[0]
+  const voter = accounts[1]
+  const relayer = accounts[2]
+  const badUser = accounts[3]
 
   before(async () => {
     tree = new MerkleTree(
@@ -61,7 +64,12 @@ contract('Cream', accounts => {
     proving_key = loadVk('vote_proving_key')
   })
 
-  describe('constructor', () => {
+  beforeEach(async () => {
+    await tokenContract.giveToken(voter)
+    await tokenContract.setApprovalForAll(instance.address, true, { from: voter })
+  })
+
+  describe('initialize', () => {
     it('should correctly initialize', async () => {
       const denomination = await instance.denomination()
       assert.equal(denomination, value)
@@ -70,6 +78,16 @@ contract('Cream', accounts => {
     it('should return correct signuptoken address', async () => {
       const tokenAddress = await instance.signUpToken.call()
       assert.equal(tokenAddress, tokenContract.address)
+    })
+
+    it('should return correct current token supply amount', async () => {
+      const crrSupply = await tokenContract.getCurrentSupply()
+      assert.equal(crrSupply.toString(), 2)
+    })
+
+    it('should return corret token owner address', async () => {
+      const ownerOfToken1 = await tokenContract.ownerOf(1)
+      assert.equal(ownerOfToken1, voter)
     })
 
     it('should return correct recipient address', async () => {
@@ -89,10 +107,9 @@ contract('Cream', accounts => {
     it('should prevent update verifier contract by non-owner', async () => {
       const newVerifier = await Verifier.new()
       try {
-        await instance.updateVerifier(newVerifier.address, {from: accounts[2]})
+        await instance.updateVerifier(newVerifier.address, {from: voter})
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Ownable: caller is not the owner -- Reason given: Ownable: caller is not the owner.')
+        assert.equal(error.reason, 'Ownable: caller is not the owner')
         return
       }
       assert.fail('Expected revert not received')
@@ -102,28 +119,35 @@ contract('Cream', accounts => {
   describe('deposit', () => {
     it('should correctly emit event', async () => {
       const commitment = toFixedHex(42)
-      const tx = await instance.deposit(commitment, {value, from: accounts[0]})
-      truffleAssert.prettyPrintEmittedEvents(tx)
+      const tx = await instance.deposit(commitment, {from: voter})
+      // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Deposit')
     })
 
     it('should return correct index', async () => {
       let commitment = toFixedHex(42)
-      await instance.deposit(commitment, {value, from: accounts[0]})
-      commitment = toFixedHex(12)
-      const tx = await instance.deposit(commitment, {value, from: accounts[0]})
-      assert.equal(bigInt(tx.logs[0].args.leafIndex), 1)
-
+      const tx = await instance.deposit(commitment, {from: voter})
+      assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
     })
 
-    it('should throw an error for same commirment submittion', async () => {
+    it('should throw an error for non-token holder', async () => {
       const commitment = toFixedHex(42)
-      await instance.deposit(commitment, {value, from: accounts[0]})
       try {
-        await instance.deposit(commitment, {value, from: accounts[0]})
+	await instance.deposit(commitment, {from: badUser})
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Already submitted -- Reason given: Already submitted.')
+	assert.equal(error.reason, 'Sender does not own token')
+	return
+      }
+      assert.fail('Expected revert not received')
+    })
+
+    it('should throw an error for same commitment submittion', async () => {
+      const commitment = toFixedHex(42)
+      await instance.deposit(commitment, {from: voter})
+      try {
+        await instance.deposit(commitment, {from: voter})
+      } catch(error) {
+        assert.equal(error.reason, 'Already submitted')
         return
       }
       assert.fail('Expected revert not received')
@@ -140,7 +164,7 @@ contract('Cream', accounts => {
         root,
         nullifierHash: deposit.nullifierHash,
         nullifier: deposit.nullifier,
-        relayer: accounts[1],
+        relayer: relayer,
         recipient,
         fee,
         secret: deposit.secret,
@@ -160,11 +184,10 @@ contract('Cream', accounts => {
   })
 
   describe('withdraw', () => {
-    it('should work', async () => {
+    it('should correctly work and emit event', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
-      const user = accounts[2]
       tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: user })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -193,16 +216,51 @@ contract('Cream', accounts => {
       ]
 
       const tx = await instance.withdraw(proof, ...args, { from: relayer })
-      truffleAssert.prettyPrintEmittedEvents(tx)
+      // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Withdrawal')
       isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isTrue(isSpent)
     })
 
+    it('should correctly transfer token to recipient', async () => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      tree.insert(deposit.commitment)
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      const root = tree.root
+      const merkleProof = tree.getPathUpdate(0)
+      const input = stringifyBigInts({
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        relayer: relayer,
+        recipient,
+        fee,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1]
+      })
+
+
+      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
+      const { proof } = websnarkUtils.toSolidityInput(proofData)
+
+      const args = [
+        toFixedHex(input.root),
+        toFixedHex(input.nullifierHash),
+        toFixedHex(input.recipient, 20),
+        toFixedHex(input.relayer, 20),
+        toFixedHex(input.fee)
+      ]
+
+      await instance.withdraw(proof, ...args, { from: relayer })
+      const newTokenOwner = await tokenContract.ownerOf(1)
+      assert.equal(recipient, newTokenOwner)
+    })
+
     it('should prevent excess withdrawal', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -231,8 +289,7 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Fee exceeds transfer value -- Reason given: Fee exceeds transfer value.')
+        assert.equal(error.reason, 'Fee exceeds transfer value')
         return
       }
       assert.fail('Expected revert not received')
@@ -241,7 +298,7 @@ contract('Cream', accounts => {
     it('should prevent double spend', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -269,8 +326,7 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert The note has been already spent -- Reason given: The note has been already spent.')
+        assert.equal(error.reason, 'The note has been already spent')
         return
       }
       assert.fail('Expected revert not received')
@@ -279,7 +335,7 @@ contract('Cream', accounts => {
     it('should prevent double sepnd with overflow', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -307,8 +363,7 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert verifier-gte-snark-scalar-field -- Reason given: verifier-gte-snark-scalar-field.')
+        assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
         return
       }
       assert.fail('Expected revert not received')
@@ -317,7 +372,7 @@ contract('Cream', accounts => {
     it('should throw for corrupted merkle tree root', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -344,8 +399,7 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Cannot find your merkle root -- Reason given: Cannot find your merkle root.')
+        assert.equal(error.reason,'Cannot find your merkle root')
         return
       }
       assert.fail('Expected revert not received')
@@ -355,7 +409,7 @@ contract('Cream', accounts => {
     it('should reject tampered public input on contract side', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: accounts[0] })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -384,8 +438,7 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...incorrectArgs, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Invalid withdraw proof -- Reason given: Invalid withdraw proof.')
+        assert.equal(error.reason, 'Invalid withdraw proof')
         return
       }
       assert.fail('Expected revert not received')
@@ -396,9 +449,8 @@ contract('Cream', accounts => {
     it('should throw an error with random recipient', async() => {
       recipient = getRandomRecipient()
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
-      const user = accounts[2]
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { value, from: user })
+      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -429,12 +481,11 @@ contract('Cream', accounts => {
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
       } catch(error) {
-        assert.equal(error.message,
-		     'Returned error: VM Exception while processing transaction: revert Recipient do not exist -- Reason given: Recipient do not exist.')
+        assert.equal(error.reason, 'Recipient do not exist')
         return
       }
       assert.fail('Expected revert not received')
-      truffleAssert.prettyPrintEmittedEvents(tx)
+      // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Withdrawal')
       isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
       assert.isTrue(isSpent)
