@@ -6,7 +6,7 @@ module.exports = (deployer) => {
   return deployer.then(async () => {
     const contractsDir = path.join(__dirname, '..', 'build/contracts')
     let artifactor = new Artifactor(contractsDir)
-    let contractName = 'Hasher'
+    let contractName = 'MiMC'
     await artifactor.save({
       contractName,
       abi: genContract.abi,

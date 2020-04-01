@@ -45,7 +45,7 @@ const calculateRoot = (
 describe('MerkleTree', () => {
     const tree = new MerkleTree(DEPTH, ZERO_VALUE)
 
-    it('should initialize correctly', () => {
+    it('should correctly initialize', () => {
         const INITIAL_ROOT = bigInt("8234632431858659206959486870703726442454087730228411315786216865106603625166")
 
         expect(tree.depth.toString()).toEqual(DEPTH.toString())
@@ -65,7 +65,7 @@ describe('MerkleTree', () => {
         expect(calculateRoot(leaves).toString()).toEqual(tree.root.toString())
     })
 
-    it('should update correctly', () => {
+    it('should correctly update', () => {
         const tree1 = new MerkleTree(DEPTH, ZERO_VALUE)
         const tree2 = new MerkleTree(DEPTH, ZERO_VALUE)
         for (let i = 0; i < 2 ** DEPTH; i++) {
