@@ -50,6 +50,7 @@ contract('Cream', accounts => {
   const voter = accounts[1]
   const relayer = accounts[2]
   const badUser = accounts[3]
+  const voter2 = accounts[4]
 
   before(async () => {
     tree = new MerkleTree(
@@ -128,6 +129,38 @@ contract('Cream', accounts => {
       let commitment = toFixedHex(42)
       const tx = await instance.deposit(commitment, {from: voter})
       assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
+    })
+
+    it('should be able to find deposit event from commietment', async () => {
+      const commitment1 = toFixedHex(42)
+      const tx1 = await instance.deposit(commitment1, {from: voter})
+
+      // voter 2 deposit
+      await tokenContract.giveToken(voter2)
+      await tokenContract.setApprovalForAll(instance.address, true, { from: voter2 })
+      const commitment2 = toFixedHex(43)
+      const tx2 = await instance.deposit(commitment2, {from: voter2})
+
+      // TODO : load `gemerateMerkleProof` function from cream-lib
+      const events = await instance.getPastEvents('Deposit', { fromBlock: 0 })
+      const leaves = events
+	    .sort((a, b) => a.returnValues.leafIndex - b.returnValues.leafIndex)
+	    .map(e => e.returnValues.commitment)
+
+      for (let i = 0; i < leaves.length; i++) {
+	tree.insert(leaves[i])
+      }
+
+      let depositEvent = events.find(e => e.returnValues.commitment === commitment1)
+      let leafIndex = depositEvent.returnValues.leafIndex
+
+      assert.equal(leafIndex, bigInt(tx1.logs[0].args.leafIndex))
+
+      depositEvent = events.find(e => e.returnValues.commitment === commitment2)
+      leafIndex = depositEvent.returnValues.leafIndex
+
+      assert.equal(leafIndex, bigInt(tx2.logs[0].args.leafIndex))
+      
     })
 
     it('should throw an error for non-token holder', async () => {

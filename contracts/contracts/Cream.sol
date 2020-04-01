@@ -60,7 +60,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
 
     function deposit(bytes32 _commitment) external payable nonReentrant {
         require(!commitments[_commitment], "Already submitted");
-	require(signUpToken.balanceOf(msg.sender) == 1 , "Sender does not own appropreate amount of token");
+	require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
         _processDeposit();
