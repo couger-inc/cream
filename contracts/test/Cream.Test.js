@@ -160,7 +160,7 @@ contract('Cream', accounts => {
       leafIndex = depositEvent.returnValues.leafIndex
 
       assert.equal(leafIndex, bigInt(tx2.logs[0].args.leafIndex))
-      
+
     })
 
     it('should throw an error for non-token holder', async () => {
@@ -180,7 +180,7 @@ contract('Cream', accounts => {
       await tokenContract.setApprovalForAll(instance.address, true, { from: badUser })
       await tokenContract.setApprovalForAll(badUser, true, { from: voter })
       await tokenContract.safeTransferFrom(voter, badUser, 1, {from: voter})
-      
+
       const commitment = toFixedHex(42)
       try {
 	await instance.deposit(commitment, {from: badUser})
@@ -456,7 +456,7 @@ contract('Cream', accounts => {
         return
       }
       assert.fail('Expected revert not received')
-      
+
     })
 
     it('should reject tampered public input on contract side', async() => {
