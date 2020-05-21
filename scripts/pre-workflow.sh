@@ -13,7 +13,7 @@ if [[ ! -f $PROJECT_DIR/config/*.json ]]; then
   if [[ ! -d $PROJECT_DIR/contracts/config ]]; then
     mkdir contracts/config
   fi
-  cat <<EOF > $PROJECT_DIR/config/default.json
+  sudo cat <<EOF > $PROJECT_DIR/config/default.json
 {
   "MERKLE_TREE_HEIGHT": 1,
   "DENOMINATION": "100000000000000000",
