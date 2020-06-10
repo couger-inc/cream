@@ -5,9 +5,9 @@
 */
 pragma solidity >=0.4.21 <0.7.0;
 
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721Mintable.sol";
-import "../node_modules/@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Mintable.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract SignUpToken is ERC721Full, ERC721Mintable, Ownable {
     // keep track of total tokens
@@ -16,12 +16,12 @@ contract SignUpToken is ERC721Full, ERC721Mintable, Ownable {
 
     // give erc721 token to an address
     function giveToken(address to) public onlyOwner {
-	_mint(to, curTokenId);
-	curTokenId += 1;
+        _mint(to, curTokenId);
+        curTokenId += 1;
     }
 
     // how many tokens are allocated
     function getCurrentSupply() public view returns (uint256) {
-	return curTokenId;
+	    return curTokenId;
     }
 }
