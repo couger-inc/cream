@@ -148,7 +148,7 @@ contract('Cream', accounts => {
 	    .map(e => e.returnValues.commitment)
 
       for (let i = 0; i < leaves.length; i++) {
-	tree.insert(leaves[i])
+        tree.insert(leaves[i])
       }
 
       let depositEvent = events.find(e => e.returnValues.commitment === commitment1)
@@ -166,10 +166,10 @@ contract('Cream', accounts => {
     it('should throw an error for non-token holder', async () => {
       const commitment = toFixedHex(42)
       try {
-	await instance.deposit(commitment, {from: badUser})
+	      await instance.deposit(commitment, {from: badUser})
       } catch(error) {
-	assert.equal(error.reason, 'Sender does not own appropreate amount of token')
-	return
+        assert.equal(error.reason, 'Sender does not own appropreate amount of token')
+        return
       }
       assert.fail('Expected revert not received')
     })
@@ -183,10 +183,10 @@ contract('Cream', accounts => {
 
       const commitment = toFixedHex(42)
       try {
-	await instance.deposit(commitment, {from: badUser})
+	      await instance.deposit(commitment, {from: badUser})
       } catch(error) {
-	assert.equal(error.reason, 'Sender does not own appropreate amount of token')
-	return
+        assert.equal(error.reason, 'Sender does not own appropreate amount of token')
+        return
       }
       assert.fail('Expected revert not received')
 

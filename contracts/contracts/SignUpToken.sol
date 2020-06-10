@@ -16,12 +16,12 @@ contract SignUpToken is ERC721Full, ERC721Mintable, Ownable {
 
     // give erc721 token to an address
     function giveToken(address to) public onlyOwner {
-	_mint(to, curTokenId);
-	curTokenId += 1;
+        _mint(to, curTokenId);
+        curTokenId += 1;
     }
 
     // how many tokens are allocated
     function getCurrentSupply() public view returns (uint256) {
-	return curTokenId;
+	    return curTokenId;
     }
 }
