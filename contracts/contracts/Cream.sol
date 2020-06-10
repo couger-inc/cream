@@ -7,9 +7,9 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "./SignUpToken.sol";
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
-import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../node_modules/@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract IVerifier {
     function verifyProof(bytes memory _proof, uint256[5] memory _input) public returns(bool);
@@ -29,7 +29,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
 
     constructor(
         IVerifier _verifier,
-	SignUpToken _signUpToken,
+	    SignUpToken _signUpToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients
@@ -37,16 +37,16 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         require(_denomination > 0, "Denomination should be greater than 0");
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
-	signUpToken = _signUpToken;
+	    signUpToken = _signUpToken;
         denomination = _denomination;
         setRecipients(_recipients);
         recipients = _recipients;
     }
 
     function _processDeposit() internal {
-	require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
-	uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(msg.sender, 0);
-	signUpToken.safeTransferFrom(msg.sender, address(this), _tokenId);
+	    require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
+        uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(msg.sender, 0);
+        signUpToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
 
@@ -54,13 +54,13 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         address payable _recipient
     ) internal {
         require(msg.value == 0, "ETH value is supposed to be 0 for withdrawal");
-	uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(address(this), 0);
-	signUpToken.safeTransferFrom(address(this), _recipient, _tokenId);
+        uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(address(this), 0);
+        signUpToken.safeTransferFrom(address(this), _recipient, _tokenId);
     }
 
     function deposit(bytes32 _commitment) external payable nonReentrant {
         require(!commitments[_commitment], "Already submitted");
-	require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
+	    require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
         _processDeposit();
