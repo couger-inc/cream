@@ -31,6 +31,9 @@ $ cat ./config/default.json
   ],
   "ZERO_VALUE": "2558267815324835836571784235309882327407732303445109280607932348234378166811"
 }
+
+# copy config to contracts dir
+$ cp ./config/default.json ./contracts/config
 ```
 
 ```bash

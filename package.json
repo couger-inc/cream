@@ -21,8 +21,6 @@
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
   "license": "ISC",
   "dependencies": {
-    "circom": "0.0.35",
-    "circomlib": "0.0.20",
     "config": "^3.2.4",
     "dotenv": "^8.2.0",
     "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
