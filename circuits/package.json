@@ -1,26 +1,29 @@
 {
   "name": "cream-circuits",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
     "build": "npx tsc && npm run setup",
+    "watch": "tsc --watch",
     "setup": "./scripts/setup.sh",
     "test": "npx jest",
     "test:merkleTree": "npx jest MerkleTree.test.ts",
     "test:hasher": "jest Hasher.test.ts"
   },
-  "author": "",
+  "author": "Kazuaki Ishiguro",
   "license": "ISC",
   "devDependencies": {
-    "@types/jest": "^25.1.4",
+    "@types/jest": "^26.0.4",
+    "circomlib": "0.0.20",
+    "cream-merkle-tree": "0.0.3",
+    "jest": "^26.1.0",
+    "libcream": "0.0.3",
+    "ts-jest": "^26.1.2",
+    "typescript": "^3.9.6"
+  },
+  "dependencies": {
     "circom": "0.0.35",
-    "circomlib": "0.0.21",
-    "cream-lib": "1.0.0",
-    "jest": "^25.1.0",
-    "snarkjs": "^0.1.20",
-    "ts-jest": "^25.2.1",
-    "typescript": "^3.8.3",
-    "websnark": "0.0.5"
+    "snarkjs": "0.1.20"
   }
 }
