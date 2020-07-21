@@ -3,7 +3,7 @@ const config = require('config')
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('MiMC.sol')
 
-const { MerkleTree } = require('cream-lib')
+const MerkleTree = require('cream-merkle-tree').default
 
 const {
   revertSnapshot,
@@ -46,7 +46,7 @@ contract('MerkleTreeWithHistory', accounts => {
   describe('insert', () => {
     it('should correctly insert', async () => {
       let rootFromContract
-      
+
       for(let i = 1; i < LEVELS; i++) {
         await instance.insert(toFixedHex(i), {from: accounts[0]})
         tree.insert(i)
@@ -56,16 +56,16 @@ contract('MerkleTreeWithHistory', accounts => {
         assert.equal(toFixedHex(root), rootFromContract.toString())
       }
     })
-    
+
     it('should reject if tree is full', async () => {
       LEVELS = 6
-      
+
       const instance = await MerkleTreeContract.new(LEVELS)
-      
+
       for (let i = 0; i < 2 ** LEVELS; i++) {
         await instance.insert(toFixedHex(i+42))
       }
-      
+
       try {
         await instance.insert(toFixedHex(1))
       } catch(error) {
