@@ -2,6 +2,7 @@ config/default.json
 **/config/default.json
 **/build/
 node_modules
+package-lock.json
 
 # exported files
 *ABI.json
