@@ -20,15 +20,8 @@
   },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
   "license": "ISC",
-  "dependencies": {
-    "config": "^3.2.4",
-    "dotenv": "^8.2.0",
-    "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
-    "web3-utils": "^1.2.4",
-    "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "fs-extra": "^8.1.0",
     "lerna": "^3.22.1",
     "typescript": "^3.9.7"
   }
