@@ -1,8 +1,7 @@
 {
   "name": "cream",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
-  "main": "index.js",
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
@@ -18,8 +17,16 @@
     "test:migrate": "cd contracts && npm run migrate",
     "test:workflow": "npm run test:ganache & npm run test:compile && npm run test:migrate && npm run test:contracts && npm run exit"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/couger-inc/cream.git"
+  },
   "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/couger-inc/cream/issues"
+  },
+  "homepage": "https://github.com/couger-inc/cream#readme",
   "dependencies": {},
   "devDependencies": {
     "lerna": "^3.22.1",
