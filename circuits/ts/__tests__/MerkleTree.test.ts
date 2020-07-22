@@ -1,18 +1,25 @@
-import {
-    SnarkBigInt,
-    compileAndLoadCircuit
-} from '../'
-
-import {
-    MerkleTree,
-    hashOne
-} from 'cream-lib'
-
-import { toFixedHex } from '../../../contracts/test/TestUtil'
+import { mimcsponge } from 'circomlib'
+import MerkleTree from 'cream-merkle-tree'
+import { bigInt } from 'libcream'
+import { SnarkBigInt, compileAndLoadCircuit } from '../'
 
 const DEPTH = 4
 const ZERO_VALUE = 0
 
+const toFixedHex = (number, length = 32) => {
+  return (
+    '0x' +
+    bigInt(number)
+      .toString(16)
+      .padStart(length * 2, '0')
+  )
+}
+
+const hashOne = (
+    preImage: SnarkBigInt
+): SnarkBigInt => {
+    return mimcsponge.multiHash([preImage], 0, 1)
+}
 
 describe('MerkleTree circuit', () => {
     describe('LeafExists', () => {

@@ -1,11 +1,5 @@
-import {
-    compileAndLoadCircuit
-} from '../'
-
-import {
-    createDeposit,
-    rbigInt
-} from 'cream-lib'
+import { createDeposit, rbigInt } from 'libcream'
+import { compileAndLoadCircuit } from '../'
 
 const LENGTH = 31
 
@@ -48,10 +42,3 @@ describe('MiMC hash circuits', () => {
         })
     })
 })
-
-
-
-
-
-
-

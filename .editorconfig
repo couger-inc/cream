@@ -10,6 +10,8 @@ indent_size = 2
 [*.sol]
 indent_size = 4
 
+[*.ts]
+indent_size = 4
+
 [*.circom]
 indent_size = 4
-trim_trailing_whitespace = true

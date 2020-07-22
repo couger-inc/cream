@@ -1,8 +1,7 @@
 import * as path from 'path'
-import { Circuit, snarkjs } from 'snarkjs'
+import { Circuit } from 'snarkjs'
 const compiler = require('circom')
-
-type SnarkBigInt = snarkjs.bigInt
+import { SnarkBigInt } from 'libcream'
 
 const compileAndLoadCircuit = async (
     circuitFilename: string
@@ -15,5 +14,3 @@ export {
     SnarkBigInt,
     compileAndLoadCircuit
 }
-
-

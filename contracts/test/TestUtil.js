@@ -8,7 +8,7 @@ const {
   bigInt,
   pedersenHash,
   rbigInt
-} = require('cream-lib')
+} = require('libcream')
 
 const getRandomRecipient = () => {
   let recipient = rbigInt(20)

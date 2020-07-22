@@ -11,12 +11,12 @@ const SignUpToken = artifacts.require('./SignUpToken.sol')
 const Verifier = artifacts.require('./Verifier.sol')
 
 const {
-  MerkleTree,
   bigInt,
   createDeposit,
   pedersenHash,
   rbigInt
-} = require('cream-lib')
+} = require('libcream')
+const MerkleTree = require('cream-merkle-tree').default
 
 const {
   toFixedHex,

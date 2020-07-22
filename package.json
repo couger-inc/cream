@@ -1,8 +1,7 @@
 {
   "name": "cream",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
-  "main": "index.js",
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
@@ -18,21 +17,19 @@
     "test:migrate": "cd contracts && npm run migrate",
     "test:workflow": "npm run test:ganache & npm run test:compile && npm run test:migrate && npm run test:contracts && npm run exit"
   },
-  "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
-  "license": "ISC",
-  "dependencies": {
-    "circom": "0.0.35",
-    "circomlib": "0.0.20",
-    "config": "^3.2.4",
-    "crypto": "^1.0.1",
-    "dotenv": "^8.2.0",
-    "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
-    "web3-utils": "^1.2.4",
-    "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/couger-inc/cream.git"
   },
+  "author": "Kazuaki Ishiguro <kazuaki@couger.co.jp>",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/couger-inc/cream/issues"
+  },
+  "homepage": "https://github.com/couger-inc/cream#readme",
+  "dependencies": {},
   "devDependencies": {
-    "fs-extra": "^8.1.0",
-    "lerna": "^3.20.2",
-    "typescript": "^3.8.3"
+    "lerna": "^3.22.1",
+    "typescript": "^3.9.7"
   }
 }
