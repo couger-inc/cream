@@ -18,6 +18,7 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
     - name: NPM install and prepare
       run: |
+        npm ci
         npm run preworkflow
         npm run bootstrap
         npm run build
