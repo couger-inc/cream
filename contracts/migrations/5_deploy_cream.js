@@ -13,9 +13,9 @@ module.exports = (deployer) => {
     const verifier = await Verifier.deployed()
     const signUpToken = await SignUpToken.deployed()
     const hasherInstance = await hasherContract.deployed()
-    const config = require('config')
+    const {config} = require('cream-config')
     await Cream.link(hasherContract, hasherInstance.address)
-    await deployer.deploy(Cream, verifier.address, signUpToken.address, config.DENOMINATION, config.MERKLE_TREE_HEIGHT, config.RECIPIENTS)
+    await deployer.deploy(Cream, verifier.address, signUpToken.address, config.cream.denomination.toString(), config.cream.merkleTrees.toString(), config.cream.recipients)
   })
  .then(async () => {
    const basePath = path.resolve(__dirname, '../app/constants')
