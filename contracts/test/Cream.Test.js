@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
-const config = require('config')
+const { config } = require('cream-config')
 const websnarkUtils = require('websnark/src/utils')
 const buildGroth16 = require('websnark/src/groth16')
 const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
@@ -29,7 +29,7 @@ const {
 const truffleAssert = require('truffle-assertions')
 
 const loadVk = (binName) => {
-  const p = path.join(__dirname, '../../build/circuits/' + binName + '.bin')
+  const p = path.join(__dirname, '../../circuits/build/circuits/' + binName + '.bin')
   return fs.readFileSync(p).buffer
 }
 
@@ -41,10 +41,10 @@ contract('Cream', accounts => {
   let tree
   let groth16
   let circuit
-  const LEVELS = config.MERKLE_TREE_HEIGHT
-  const ZERO_VALUE = config.ZERO_VALUE
-  const value = config.DENOMINATION
-  let recipient = config.RECIPIENTS[0]
+  const LEVELS = config.cream.merkleTrees.toString()
+  const ZERO_VALUE = config.cream.zeroValue
+  const value = config.cream.denomination.toString()
+  let recipient = config.cream.recipients[0]
   const fee = bigInt(value).shr(0)
   const contractOwner = accounts[0]
   const voter = accounts[1]
@@ -61,8 +61,8 @@ contract('Cream', accounts => {
     tokenContract = await SignUpToken.deployed()
     snapshotId = await takeSnapshot()
     groth16 = await buildGroth16()
-    circuit = require('../../build/circuits/vote.json')
-    proving_key = loadVk('vote_proving_key')
+    circuit = require('../../circuits/build/circuits/vote.json')
+    proving_key = loadVk('proving_key')
   })
 
   beforeEach(async () => {

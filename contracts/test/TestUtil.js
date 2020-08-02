@@ -38,7 +38,7 @@ const send = (method, params = []) => {
 
 const snarkVerify = (proof) => {
   proof = unstringifyBigInts(proof)
-  const verification_key = unstringifyBigInts(require('../../build/circuits/vote_verification_key.json'))
+  const verification_key = unstringifyBigInts(require('../../circuits/build/circuits/verification_key.json'))
   return snarkjs['groth'].isValid(verification_key, proof, proof.publicSignals)
 }
 
