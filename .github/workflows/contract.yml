@@ -1,28 +1,29 @@
 name: cream contract test
-
-on: [push]
+on:
+  push:
+    branches:
+      - master
+      - develop
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [10.x, 11.x, 12.x]
-
     steps:
     - uses: actions/checkout@v1
-    - name: Setup node-version ${{ matrix.node-version }}
+    - name: Setup node-version
       uses: actions/setup-node@v1
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 10.x
         registry-url: 'https://registry.npmjs.org'
     - name: NPM install and prepare
       run: |
+        npm ci
+        npm run preworkflow
         npm run bootstrap
         npm run build
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
       run: |
-        npm run test
+        npm run test:workflow
