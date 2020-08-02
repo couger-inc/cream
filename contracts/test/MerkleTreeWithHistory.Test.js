@@ -1,4 +1,4 @@
-const config = require('config')
+const {config} = require('cream-config')
 
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('MiMC.sol')
@@ -13,8 +13,8 @@ const {
 
 contract('MerkleTreeWithHistory', accounts => {
   let tree
-  let LEVELS = config.MERKLE_TREE_HEIGHT
-  const ZERO_VALUE = config.ZERO_VALUE
+  let LEVELS = config.cream.merkleTrees.toString()
+  const ZERO_VALUE = config.cream.zeroValue
   let hasherInstance
   let instance
   let snapshotId
