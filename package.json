@@ -5,14 +5,13 @@
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
-    "exit": "lsof -i :8545 | grep node | grep -v grep | awk '{ print \"kill -9\", $2 }' | sh",
     "migrate": "npx truffle migrate",
     "test:circuits": "cd circuits && npm run test",
     "test:compile": "cd contracts && npm run compile",
     "test:contracts": "cd contracts && npm run test",
     "test:ganache": "cd contracts && npm run ganache",
     "test:migrate": "cd contracts && npm run migrate",
-    "test": "npm run test:ganache & npm run test:compile && npm run test:migrate && npm run test:contracts && npm run exit"
+    "test": "npm run test:ganache > /dev/null & GANACHE_PID=$! && npm run test:compile && npm run test:migrate && npm run test:contracts && kill $GANACHE_PID"
   },
   "repository": {
     "type": "git",
