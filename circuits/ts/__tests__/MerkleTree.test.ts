@@ -21,7 +21,34 @@ const hashOne = (
     return mimcsponge.multiHash([preImage], 0, 1)
 }
 
+const multiHash = (
+    d: SnarkBigInt[]
+): SnarkBigInt => {
+    return mimcsponge.multiHash(d)
+}
+
 describe('MerkleTree circuit', () => {
+    describe('HashLeftRight', () => {
+        let circuit
+
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('merkleTreeHashLeftRight_test.circom')
+        })
+
+        it('should hash correctly', async () => {
+            const circuitInputs = {
+                left: "12345",
+                right: "45678"
+            }
+            const witness = circuit.calculateWitness(circuitInputs)
+            const outputIdx = circuit.getSignalIdx("main.hash")
+            const output = witness[outputIdx]
+            const outputJS = multiHash([bigInt(12345), bigInt(45678)])
+
+            expect(output.toString()).toEqual(outputJS.toString())
+        })
+    })
+
     describe('Selector', () => {
         let circuit
 
@@ -205,8 +232,7 @@ describe('MerkleTree circuit', () => {
                 const circuitInputs = {
                     leaf: leaves[i],
                     path_elements: proof[0],
-                    path_index: proof[1],
-                    root
+                    path_index: proof[1]
                 }
 
                 const witness = circuit.calculateWitness(circuitInputs)
@@ -226,16 +252,13 @@ describe('MerkleTree circuit', () => {
                 leaves.push(leaf)
             }
 
-            const root = tree.root
-
             for (let i = 0; i < 2 ** DEPTH; i++) {
                 const proof = tree.getPathUpdate(i)
                 const circuitInputs = {
                     leaf: leaves[i],
                     // swapped proof
                     path_elements: proof[1],
-                    path_index: proof[0],
-                    root
+                    path_index: proof[0]
                 }
 
                 expect(() => {
