@@ -1,6 +1,6 @@
 {
   "name": "cream-circuits",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "main": "build/index.js",
   "scripts": {
@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "circom": "0.0.35",
-    "cream-config": "0.0.1",
     "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
     "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
   }

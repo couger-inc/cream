@@ -7,12 +7,12 @@ const DEPTH = 4
 const ZERO_VALUE = 0
 
 const toFixedHex = (number, length = 32) => {
-  return (
-    '0x' +
-    bigInt(number)
-      .toString(16)
-      .padStart(length * 2, '0')
-  )
+    return (
+        '0x' +
+        bigInt(number)
+            .toString(16)
+            .padStart(length * 2, '0')
+    )
 }
 
 const hashOne = (
@@ -21,7 +21,73 @@ const hashOne = (
     return mimcsponge.multiHash([preImage], 0, 1)
 }
 
+const multiHash = (
+    d: SnarkBigInt[]
+): SnarkBigInt => {
+    return mimcsponge.multiHash(d)
+}
+
 describe('MerkleTree circuit', () => {
+    describe('HashLeftRight', () => {
+        let circuit
+
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('merkleTreeHashLeftRight_test.circom')
+        })
+
+        it('should hash correctly', async () => {
+            const circuitInputs = {
+                left: "12345",
+                right: "45678"
+            }
+            const witness = circuit.calculateWitness(circuitInputs)
+            const outputIdx = circuit.getSignalIdx("main.hash")
+            const output = witness[outputIdx]
+            const outputJS = multiHash([bigInt(12345), bigInt(45678)])
+
+            expect(output.toString()).toEqual(outputJS.toString())
+        })
+    })
+
+    describe('Selector', () => {
+        let circuit
+
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('merkleTreeSelector_test.circom')
+        })
+
+        it('should select correct path', async () => {
+            const leaf = Math.floor(Math.random() * 1000)
+            const path_element = Math.floor(Math.random() * 1000)
+
+            const path_indexes = [0, 1]
+
+            path_indexes.forEach(path_index => {
+                const circuitInputs = {
+                    input_element: leaf,
+                    path_element: path_element,
+                    path_index
+                }
+
+                const witness = circuit.calculateWitness(circuitInputs)
+
+                const leftIdx = circuit.getSignalIdx("main.left")
+                const left = witness[leftIdx]
+
+                const rightIdx = circuit.getSignalIdx("main.right")
+                const right = witness[rightIdx]
+
+                if (path_index === 0) {
+                    expect(left.toString()).toEqual(leaf.toString())
+                    expect(right.toString()).toEqual(path_element.toString())
+                } else {
+                    expect(left.toString()).toEqual(path_element.toString())
+                    expect(right.toString()).toEqual(leaf.toString())
+                }
+            })
+        })
+    })
+
     describe('LeafExists', () => {
         let circuit
 
@@ -166,8 +232,7 @@ describe('MerkleTree circuit', () => {
                 const circuitInputs = {
                     leaf: leaves[i],
                     path_elements: proof[0],
-                    path_index: proof[1],
-                    root
+                    path_index: proof[1]
                 }
 
                 const witness = circuit.calculateWitness(circuitInputs)
@@ -187,16 +252,13 @@ describe('MerkleTree circuit', () => {
                 leaves.push(leaf)
             }
 
-            const root = tree.root
-
             for (let i = 0; i < 2 ** DEPTH; i++) {
                 const proof = tree.getPathUpdate(i)
                 const circuitInputs = {
                     leaf: leaves[i],
                     // swapped proof
                     path_elements: proof[1],
-                    path_index: proof[0],
-                    root
+                    path_index: proof[0]
                 }
 
                 expect(() => {
