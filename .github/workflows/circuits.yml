@@ -1,0 +1,28 @@
+name: cream circuit test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10.x, 11x, 12.x]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup node-version ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+        registry-url: 'https://registry.npmjs.org'
+    - name: NPM install
+      run: |
+        cd circuits
+        npm install
+    - name: Test
+      env:
+        NODE_OPTIONS: --experimental-worker
+      run: |
+        npm run test:circuits
