@@ -3,12 +3,11 @@ const {config} = require('cream-config')
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('MiMC.sol')
 
+const { toHex } = require('libcream')
 const MerkleTree = require('cream-merkle-tree').default
-
 const {
   revertSnapshot,
-  takeSnapshot,
-  toFixedHex
+  takeSnapshot
 } = require('./TestUtil')
 
 contract('MerkleTreeWithHistory', accounts => {
@@ -37,9 +36,9 @@ contract('MerkleTreeWithHistory', accounts => {
       const firstZero = await instance.zeros(0)
       const rootFromContract = await instance.getLastRoot()
 
-      assert.equal(firstSubtree, toFixedHex(zeroValue))
-      assert.equal(firstZero, toFixedHex(zeroValue))
-      assert.equal(toFixedHex(tree.root), rootFromContract.toString())
+      assert.equal(firstSubtree, toHex(zeroValue))
+      assert.equal(firstZero, toHex(zeroValue))
+      assert.equal(toHex(tree.root), rootFromContract.toString())
     })
   })
 
@@ -48,12 +47,12 @@ contract('MerkleTreeWithHistory', accounts => {
       let rootFromContract
 
       for(let i = 1; i < LEVELS; i++) {
-        await instance.insert(toFixedHex(i), {from: accounts[0]})
+        await instance.insert(toHex(i), {from: accounts[0]})
         tree.insert(i)
         const root = tree.root
         rootFromContract = await instance.getLastRoot()
 
-        assert.equal(toFixedHex(root), rootFromContract.toString())
+        assert.equal(toHex(root), rootFromContract.toString())
       }
     })
 
@@ -63,11 +62,11 @@ contract('MerkleTreeWithHistory', accounts => {
       const instance = await MerkleTreeContract.new(LEVELS)
 
       for (let i = 0; i < 2 ** LEVELS; i++) {
-        await instance.insert(toFixedHex(i+42))
+        await instance.insert(toHex(i+42))
       }
 
       try {
-        await instance.insert(toFixedHex(1))
+        await instance.insert(toHex(1))
       } catch(error) {
         assert.equal(error.reason, 'Merkle tree is full')
         return

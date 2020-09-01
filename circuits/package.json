@@ -18,7 +18,7 @@
     "circomlib": "0.0.20",
     "cream-merkle-tree": "0.0.3",
     "jest": "^26.1.0",
-    "libcream": "0.0.3",
+    "libcream": "0.0.5",
     "ts-jest": "^26.1.2",
     "typescript": "^3.9.6"
   },

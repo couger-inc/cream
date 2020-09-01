@@ -1,6 +1,6 @@
 import * as path from 'path'
+import * as compiler from 'circom'
 import { Circuit } from 'snarkjs'
-const compiler = require('circom')
 import { SnarkBigInt } from 'libcream'
 
 const compileAndLoadCircuit = async (
