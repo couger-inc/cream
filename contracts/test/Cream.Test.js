@@ -20,7 +20,6 @@ const {
 const MerkleTree = require('cream-merkle-tree').default
 
 const {
-  getRandomRecipient,
   snarkVerify,
   revertSnapshot,
   takeSnapshot
@@ -500,7 +499,7 @@ contract('Cream', accounts => {
     })
 
     it('should throw an error with random recipient', async() => {
-      recipient = getRandomRecipient()
+      recipient = '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
       await instance.deposit(toHex(deposit.commitment), { from: voter })

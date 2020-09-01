@@ -1,6 +1,5 @@
 const circomlib = require('circomlib')
 const crypto = require('crypto')
-const { toHex } = require('web3-utils')
 const snarkjs = require('snarkjs')
 const unstringifyBigInts = require('snarkjs/src/stringifybigint').unstringifyBigInts
 
@@ -9,14 +8,6 @@ const {
   pedersenHash,
   rbigInt
 } = require('libcream')
-
-const getRandomRecipient = () => {
-  let recipient = rbigInt(20)
-  while(toHex(recipient.toString()).length !== 42) {
-    recipient = rbigInt(20)
-  }
-  return recipient
-}
 
 const revertSnapshot = async (id) => {
   await send('evm_revert', [id])
@@ -51,7 +42,6 @@ const toFixedHex = (number, length=32) => {
 }
 
 module.exports = {
-  getRandomRecipient,
   snarkVerify,
   revertSnapshot,
   takeSnapshot,
