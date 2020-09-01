@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [10.x, 11.x, 12.x]
+        node-version: [12.x]
 
     steps:
     - uses: actions/checkout@v1
@@ -22,7 +22,5 @@ jobs:
         npm run bootstrap
         npm run build
     - name: Test
-      env:
-        NODE_OPTIONS: --experimental-worker
       run: |
         npm run test

@@ -11,7 +11,7 @@
     "compile": "npx truffle compile",
     "ganache": "./scripts/runGanache.sh",
     "migrate": "npx truffle migrate",
-    "test": "export NODE_OPTIONS=--experimental-worker && npx truffle test"
+    "test": "npx truffle test"
   },
   "author": "",
   "license": "ISC",
