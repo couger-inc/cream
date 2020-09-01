@@ -12,6 +12,7 @@ const Verifier = artifacts.require('./Verifier.sol')
 
 const {
   bigInt,
+  toHex,
   createDeposit,
   pedersenHash,
   rbigInt
@@ -19,7 +20,6 @@ const {
 const MerkleTree = require('cream-merkle-tree').default
 
 const {
-  toFixedHex,
   getRandomRecipient,
   snarkVerify,
   revertSnapshot,
@@ -119,27 +119,27 @@ contract('Cream', accounts => {
 
   describe('deposit', () => {
     it('should correctly emit event', async () => {
-      const commitment = toFixedHex(42)
-      const tx = await instance.deposit(commitment, {from: voter})
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      const tx = await instance.deposit(toHex(deposit.commitment), {from: voter})
       // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Deposit')
     })
 
     it('should return correct index', async () => {
-      let commitment = toFixedHex(42)
-      const tx = await instance.deposit(commitment, {from: voter})
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      const tx = await instance.deposit(toHex(deposit.commitment), {from: voter})
       assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
     })
 
     it('should be able to find deposit event from commietment', async () => {
-      const commitment1 = toFixedHex(42)
-      const tx1 = await instance.deposit(commitment1, {from: voter})
+      const deposit1 = createDeposit(rbigInt(31), rbigInt(31))
+      const tx1 = await instance.deposit(toHex(deposit1.commitment), {from: voter})
 
       // voter 2 deposit
       await tokenContract.giveToken(voter2)
       await tokenContract.setApprovalForAll(instance.address, true, { from: voter2 })
-      const commitment2 = toFixedHex(43)
-      const tx2 = await instance.deposit(commitment2, {from: voter2})
+      const deposit2 = createDeposit(rbigInt(31), rbigInt(31))
+      const tx2 = await instance.deposit(toHex(deposit2.commitment), {from: voter2})
 
       // TODO : load `gemerateMerkleProof` function from cream-lib
       const events = await instance.getPastEvents('Deposit', { fromBlock: 0 })
@@ -151,12 +151,12 @@ contract('Cream', accounts => {
         tree.insert(leaves[i])
       }
 
-      let depositEvent = events.find(e => e.returnValues.commitment === commitment1)
+      let depositEvent = events.find(e => e.returnValues.commitment === toHex(deposit1.commitment))
       let leafIndex = depositEvent.returnValues.leafIndex
 
       assert.equal(leafIndex, bigInt(tx1.logs[0].args.leafIndex))
 
-      depositEvent = events.find(e => e.returnValues.commitment === commitment2)
+      depositEvent = events.find(e => e.returnValues.commitment === toHex(deposit2.commitment))
       leafIndex = depositEvent.returnValues.leafIndex
 
       assert.equal(leafIndex, bigInt(tx2.logs[0].args.leafIndex))
@@ -164,9 +164,9 @@ contract('Cream', accounts => {
     })
 
     it('should throw an error for non-token holder', async () => {
-      const commitment = toFixedHex(42)
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       try {
-	      await instance.deposit(commitment, {from: badUser})
+	      await instance.deposit(toHex(deposit.commitment), {from: badUser})
       } catch(error) {
         assert.equal(error.reason, 'Sender does not own appropreate amount of token')
         return
@@ -181,9 +181,9 @@ contract('Cream', accounts => {
       await tokenContract.setApprovalForAll(badUser, true, { from: voter })
       await tokenContract.safeTransferFrom(voter, badUser, 1, {from: voter})
 
-      const commitment = toFixedHex(42)
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
       try {
-	      await instance.deposit(commitment, {from: badUser})
+	      await instance.deposit(toHex(deposit.commitment), {from: badUser})
       } catch(error) {
         assert.equal(error.reason, 'Sender does not own appropreate amount of token')
         return
@@ -195,10 +195,10 @@ contract('Cream', accounts => {
     })
 
     it('should throw an error for same commitment submittion', async () => {
-      const commitment = toFixedHex(42)
-      await instance.deposit(commitment, {from: voter})
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await instance.deposit(toHex(deposit.commitment), {from: voter})
       try {
-        await instance.deposit(commitment, {from: voter})
+        await instance.deposit(toHex(deposit.commitment), {from: voter})
       } catch(error) {
         assert.equal(error.reason, 'Already submitted')
         return
@@ -240,7 +240,7 @@ contract('Cream', accounts => {
     it('should correctly work and emit event', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -254,31 +254,31 @@ contract('Cream', accounts => {
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
       })
-      let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      let isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isFalse(isSpent)
 
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
 
       const tx = await instance.withdraw(proof, ...args, { from: relayer })
       // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Withdrawal')
-      isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isTrue(isSpent)
     })
 
     it('should correctly transfer token to recipient', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -298,11 +298,11 @@ contract('Cream', accounts => {
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
 
       await instance.withdraw(proof, ...args, { from: relayer })
@@ -313,7 +313,7 @@ contract('Cream', accounts => {
     it('should prevent excess withdrawal', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -332,11 +332,11 @@ contract('Cream', accounts => {
 
       const fake = bigInt('2000000000000000000')
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(fake)
+        toHex(input.root),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(fake)
       ]
 
       try {
@@ -351,7 +351,7 @@ contract('Cream', accounts => {
     it('should prevent double spend', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -369,11 +369,11 @@ contract('Cream', accounts => {
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
       await instance.withdraw(proof, ...args, { from: relayer })
       try {
@@ -388,7 +388,7 @@ contract('Cream', accounts => {
     it('should prevent double sepnd with overflow', async () => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -406,11 +406,11 @@ contract('Cream', accounts => {
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(toBN(input.nullifierHash).add(toBN('21888242871839275222246405745257275088548364400416034343698204186575808495617'))),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(toBN(input.nullifierHash).add(toBN('21888242871839275222246405745257275088548364400416034343698204186575808495617'))),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
 
       try {
@@ -425,7 +425,7 @@ contract('Cream', accounts => {
     it('should throw for corrupted merkle tree root', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -443,11 +443,11 @@ contract('Cream', accounts => {
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(randomHex(32)),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(randomHex(32)),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
       try {
         await instance.withdraw(proof, ...args, { from: relayer })
@@ -462,7 +462,7 @@ contract('Cream', accounts => {
     it('should reject tampered public input on contract side', async() => {
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -479,13 +479,13 @@ contract('Cream', accounts => {
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
-      // incorrect nullifierHash, using constant hash value
+      // incorrect nullifierHash, using commitment instead
       let incorrectArgs = [
-        toFixedHex(input.root),
-        toFixedHex('0x00abdfc78211f8807b9c6504a6e537e71b8788b2f529a95f1399ce124a8642ad'),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(deposit.commitment),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
 
       try {
@@ -503,7 +503,7 @@ contract('Cream', accounts => {
       recipient = getRandomRecipient()
       const deposit = createDeposit(rbigInt(31), rbigInt(31))
       await tree.insert(deposit.commitment)
-      await instance.deposit(toFixedHex(deposit.commitment), { from: voter })
+      await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
       const input = stringifyBigInts({
@@ -517,18 +517,18 @@ contract('Cream', accounts => {
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
       })
-      let isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      let isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isFalse(isSpent)
 
       const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
       const { proof } = websnarkUtils.toSolidityInput(proofData)
 
       const args = [
-        toFixedHex(input.root),
-        toFixedHex(input.nullifierHash),
-        toFixedHex(input.recipient, 20),
-        toFixedHex(input.relayer, 20),
-        toFixedHex(input.fee)
+        toHex(input.root),
+        toHex(input.nullifierHash),
+        toHex(input.recipient, 20),
+        toHex(input.relayer, 20),
+        toHex(input.fee)
       ]
 
       try {
@@ -540,7 +540,7 @@ contract('Cream', accounts => {
       assert.fail('Expected revert not received')
       // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Withdrawal')
-      isSpent = await instance.isSpent(toFixedHex(input.nullifierHash))
+      isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isTrue(isSpent)
     })
   })

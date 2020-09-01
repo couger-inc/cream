@@ -51,7 +51,6 @@ const toFixedHex = (number, length=32) => {
 }
 
 module.exports = {
-  toFixedHex,
   getRandomRecipient,
   snarkVerify,
   revertSnapshot,

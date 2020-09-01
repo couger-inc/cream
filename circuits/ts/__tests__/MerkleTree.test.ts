@@ -1,19 +1,10 @@
 import { mimcsponge } from 'circomlib'
 import MerkleTree from 'cream-merkle-tree'
-import { bigInt } from 'libcream'
+import { bigInt, toHex } from 'libcream'
 import { SnarkBigInt, compileAndLoadCircuit } from '../'
 
 const DEPTH = 4
 const ZERO_VALUE = 0
-
-const toFixedHex = (number, length = 32) => {
-    return (
-        '0x' +
-        bigInt(number)
-            .toString(16)
-            .padStart(length * 2, '0')
-    )
-}
 
 const hashOne = (
     preImage: SnarkBigInt
@@ -196,7 +187,7 @@ describe('MerkleTree circuit', () => {
                 tree.insert(leaf)
 
                 // Give the circuit a different leaf
-                leaves.push(toFixedHex(randVal + 1))
+                leaves.push(toHex(randVal + 1, 32))
             }
 
             const root = tree.root
