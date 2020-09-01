@@ -6,7 +6,7 @@ Confidential Reliable Ethereum Anonymous Mixer
 
 ## Requirement
 
-* node v10.*
+* `node` >=v10.x <=v12.x
 
 ## Setup
 
@@ -44,7 +44,7 @@ $ npm run migrate
 $ npm run test
 ```
 
-if you get an error after `npm run test`, such as `Error: Cannot find module 'worker_threads'`, please run following command.
+If you get an error after `npm run test` (probably on node version `<=10.x`), such as `Error: Cannot find module 'worker_threads'`, please run following command.
 
 ```bash
 $ export NODE_OPTIONS=--experimental-worker
