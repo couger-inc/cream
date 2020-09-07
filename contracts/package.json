@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "cream-config": "0.0.1",
-    "cream-merkle-tree": "0.0.3",
+    "cream-merkle-tree": "0.0.4",
     "ganache-cli": "^6.10.1",
     "libcream": "0.0.5",
     "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",

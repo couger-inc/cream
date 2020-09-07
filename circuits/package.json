@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/jest": "^26.0.4",
     "circomlib": "0.0.20",
-    "cream-merkle-tree": "0.0.3",
+    "cream-merkle-tree": "0.0.4",
     "jest": "^26.1.0",
     "libcream": "0.0.5",
     "ts-jest": "^26.1.2",
