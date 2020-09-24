@@ -1,16 +1,38 @@
+// Original code
+// https://github.com/appliedzkp/maci/blob/master/circuits/ts/index.ts
+
 import * as path from 'path'
-import * as compiler from 'circom'
-import { Circuit } from 'snarkjs'
 import { SnarkBigInt } from 'libcream'
+
+const tester = require('circom').tester
 
 const compileAndLoadCircuit = async (
     circuitFilename: string
 ) => {
-    const circuitDef = await compiler(path.join(__dirname, 'circuits', `../../circom/test/${circuitFilename}`))
-    return new Circuit(circuitDef)
+    const circuit = await tester(
+        path.join(
+            __dirname,
+            'circuits',
+            `../../circom/test/${circuitFilename}`,
+        ),
+    )
+    await circuit.loadSymbols()
+    return circuit
+
+}
+
+const executeCircuit = async (
+    circuit: any,
+    input: any,
+) => {
+    const witness = await circuit.calculateWitness(input)
+    await circuit.checkConstraints(witness)
+    await circuit.loadSymbols()
+    return witness
 }
 
 export {
     SnarkBigInt,
-    compileAndLoadCircuit
+    compileAndLoadCircuit,
+    executeCircuit
 }

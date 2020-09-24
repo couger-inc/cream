@@ -8,16 +8,20 @@ template Hasher() {
     signal output commitment;
     signal output nullifierHash;
 
-    component commitmentHasher = Pedersen(496);
-    component nullifierHasher = Pedersen(248);
-    component nullifierBits = Num2Bits(248);
-    component secretBits = Num2Bits(248);
+    var len=248;
+
+    component commitmentHasher = Pedersen(len*2);
+    component nullifierHasher = Pedersen(len);
+    component nullifierBits = Num2Bits(len);
+    component secretBits = Num2Bits(len);
+
     nullifierBits.in <== nullifier;
     secretBits.in <== secret;
-    for (var i = 0; i < 248; i++) {
+
+    for (var i = 0; i < len; i++) {
         nullifierHasher.in[i] <== nullifierBits.out[i];
         commitmentHasher.in[i] <== nullifierBits.out[i];
-        commitmentHasher.in[i + 248] <== secretBits.out[i];
+        commitmentHasher.in[i + len] <== secretBits.out[i];
     }
 
     commitment <== commitmentHasher.out[0];

@@ -1,5 +1,6 @@
+jest.setTimeout(50000)
 import { createDeposit, rbigInt } from 'libcream'
-import { compileAndLoadCircuit } from '../'
+import { compileAndLoadCircuit, executeCircuit } from '../'
 
 const LENGTH = 31
 
@@ -14,31 +15,16 @@ describe('MiMC hash circuits', () => {
             const secret = rbigInt(LENGTH)
             const deposit = createDeposit(nullifier, secret)
 
-            const circuitInputs = {
+            const input = {
                 nullifier,
                 secret
             }
 
-            const witness = circuit.calculateWitness(circuitInputs)
-            expect(witness[circuit.getSignalIdx('main.commitment')].toString()).toEqual(deposit.commitment.toString())
-            expect(witness[circuit.getSignalIdx('main.nullifierHash')].toString()).toEqual(deposit.nullifierHash.toString())
+            const witness = await executeCircuit(circuit, input)
+            expect(witness[circuit.symbols['main.commitment'].varIdx].toString()).toEqual(deposit.commitment.toString())
+            expect(witness[circuit.symbols['main.nullifierHash'].varIdx].toString()).toEqual(deposit.nullifierHash.toString())
         })
 
-        it('should return error with invalid bytes length input', async () => {
-            circuit = await compileAndLoadCircuit('hasher_test.circom')
-
-            const INVALID_LENGTH = LENGTH + 1
-            const nullifier = rbigInt(INVALID_LENGTH)
-            const secret = rbigInt(INVALID_LENGTH)
-
-            const circuitInputs = {
-                nullifier,
-                secret
-            }
-
-            expect(() => {
-                circuit.calculateWitness(circuitInputs)
-            }).toThrow()
-        })
+        // TODO : throw with invalid bytes length
     })
 })
