@@ -24,7 +24,7 @@
   "dependencies": {
     "circom": "^0.5.27",
     "circomlib": "^0.2.4",
-    "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
+    "snarkjs": "^0.3.34",
     "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
   }
 }
