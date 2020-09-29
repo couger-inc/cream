@@ -1,7 +1,7 @@
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
-import { executeCircuit } from '.'
+import { generateVerifier } from './generateVerifier'
 
 const isFileExists = (filepath: string): boolean => {
     const currentPath = path.join(__dirname, '..')
@@ -17,7 +17,7 @@ const main = () => {
     const ptauPath = './build/pot19_final.ptau'
     const zkey = './build/vote.zkey'
     const vkOut = './build/circuits/verification_key.json'
-    const solVerifier = './build/Verifier.sol'
+    const solVerifier = '../contracts/contracts/Verifier.sol'
 
     // 1: circuit compile and output file: ex`vote.json`
     // do not overwrite vote.json if it's exists
@@ -50,10 +50,16 @@ const main = () => {
     console.log(`Generated verification_key: \n${vkOut}`)
 
     // 4: export solidity verifier
-    execSync(`npx snarkjs zkey export solidityverifier ${zkey} ${solVerifier}`)
+    const verifier = generateVerifier(
+        JSON.parse(fs.readFileSync(vkOut).toString())
+    )
+
+    fs.writeFileSync(solVerifier, verifier)
+
+    //    execSync(`npx snarkjs zkey export solidityverifier ${zkey} ${solVerifier}`)
     console.log(`Generated verifier contract: \n ${solVerifier}`)
-    console.log(`Moving verifier contract to contract directory`)
-    execSync(`mv ${solVerifier} ../contracts/contracts/`)
+    //    console.log(`Moving verifier contract to contract directory`)
+    //    execSync(`mv ${solVerifier} ../contracts/contracts/`)
 }
 
 if (require.main === module) {
