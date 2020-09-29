@@ -52,6 +52,8 @@ const main = () => {
     // 4: export solidity verifier
     execSync(`npx snarkjs zkey export solidityverifier ${zkey} ${solVerifier}`)
     console.log(`Generated verifier contract: \n ${solVerifier}`)
+    console.log(`Moving verifier contract to contract directory`)
+    execSync(`mv ${solVerifier} ../contracts/contracts/`)
 }
 
 if (require.main === module) {
