@@ -9,7 +9,7 @@ describe('MiMC hash circuits', () => {
 
     describe('Hasher', () => {
         it('should return correct hashed values', async () => {
-            circuit = await compileAndLoadCircuit('hasher_test.circom')
+            circuit = await compileAndLoadCircuit('test/hasher_test.circom')
 
             const nullifier = rbigInt(LENGTH)
             const secret = rbigInt(LENGTH)

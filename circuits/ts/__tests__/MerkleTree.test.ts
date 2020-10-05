@@ -24,7 +24,7 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTreeHashLeftRight_test.circom')
+            circuit = await compileAndLoadCircuit('test/merkleTreeHashLeftRight_test.circom')
         })
 
         it('should hash correctly', async () => {
@@ -41,180 +41,180 @@ describe('MerkleTree circuit', () => {
         })
     })
 
-        describe('LeafExists', () => {
-            let circuit
+    describe('LeafExists', () => {
+        let circuit
 
-            beforeAll(async () => {
-                circuit = await compileAndLoadCircuit('merkleTreeLeafExists_test.circom')
-            })
-
-            it('should work with valid input for LeafExists', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-                    leaves.push(leaf)
-                }
-
-                const root = tree.root
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const proof = tree.getPathUpdate(i)
-                    const input = {
-                        leaf: leaves[i],
-                        path_elements: proof[0],
-                        path_index: proof[1],
-                        root,
-                    }
-
-                    const witness = await executeCircuit(circuit, input)
-                    const circuitRoot = witness[circuit.symbols["main.root"].varIdx]
-                    expect(circuitRoot.toString()).toEqual(root.toString())
-                }
-            })
-
-            it('should return error with invalid LeafExists input', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-                    leaves.push(leaf)
-                }
-
-                const root = tree.root
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const proof = tree.getPathUpdate(i)
-
-                    const input = {
-                        leaf: leaves[i],
-                        // swapping input elements
-                        path_elements: proof[1],
-                        path_index: proof[0],
-                        root
-                    }
-
-                    try {
-                        await executeCircuit(circuit, input)
-                    } catch {
-                        expect(true).toBeTruthy()
-                    }
-                }
-            })
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('test/merkleTreeLeafExists_test.circom')
         })
 
-        describe('CheckRoot', () => {
-            let circuit
+        it('should work with valid input for LeafExists', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
 
-            beforeAll(async () => {
-                circuit = await compileAndLoadCircuit('merkleTreeCheckRoot_test.circom')
-            })
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+                leaves.push(leaf)
+            }
 
-            it('should return valid root', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
+            const root = tree.root
 
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-                    leaves.push(leaf)
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const proof = tree.getPathUpdate(i)
+                const input = {
+                    leaf: leaves[i],
+                    path_elements: proof[0],
+                    path_index: proof[1],
+                    root,
                 }
 
-                const root = tree.root
+                const witness = await executeCircuit(circuit, input)
+                const circuitRoot = witness[circuit.symbols["main.root"].varIdx]
+                expect(circuitRoot.toString()).toEqual(root.toString())
+            }
+        })
 
-                const input = { leaves }
+        it('should return error with invalid LeafExists input', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+                leaves.push(leaf)
+            }
+
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const proof = tree.getPathUpdate(i)
+
+                const input = {
+                    leaf: leaves[i],
+                    // swapping input elements
+                    path_elements: proof[1],
+                    path_index: proof[0],
+                    root
+                }
+
+                try {
+                    await executeCircuit(circuit, input)
+                } catch {
+                    expect(true).toBeTruthy()
+                }
+            }
+        })
+    })
+
+    describe('CheckRoot', () => {
+        let circuit
+
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('test/merkleTreeCheckRoot_test.circom')
+        })
+
+        it('should return valid root', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+                leaves.push(leaf)
+            }
+
+            const root = tree.root
+
+            const input = { leaves }
+
+            const witness = await executeCircuit(circuit, input)
+            expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
+        })
+
+        it('should generate different root from different leaves', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+
+                // Give the circuit a different leaf
+                leaves.push(toHex(randVal + 1, 32))
+            }
+
+            const root = tree.root
+            const input = { leaves }
+            const witness = await executeCircuit(circuit, input)
+            expect(witness[circuit.symbols["main.root"].varIdx].toString()).not.toEqual(root.toString())
+        })
+    })
+
+    describe('MerkleTree', () => {
+        let circuit
+
+        beforeAll(async () => {
+            circuit = await compileAndLoadCircuit('test/merkleTree_test.circom')
+        })
+
+        it('should work with valid input', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+                leaves.push(leaf)
+            }
+
+            const root = tree.root
+
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const proof = tree.getPathUpdate(i)
+                const input = {
+                    leaf: leaves[i],
+                    path_elements: proof[0],
+                    path_index: proof[1]
+                }
 
                 const witness = await executeCircuit(circuit, input)
                 expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
-            })
-
-            it('should generate different root from different leaves', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-
-                    // Give the circuit a different leaf
-                    leaves.push(toHex(randVal + 1, 32))
-                }
-
-                const root = tree.root
-                const input = { leaves }
-                const witness = await executeCircuit(circuit, input)
-                expect(witness[circuit.symbols["main.root"].varIdx].toString()).not.toEqual(root.toString())
-            })
+            }
         })
 
-        describe('MerkleTree', () => {
-            let circuit
+        it('should return error with invalid proof', async () => {
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            let leaves: SnarkBigInt[] = []
 
-            beforeAll(async () => {
-                circuit = await compileAndLoadCircuit('merkleTree_test.circom')
-            })
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const randVal = Math.floor(Math.random() * 1000)
+                const leaf = hashOne(randVal)
+                tree.insert(leaf)
+                leaves.push(leaf)
+            }
 
-            it('should work with valid input', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-                    leaves.push(leaf)
+            for (let i = 0; i < 2 ** LEVELS; i++) {
+                const proof = tree.getPathUpdate(i)
+                const input = {
+                    leaf: leaves[i],
+                    // swapped proof
+                    path_elements: proof[1],
+                    path_index: proof[0]
                 }
 
-                const root = tree.root
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const proof = tree.getPathUpdate(i)
-                    const input = {
-                        leaf: leaves[i],
-                        path_elements: proof[0],
-                        path_index: proof[1]
-                    }
-
-                    const witness = await executeCircuit(circuit, input)
-                    expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
+                try {
+                    await executeCircuit(circuit, input)
+                } catch {
+                    expect(true).toBeTruthy()
                 }
-            })
-
-            it('should return error with invalid proof', async () => {
-                const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-                let leaves: SnarkBigInt[] = []
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const randVal = Math.floor(Math.random() * 1000)
-                    const leaf = hashOne(randVal)
-                    tree.insert(leaf)
-                    leaves.push(leaf)
-                }
-
-                for (let i = 0; i < 2 ** LEVELS; i++) {
-                    const proof = tree.getPathUpdate(i)
-                    const input = {
-                        leaf: leaves[i],
-                        // swapped proof
-                        path_elements: proof[1],
-                        path_index: proof[0]
-                    }
-
-                    try {
-                        await executeCircuit(circuit, input)
-                    } catch {
-                        expect(true).toBeTruthy()
-                    }
-                }
-            })
+            }
         })
+    })
 })
 

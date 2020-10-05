@@ -18,16 +18,17 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
     "@truffle/artifactor": "^4.0.52",
+    "ffjavascript": "^0.2.22",
     "fs-extra": "^9.0.1",
+    "snarkjs": "^0.3.34",
     "truffle": "^5.1.18"
   },
   "devDependencies": {
+	"cream-circuits": "1.1.1",
     "cream-config": "0.0.1",
     "cream-merkle-tree": "0.0.4",
     "ganache-cli": "^6.10.1",
     "libcream": "0.0.5",
-    "snarkjs": "git+https://github.com/peppersec/snarkjs.git#869181cfaf7526fe8972073d31655493a04326d5",
-    "truffle-assertions": "^0.9.2",
-    "websnark": "git+https://github.com/peppersec/websnark.git#c254b5962287b788081be1047fa0041c2885b39f"
+    "truffle-assertions": "^0.9.2"
   }
 }

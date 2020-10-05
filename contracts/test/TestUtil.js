@@ -1,7 +1,8 @@
+const fs = require('fs')
+const path = require('path')
 const circomlib = require('circomlib')
 const crypto = require('crypto')
 const snarkjs = require('snarkjs')
-const unstringifyBigInts = require('snarkjs/src/stringifybigint').unstringifyBigInts
 
 const {
   bigInt,
@@ -27,10 +28,12 @@ const send = (method, params = []) => {
   })
 }
 
-const snarkVerify = (proof) => {
-  proof = unstringifyBigInts(proof)
-  const verification_key = unstringifyBigInts(require('../../circuits/build/circuits/verification_key.json'))
-  return snarkjs['groth'].isValid(verification_key, proof, proof.publicSignals)
+const snarkVerify = async (
+  proof,
+  publicSignals
+) => {
+  const vk = JSON.parse(fs.readFileSync(path.join(__dirname, '../../circuits/build/circuits/verification_key.json')).toString())
+  return await snarkjs.groth16.verify(vk, publicSignals, proof)
 }
 
 const takeSnapshot = async () => {

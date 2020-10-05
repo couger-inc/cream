@@ -2,9 +2,12 @@ const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
-const websnarkUtils = require('websnark/src/utils')
-const buildGroth16 = require('websnark/src/groth16')
-const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
+const { genProofAndPublicSignals } = require('cream-circuits')
+//const websnarkUtils = require('websnark/src/utils')
+//const buildGroth16 = require('websnark/src/groth16')
+//const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
+
+const stringifyBigInts = require('ffjavascript').utils
 
 const Cream = artifacts.require('./Cream.sol')
 const SignUpToken = artifacts.require('./SignUpToken.sol')
@@ -59,9 +62,9 @@ contract('Cream', accounts => {
     instance = await Cream.deployed()
     tokenContract = await SignUpToken.deployed()
     snapshotId = await takeSnapshot()
-    groth16 = await buildGroth16()
-    circuit = require('../../circuits/build/circuits/vote.json')
-    proving_key = loadVk('proving_key')
+//    groth16 = await buildGroth16()
+//    circuit = require('../../circuits/build/circuits/vote.json')
+//    proving_key = loadVk('proving_key')
   })
 
   beforeEach(async () => {
@@ -212,7 +215,7 @@ contract('Cream', accounts => {
       tree.insert(deposit.commitment)
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: deposit.nullifierHash,
         nullifier: deposit.nullifier,
@@ -222,16 +225,22 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      let proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const originalProof = JSON.parse(JSON.stringify(proofData))
-      let result = snarkVerify(proofData)
-      assert.equal(result, true)
+      }
+      //      let proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
 
+      const {proof, publicSignals, witness, circuit} = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm',
+      )
+
+      const result = await snarkVerify(proof, publicSignals)
+      assert.equal(result, true)
       /* fake public signal */
-      proofData.publicSignals[1] = '133792158246920651341275668520530514036799294649489851421007411546007850802'
-      result = snarkVerify(proofData)
-      assert.equal(result, false)
+      // proofData.publicSignals[1] = '133792158246920651341275668520530514036799294649489851421007411546007850802'
+      // result = snarkVerify(proofData)
+      // assert.equal(result, false)
     })
   })
 
