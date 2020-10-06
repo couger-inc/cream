@@ -90,10 +90,18 @@ const genProofAndPublicSignals = async (
     }
 }
 
+const snarkVerify = async (
+    proof: any,
+    publicSignals: any
+): Promise<boolean> => {
+    const vk = JSON.parse(fs.readFileSync(path.join(__dirname, '../../circuits/build/circuits/verification_key.json')).toString())
+    return await snarkjs.groth16.verify(vk, publicSignals, proof)
+}
 
 export {
     SnarkBigInt,
     compileAndLoadCircuit,
     executeCircuit,
     genProofAndPublicSignals,
+    snarkVerify
 }

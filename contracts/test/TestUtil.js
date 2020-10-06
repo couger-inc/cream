@@ -28,14 +28,6 @@ const send = (method, params = []) => {
   })
 }
 
-const snarkVerify = async (
-  proof,
-  publicSignals
-) => {
-  const vk = JSON.parse(fs.readFileSync(path.join(__dirname, '../../circuits/build/circuits/verification_key.json')).toString())
-  return await snarkjs.groth16.verify(vk, publicSignals, proof)
-}
-
 const takeSnapshot = async () => {
   return await send('evm_snapshot')
 }
@@ -45,7 +37,6 @@ const toFixedHex = (number, length=32) => {
 }
 
 module.exports = {
-  snarkVerify,
   revertSnapshot,
   takeSnapshot,
 }

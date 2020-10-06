@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
-const { genProofAndPublicSignals } = require('cream-circuits')
+const { genProofAndPublicSignals, snarkVerify } = require('cream-circuits')
 //const websnarkUtils = require('websnark/src/utils')
 //const buildGroth16 = require('websnark/src/groth16')
 //const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
@@ -23,7 +23,6 @@ const {
 const MerkleTree = require('cream-merkle-tree').default
 
 const {
-  snarkVerify,
   revertSnapshot,
   takeSnapshot
 } = require('./TestUtil')
