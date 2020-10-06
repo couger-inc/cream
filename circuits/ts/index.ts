@@ -103,5 +103,7 @@ export {
     compileAndLoadCircuit,
     executeCircuit,
     genProofAndPublicSignals,
-    snarkVerify
+    snarkVerify,
+    stringifyBigInts,
+    unstringifyBigInts
 }

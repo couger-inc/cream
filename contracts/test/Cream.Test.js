@@ -2,16 +2,12 @@ const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
-const { genProofAndPublicSignals, snarkVerify } = require('cream-circuits')
-//const websnarkUtils = require('websnark/src/utils')
-//const buildGroth16 = require('websnark/src/groth16')
-//const stringifyBigInts = require('websnark/tools/stringifybigint').stringifyBigInts
-
-const stringifyBigInts = require('ffjavascript').utils
-
-const Cream = artifacts.require('./Cream.sol')
-const SignUpToken = artifacts.require('./SignUpToken.sol')
-const Verifier = artifacts.require('./Verifier.sol')
+const {
+  genProofAndPublicSignals,
+  snarkVerify,
+  stringifyBigInts,
+  unstringifyBigInts
+} = require('cream-circuits')
 
 const {
   bigInt,
@@ -20,6 +16,7 @@ const {
   pedersenHash,
   rbigInt
 } = require('libcream')
+
 const MerkleTree = require('cream-merkle-tree').default
 
 const {
@@ -29,9 +26,34 @@ const {
 
 const truffleAssert = require('truffle-assertions')
 
+const Cream = artifacts.require('./Cream.sol')
+const SignUpToken = artifacts.require('./SignUpToken.sol')
+const Verifier = artifacts.require('./Verifier.sol')
+
 const loadVk = (binName) => {
   const p = path.join(__dirname, '../../circuits/build/circuits/' + binName + '.bin')
   return fs.readFileSync(p).buffer
+}
+
+const toHex32 = (number) => {
+  let str = number.toString(16);
+  while (str.length < 64) str = "0" + str;
+  return str;
+}
+
+// Ported from old websnark library
+// https://github.com/tornadocash/websnark/blob/master/src/utils.js#L74
+const toSolidityInput = (proof) =>{
+  return "0x" + unstringifyBigInts([
+    proof.pi_a[0],
+    proof.pi_a[1],
+    proof.pi_b[0][1],
+    proof.pi_b[0][0],
+    proof.pi_b[1][1],
+    proof.pi_b[1][0],
+    proof.pi_c[0],
+    proof.pi_c[1],
+  ]).map(x => toHex32(x)).join("")
 }
 
 contract('Cream', accounts => {
@@ -61,9 +83,6 @@ contract('Cream', accounts => {
     instance = await Cream.deployed()
     tokenContract = await SignUpToken.deployed()
     snapshotId = await takeSnapshot()
-//    groth16 = await buildGroth16()
-//    circuit = require('../../circuits/build/circuits/vote.json')
-//    proving_key = loadVk('proving_key')
   })
 
   beforeEach(async () => {
@@ -225,21 +244,26 @@ contract('Cream', accounts => {
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
       }
-      //      let proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
 
-      const {proof, publicSignals, witness, circuit} = await genProofAndPublicSignals(
+      const {
+        proof,
+        publicSignals,
+        witness,
+        circuit
+      } = await genProofAndPublicSignals(
         input,
         'vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm',
       )
 
-      const result = await snarkVerify(proof, publicSignals)
+      let result = await snarkVerify(proof, publicSignals)
       assert.equal(result, true)
+
       /* fake public signal */
-      // proofData.publicSignals[1] = '133792158246920651341275668520530514036799294649489851421007411546007850802'
-      // result = snarkVerify(proofData)
-      // assert.equal(result, false)
+      publicSignals[0] = '133792158246920651341275668520530514036799294649489851421007411546007850802'
+      result = await snarkVerify(proof, publicSignals)
+      assert.equal(result, false)
     })
   })
 
@@ -250,7 +274,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -260,12 +284,19 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
+      }
+
       let isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isFalse(isSpent)
 
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      const {
+        proof,
+      } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+      )
 
       const args = [
         toHex(input.root),
@@ -275,9 +306,13 @@ contract('Cream', accounts => {
         toHex(input.fee)
       ]
 
-      const tx = await instance.withdraw(proof, ...args, { from: relayer })
+      const proofForSolidityInput = toSolidityInput(proof)
+      const tx = await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
+
       // truffleAssert.prettyPrintEmittedEvents(tx)
       truffleAssert.eventEmitted(tx, 'Withdrawal')
+
+      // check if nullifierhash status has changed correctly
       isSpent = await instance.isSpent(toHex(input.nullifierHash))
       assert.isTrue(isSpent)
     })
@@ -288,7 +323,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -298,11 +333,16 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
+      }
 
-
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      const {
+        proof
+	  } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+	  )
 
       const args = [
         toHex(input.root),
@@ -312,7 +352,9 @@ contract('Cream', accounts => {
         toHex(input.fee)
       ]
 
-      await instance.withdraw(proof, ...args, { from: relayer })
+      const proofForSolidityInput = toSolidityInput(proof)
+      await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
+
       const newTokenOwner = await tokenContract.ownerOf(1)
       assert.equal(recipient, newTokenOwner)
     })
@@ -323,7 +365,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -333,9 +375,18 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      }
+
+      const {
+        proof,
+	  } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+	  )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       const fake = bigInt('2000000000000000000')
       const args = [
@@ -347,7 +398,7 @@ contract('Cream', accounts => {
       ]
 
       try {
-        await instance.withdraw(proof, ...args, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       } catch(error) {
         assert.equal(error.reason, 'Fee exceeds transfer value')
         return
@@ -361,7 +412,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -371,9 +422,18 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      }
+
+      const {
+        proof,
+	  } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+	  )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       const args = [
         toHex(input.root),
@@ -382,9 +442,9 @@ contract('Cream', accounts => {
         toHex(input.relayer, 20),
         toHex(input.fee)
       ]
-      await instance.withdraw(proof, ...args, { from: relayer })
+      await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       try {
-        await instance.withdraw(proof, ...args, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       } catch(error) {
         assert.equal(error.reason, 'The note has been already spent')
         return
@@ -398,7 +458,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -408,20 +468,29 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      }
+
+      const {
+        proof,
+	  } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+	  )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       const args = [
         toHex(input.root),
-        toHex(toBN(input.nullifierHash).add(toBN('21888242871839275222246405745257275088548364400416034343698204186575808495617'))),
+        toHex(toBN(stringifyBigInts(input.nullifierHash)).add(toBN('21888242871839275222246405745257275088548364400416034343698204186575808495617'))),
         toHex(input.recipient, 20),
         toHex(input.relayer, 20),
         toHex(input.fee)
       ]
 
       try {
-        await instance.withdraw(proof, ...args, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       } catch(error) {
         assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
         return
@@ -435,7 +504,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -445,9 +514,18 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      }
+
+      const {
+        proof,
+      } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+      )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       const args = [
         toHex(randomHex(32)),
@@ -457,7 +535,7 @@ contract('Cream', accounts => {
         toHex(input.fee)
       ]
       try {
-        await instance.withdraw(proof, ...args, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       } catch(error) {
         assert.equal(error.reason,'Cannot find your merkle root')
         return
@@ -472,7 +550,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -482,9 +560,18 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      }
+
+      const {
+        proof,
+      } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+      )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       // incorrect nullifierHash, using commitment instead
       let incorrectArgs = [
@@ -496,7 +583,7 @@ contract('Cream', accounts => {
       ]
 
       try {
-        await instance.withdraw(proof, ...incorrectArgs, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...incorrectArgs, { from: relayer })
       } catch(error) {
         assert.equal(error.reason, 'Invalid withdraw proof')
         return
@@ -513,7 +600,7 @@ contract('Cream', accounts => {
       await instance.deposit(toHex(deposit.commitment), { from: voter })
       const root = tree.root
       const merkleProof = tree.getPathUpdate(0)
-      const input = stringifyBigInts({
+      const input = {
         root,
         nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
         relayer: relayer,
@@ -523,12 +610,18 @@ contract('Cream', accounts => {
         secret: deposit.secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1]
-      })
-      let isSpent = await instance.isSpent(toHex(input.nullifierHash))
-      assert.isFalse(isSpent)
+      }
 
-      const proofData = await websnarkUtils.genWitnessAndProve(groth16, input, circuit, proving_key)
-      const { proof } = websnarkUtils.toSolidityInput(proofData)
+      const {
+        proof
+	  } = await genProofAndPublicSignals(
+        input,
+        'vote.circom',
+        'build/vote.zkey',
+        'circuits/vote.wasm'
+	  )
+
+      const proofForSolidityInput = toSolidityInput(proof)
 
       const args = [
         toHex(input.root),
@@ -539,16 +632,12 @@ contract('Cream', accounts => {
       ]
 
       try {
-        await instance.withdraw(proof, ...args, { from: relayer })
+        await instance.withdraw(proofForSolidityInput, ...args, { from: relayer })
       } catch(error) {
         assert.equal(error.reason, 'Recipient do not exist')
         return
       }
       assert.fail('Expected revert not received')
-      // truffleAssert.prettyPrintEmittedEvents(tx)
-      truffleAssert.eventEmitted(tx, 'Withdrawal')
-      isSpent = await instance.isSpent(toHex(input.nullifierHash))
-      assert.isTrue(isSpent)
     })
   })
 

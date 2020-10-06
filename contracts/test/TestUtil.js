@@ -2,7 +2,6 @@ const fs = require('fs')
 const path = require('path')
 const circomlib = require('circomlib')
 const crypto = require('crypto')
-const snarkjs = require('snarkjs')
 
 const {
   bigInt,

@@ -1,6 +1,6 @@
 {
   "name": "cream-contracts",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "truffle-config.js",
   "directories": {
@@ -18,9 +18,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
     "@truffle/artifactor": "^4.0.52",
-    "ffjavascript": "^0.2.22",
     "fs-extra": "^9.0.1",
-    "snarkjs": "^0.3.34",
     "truffle": "^5.1.18"
   },
   "devDependencies": {
