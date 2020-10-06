@@ -6,7 +6,7 @@ Confidential Reliable Ethereum Anonymous Mixer
 
 ## Requirement
 
-* `node` >=v10.x <=v12.x
+* `node` >=v11.x <=v12.x
 
 ## Setup
 
