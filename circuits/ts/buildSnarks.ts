@@ -19,6 +19,14 @@ const main = () => {
     const vkOut = './build/circuits/verification_key.json'
     const solVerifier = '../contracts/contracts/Verifier.sol'
 
+    // 0: TEMP using ptau file from Semaphore
+    // we use https://github.com/weijiekoh/perpetualpowersoftau and one used for MACI for test
+    if (!isFileExists(ptauPath)) {
+        console.log(`${ptauPath} not found. Downloading...`)
+        const PTAU_URL = 'https://www.dropbox.com/s/kg4rnjdosnluuhq/pot19_final.ptau?dl=1'
+        execSync(`wget -nc -q -O ${ptauPath} ${PTAU_URL}`)
+    }
+
     // 1: circuit compile and output file: ex`vote.json`
     // do not overwrite vote.json if it's exists
     if (isFileExists(voteCircuit) && isFileExists(voteCircuitWasm)) {
@@ -34,7 +42,7 @@ const main = () => {
     if (isFileExists(zkey)) {
         console.log(`${zkey} filie exists. Skipping...`)
     } else {
-        execSync(`npx snarkjs zkey new -v ${voteCircuit} ${ptauPath} ${zkey}`)
+        execSync(`npx snarkjs zkn ${voteCircuit} ${ptauPath} ${zkey}`)
         console.log(`Generated zkey file: \n${zkey}`)
     }
 
@@ -50,16 +58,14 @@ const main = () => {
     console.log(`Generated verification_key: \n${vkOut}`)
 
     // 4: export solidity verifier
+    // CREAM use local verifier generation method due to the solc compiler version
     const verifier = generateVerifier(
         JSON.parse(fs.readFileSync(vkOut).toString())
     )
 
     fs.writeFileSync(solVerifier, verifier)
 
-    //    execSync(`npx snarkjs zkey export solidityverifier ${zkey} ${solVerifier}`)
     console.log(`Generated verifier contract: \n ${solVerifier}`)
-    //    console.log(`Moving verifier contract to contract directory`)
-    //    execSync(`mv ${solVerifier} ../contracts/contracts/`)
 }
 
 if (require.main === module) {
