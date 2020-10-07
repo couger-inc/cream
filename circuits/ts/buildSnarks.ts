@@ -1,6 +1,7 @@
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
+import { generateVerifier } from './generateVerifier'
 
 const isFileExists = (filepath: string): boolean => {
     const currentPath = path.join(__dirname, '..')
@@ -10,28 +11,61 @@ const isFileExists = (filepath: string): boolean => {
 }
 
 const main = () => {
-    // 1: circuit compile and output file: ex`vote.json`
-    // do not overwrite vote.json if it's exists
-    if (isFileExists('./build/circuits/vote.json')) {
-        console.log('vote.json file exists. Skipping...')
-    } else {
-        const circuit = execSync(
-            'npx circom ./circom/vote.circom -o ./build/circuits/vote.json'
-        )
-        console.log(`Compiled circuit: \n${circuit.toString()}`)
+    const voteCircuit = './build/circuits/vote.r1cs'
+    const voteCircuitWasm = './build/circuits/vote.wasm'
+    // TEMP ptau file
+    const ptauPath = './build/pot19_final.ptau'
+    const zkey = './build/vote.zkey'
+    const vkOut = './build/circuits/verification_key.json'
+    const solVerifier = '../contracts/contracts/Verifier.sol'
+
+    // 0: TEMP using this local centralised created ptau file
+    // Should be replaced by ptau file created by MPC seremony in the future
+    if (!isFileExists(ptauPath)) {
+        console.log(`${ptauPath} not found. Downloading...`)
+        const PTAU_URL = 'https://www.dropbox.com/s/ibc9504n107dlg1/pot19_final.ptau?dl=1'
+        execSync(`wget -nc -q -O ${ptauPath} ${PTAU_URL}`)
     }
 
-    // 2: create trusted setup with groth16, two output files: ex`proving_key.json verification_key.json`
-    execSync('npx snarkjs setup --protocol groth -c ./build/circuits/vote.json --pk ./build/circuits/proving_key.json --vk ./build/circuits/verification_key.json')
-    console.log('Created proving_key.json and verification_key.json.')
+    // 1: circuit compile and output file: ex`vote.json`
+    // do not overwrite vote.json if it's exists
+    if (isFileExists(voteCircuit) && isFileExists(voteCircuitWasm)) {
+        console.log(`${voteCircuit} file exists. Skipping...`)
+    } else {
+        execSync(
+            `npx circom ./circom/vote.circom -r ${voteCircuit} -w ${voteCircuitWasm} -v`
+        )
+        console.log(`Compiled circuit: \n${voteCircuit} and ${voteCircuitWasm}`)
+    }
 
-    // 3: build public key bin file from json: `proving_key.bin`
-    execSync('node ./node_modules/websnark/tools/buildpkey.js -i ./build/circuits/proving_key.json -o ./build/circuits/proving_key.bin')
-    console.log('Created proving_key.bin.')
+    // 2: create zkey from r1cs and ptau file
+    if (isFileExists(zkey)) {
+        console.log(`${zkey} filie exists. Skipping...`)
+    } else {
+        execSync(`npx snarkjs zkn ${voteCircuit} ${ptauPath} ${zkey}`)
+        console.log(`Generated zkey file: \n${zkey}`)
+    }
 
-    // 4: generate verifier contract: `Verifier.sol`
-    execSync('npx snarkjs generateverifier -v ../contracts/contracts/Verifier.sol --vk ./build/circuits/verification_key.json')
-    console.log("Created Verifier.sol contract.")
+    // 3: export vkey
+    execSync(`npx snarkjs zkev ${zkey} ${vkOut}`)
+    // snarkjs cannot specify `${vkOut}` path
+    const rootPath = path.join(__dirname, '../verification_key.json')
+    if (fs.existsSync(rootPath)) {
+        console.log(`Moving verification_key.json file...`)
+        execSync(`mv ${rootPath} ${vkOut}`)
+    }
+
+    console.log(`Generated verification_key: \n${vkOut}`)
+
+    // 4: export solidity verifier
+    // CREAM use local verifier generation method due to the solc compiler version
+    const verifier = generateVerifier(
+        JSON.parse(fs.readFileSync(vkOut).toString())
+    )
+
+    fs.writeFileSync(solVerifier, verifier)
+
+    console.log(`Generated verifier contract: \n ${solVerifier}`)
 }
 
 if (require.main === module) {

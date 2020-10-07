@@ -1,9 +1,10 @@
+jest.setTimeout(90000)
 import { mimcsponge } from 'circomlib'
 import MerkleTree from 'cream-merkle-tree'
 import { bigInt, toHex } from 'libcream'
-import { SnarkBigInt, compileAndLoadCircuit } from '../'
+import { SnarkBigInt, compileAndLoadCircuit, executeCircuit } from '../'
 
-const DEPTH = 4
+const LEVELS = 4
 const ZERO_VALUE = 0
 
 const hashOne = (
@@ -23,59 +24,20 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTreeHashLeftRight_test.circom')
+            circuit = await compileAndLoadCircuit('test/merkleTreeHashLeftRight_test.circom')
         })
 
         it('should hash correctly', async () => {
-            const circuitInputs = {
+            const input = {
                 left: "12345",
                 right: "45678"
             }
-            const witness = circuit.calculateWitness(circuitInputs)
-            const outputIdx = circuit.getSignalIdx("main.hash")
-            const output = witness[outputIdx]
+
+            const witness = await executeCircuit(circuit, input)
+            const output = witness[circuit.symbols["main.hash"].varIdx]
             const outputJS = multiHash([bigInt(12345), bigInt(45678)])
 
             expect(output.toString()).toEqual(outputJS.toString())
-        })
-    })
-
-    describe('Selector', () => {
-        let circuit
-
-        beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTreeSelector_test.circom')
-        })
-
-        it('should select correct path', async () => {
-            const leaf = Math.floor(Math.random() * 1000)
-            const path_element = Math.floor(Math.random() * 1000)
-
-            const path_indexes = [0, 1]
-
-            path_indexes.forEach(path_index => {
-                const circuitInputs = {
-                    input_element: leaf,
-                    path_element: path_element,
-                    path_index
-                }
-
-                const witness = circuit.calculateWitness(circuitInputs)
-
-                const leftIdx = circuit.getSignalIdx("main.left")
-                const left = witness[leftIdx]
-
-                const rightIdx = circuit.getSignalIdx("main.right")
-                const right = witness[rightIdx]
-
-                if (path_index === 0) {
-                    expect(left.toString()).toEqual(leaf.toString())
-                    expect(right.toString()).toEqual(path_element.toString())
-                } else {
-                    expect(left.toString()).toEqual(path_element.toString())
-                    expect(right.toString()).toEqual(leaf.toString())
-                }
-            })
         })
     })
 
@@ -83,14 +45,14 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTreeLeafExists_test.circom')
+            circuit = await compileAndLoadCircuit('test/merkleTreeLeafExists_test.circom')
         })
 
         it('should work with valid input for LeafExists', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
@@ -99,25 +61,26 @@ describe('MerkleTree circuit', () => {
 
             const root = tree.root
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const proof = tree.getPathUpdate(i)
-                const circuitInputs = {
+                const input = {
                     leaf: leaves[i],
                     path_elements: proof[0],
                     path_index: proof[1],
                     root,
                 }
 
-                const witness = circuit.calculateWitness(circuitInputs)
-                expect(circuit.checkWitness(witness)).toBeTruthy()
+                const witness = await executeCircuit(circuit, input)
+                const circuitRoot = witness[circuit.symbols["main.root"].varIdx]
+                expect(circuitRoot.toString()).toEqual(root.toString())
             }
         })
 
         it('should return error with invalid LeafExists input', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
@@ -126,20 +89,22 @@ describe('MerkleTree circuit', () => {
 
             const root = tree.root
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const proof = tree.getPathUpdate(i)
 
-                const circuitInputs = {
+                const input = {
                     leaf: leaves[i],
-                    //    swapping input elements
+                    // swapping input elements
                     path_elements: proof[1],
                     path_index: proof[0],
                     root
                 }
 
-                expect(() => {
-                    circuit.calculateWitness(circuitInputs)
-                }).toThrow()
+                try {
+                    await executeCircuit(circuit, input)
+                } catch {
+                    expect(true).toBeTruthy()
+                }
             }
         })
     })
@@ -148,14 +113,14 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTreeCheckRoot_test.circom')
+            circuit = await compileAndLoadCircuit('test/merkleTreeCheckRoot_test.circom')
         })
 
         it('should return valid root', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
@@ -164,24 +129,17 @@ describe('MerkleTree circuit', () => {
 
             const root = tree.root
 
-            const circuitInputs = { leaves }
+            const input = { leaves }
 
-            const witness = circuit.calculateWitness(circuitInputs)
-            expect(witness[circuit.getSignalIdx('main.root')].toString()).toEqual(root.toString())
-            expect(circuit.checkWitness(witness)).toBeTruthy()
-
-            // TODO: generate proof and verify
-            //            const publicSignals = witness.slice(
-            //                1,
-            //                circuit.nPubInputs + circuit.nOutputs + 1
-            //            )
+            const witness = await executeCircuit(circuit, input)
+            expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
         })
 
         it('should generate different root from different leaves', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
@@ -191,10 +149,9 @@ describe('MerkleTree circuit', () => {
             }
 
             const root = tree.root
-            const circuitInputs = { leaves }
-            const witness = circuit.calculateWitness(circuitInputs)
-            expect(witness[circuit.getSignalIdx('main.root')].toString()).not.toEqual(root.toString())
-            expect(circuit.checkWitness(witness)).toBeTruthy()
+            const input = { leaves }
+            const witness = await executeCircuit(circuit, input)
+            expect(witness[circuit.symbols["main.root"].varIdx].toString()).not.toEqual(root.toString())
         })
     })
 
@@ -202,14 +159,14 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('merkleTree_test.circom')
+            circuit = await compileAndLoadCircuit('test/merkleTree_test.circom')
         })
 
         it('should work with valid input', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
@@ -218,43 +175,44 @@ describe('MerkleTree circuit', () => {
 
             const root = tree.root
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const proof = tree.getPathUpdate(i)
-                const circuitInputs = {
+                const input = {
                     leaf: leaves[i],
                     path_elements: proof[0],
                     path_index: proof[1]
                 }
 
-                const witness = circuit.calculateWitness(circuitInputs)
-                expect(witness[circuit.getSignalIdx('main.root')].toString()).toEqual(root.toString())
-                expect(circuit.checkWitness(witness)).toBeTruthy()
+                const witness = await executeCircuit(circuit, input)
+                expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
             }
         })
 
         it('should return error with invalid proof', async () => {
-            const tree = new MerkleTree(DEPTH, ZERO_VALUE)
+            const tree = new MerkleTree(LEVELS, ZERO_VALUE)
             let leaves: SnarkBigInt[] = []
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const randVal = Math.floor(Math.random() * 1000)
                 const leaf = hashOne(randVal)
                 tree.insert(leaf)
                 leaves.push(leaf)
             }
 
-            for (let i = 0; i < 2 ** DEPTH; i++) {
+            for (let i = 0; i < 2 ** LEVELS; i++) {
                 const proof = tree.getPathUpdate(i)
-                const circuitInputs = {
+                const input = {
                     leaf: leaves[i],
                     // swapped proof
                     path_elements: proof[1],
                     path_index: proof[0]
                 }
 
-                expect(() => {
-                    circuit.calculateWitness(circuitInputs)
-                }).toThrow()
+                try {
+                    await executeCircuit(circuit, input)
+                } catch {
+                    expect(true).toBeTruthy()
+                }
             }
         })
     })

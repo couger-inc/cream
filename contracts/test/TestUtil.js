@@ -1,7 +1,7 @@
+const fs = require('fs')
+const path = require('path')
 const circomlib = require('circomlib')
 const crypto = require('crypto')
-const snarkjs = require('snarkjs')
-const unstringifyBigInts = require('snarkjs/src/stringifybigint').unstringifyBigInts
 
 const {
   bigInt,
@@ -27,12 +27,6 @@ const send = (method, params = []) => {
   })
 }
 
-const snarkVerify = (proof) => {
-  proof = unstringifyBigInts(proof)
-  const verification_key = unstringifyBigInts(require('../../circuits/build/circuits/verification_key.json'))
-  return snarkjs['groth'].isValid(verification_key, proof, proof.publicSignals)
-}
-
 const takeSnapshot = async () => {
   return await send('evm_snapshot')
 }
@@ -42,7 +36,6 @@ const toFixedHex = (number, length=32) => {
 }
 
 module.exports = {
-  snarkVerify,
   revertSnapshot,
   takeSnapshot,
 }

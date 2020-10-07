@@ -1,6 +1,8 @@
 include "../node_modules/circomlib/circuits/mux1.circom";
 include "../node_modules/circomlib/circuits/mimcsponge.circom";
+include "../node_modules/circomlib/circuits/mux1.circom";
 
+// TODO: remove param
 // Computes MiMC([left, right])
 template HashLeftRight(length) {
     signal input left;
@@ -14,59 +16,42 @@ template HashLeftRight(length) {
     hash <== hasher.outs[0];
 }
 
-template Selector() {
-    signal input input_element;
-    signal input path_element;
-    signal input path_index;
-
-    signal output left;
-    signal output right;
-
-    path_index * (1 - path_index) === 0
-
-    component mux = MultiMux1(2)
-    mux.c[0][0] <== input_element;
-    mux.c[0][1] <== path_element;
-
-    mux.c[1][0] <== path_element;
-    mux.c[1][1] <== input_element;
-
-    mux.s <== path_index;
-
-    left <== mux.out[0];
-    right <== mux.out[1];
-}
-
+// Updated this circuit due to updating circom library v0.5.*
+// Code is based on https://github.com/weijiekoh/circom_test/blob/master/circuit_works.circom
+//
 // Verifies that merkle proof is correct for given merkle root and a leaf
-// pathIndices input is an array of 0/1 selectors telling whether given path_elements is on the left or right side of merkle path
 template MerkleTree(levels) {
     signal input leaf;
     signal input path_elements[levels];
     signal input path_index[levels];
-
     signal output root;
 
-    component selectors[levels];
     component hashers[levels];
+    component mux[levels];
+
+    signal levelHashes[levels + 1];
+    levelHashes[0] <== leaf;
 
     for (var i = 0; i < levels; i++) {
-        selectors[i] = Selector();
+    	path_index[i] * (1 - path_index[i]) === 0;
+    	
         hashers[i] = HashLeftRight(2);
+	mux[i] = MultiMux1(2);
 
-        selectors[i].path_element <== path_elements[i];
-        selectors[i].path_index <== path_index[i];
+	mux[i].c[0][0] <== levelHashes[i];
+        mux[i].c[0][1] <== path_elements[i];
 
-        hashers[i].left <== selectors[i].left;
-        hashers[i].right <== selectors[i].right;
+        mux[i].c[1][0] <== path_elements[i];
+        mux[i].c[1][1] <== levelHashes[i];
+
+        mux[i].s <== path_index[i];
+        hashers[i].left <== mux[i].out[0];
+        hashers[i].right <== mux[i].out[1];
+
+        levelHashes[i + 1] <== hashers[i].hash;
     }
 
-    selectors[0].input_element <== leaf;
-
-    for (var i = 1; i < levels; i++) {
-        selectors[i].input_element <== hashers[i-1].hash;
-    }
-
-    root <== hashers[levels - 1].hash;
+    root <== levelHashes[levels];
 }
 
 // LeafExists and CheckRoot template referenced from MACI's merkletree circuit
