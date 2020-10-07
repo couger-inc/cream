@@ -19,11 +19,11 @@ const main = () => {
     const vkOut = './build/circuits/verification_key.json'
     const solVerifier = '../contracts/contracts/Verifier.sol'
 
-    // 0: TEMP using ptau file from Semaphore
-    // we use https://github.com/weijiekoh/perpetualpowersoftau and one used for MACI for test
+    // 0: TEMP using this local centralised created ptau file
+    // Should be replaced by ptau file created by MPC seremony in the future
     if (!isFileExists(ptauPath)) {
         console.log(`${ptauPath} not found. Downloading...`)
-        const PTAU_URL = 'https://www.dropbox.com/s/kg4rnjdosnluuhq/pot19_final.ptau?dl=1'
+        const PTAU_URL = 'https://www.dropbox.com/s/ibc9504n107dlg1/pot19_final.ptau?dl=1'
         execSync(`wget -nc -q -O ${ptauPath} ${PTAU_URL}`)
     }
 
