@@ -4,7 +4,9 @@ const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('MiMC.sol')
 
 const { toHex } = require('libcream')
-const MerkleTree = require('cream-merkle-tree').default
+
+const { MerkleTree } = require('cream-merkle-tree')
+
 const {
   revertSnapshot,
   takeSnapshot

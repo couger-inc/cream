@@ -18,13 +18,13 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
     "@truffle/artifactor": "^4.0.52",
+    "cream-merkle-tree": "file:../../cream-merkle-tree",
     "fs-extra": "^9.0.1",
     "truffle": "^5.1.18"
   },
   "devDependencies": {
     "cream-circuits": "^0.1.0",
     "cream-config": "0.0.1",
-    "cream-merkle-tree": "0.0.4",
     "ganache-cli": "^6.10.1",
     "libcream": "0.0.5",
     "truffle-assertions": "^0.9.2"
