@@ -18,7 +18,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
     "@truffle/artifactor": "^4.0.52",
-    "cream-merkle-tree": "file:../../cream-merkle-tree",
+    "cream-merkle-tree": "0.0.5",
     "fs-extra": "^9.0.1",
     "truffle": "^5.1.18"
   },
