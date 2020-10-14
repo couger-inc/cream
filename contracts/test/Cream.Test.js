@@ -17,7 +17,7 @@ const {
   rbigInt
 } = require('libcream')
 
-const MerkleTree = require('cream-merkle-tree').default
+const { MerkleTree } = require('cream-merkle-tree')
 
 const {
   revertSnapshot,

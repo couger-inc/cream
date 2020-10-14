@@ -1,6 +1,6 @@
 jest.setTimeout(90000)
 import { mimcsponge } from 'circomlib'
-import MerkleTree from 'cream-merkle-tree'
+import { MerkleTree } from 'cream-merkle-tree'
 import { bigInt, toHex } from 'libcream'
 import { SnarkBigInt, compileAndLoadCircuit, executeCircuit } from '../'
 

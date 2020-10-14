@@ -1,6 +1,6 @@
 {
   "name": "cream-circuits",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "build/index.js",
   "scripts": {
@@ -15,7 +15,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^26.0.4",
-    "cream-merkle-tree": "0.0.4",
     "jest": "^26.1.0",
     "libcream": "0.0.5",
     "ts-jest": "^26.1.2",
@@ -24,6 +23,7 @@
   "dependencies": {
     "circom": "^0.5.27",
     "circomlib": "^0.2.4",
+    "cream-merkle-tree": "0.0.5",
     "ffjavascript": "^0.2.22",
     "snarkjs": "^0.3.34"
   }
