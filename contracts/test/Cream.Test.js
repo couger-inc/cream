@@ -252,7 +252,7 @@ contract('Cream', accounts => {
         circuit
       } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm',
       )
@@ -293,7 +293,7 @@ contract('Cream', accounts => {
         proof,
       } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
       )
@@ -339,7 +339,7 @@ contract('Cream', accounts => {
         proof
 	  } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
 	  )
@@ -381,7 +381,7 @@ contract('Cream', accounts => {
         proof,
 	  } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
 	  )
@@ -428,7 +428,7 @@ contract('Cream', accounts => {
         proof,
 	  } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
 	  )
@@ -474,7 +474,7 @@ contract('Cream', accounts => {
         proof,
 	  } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
 	  )
@@ -520,7 +520,7 @@ contract('Cream', accounts => {
         proof,
       } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
       )
@@ -566,7 +566,7 @@ contract('Cream', accounts => {
         proof,
       } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
       )
@@ -616,7 +616,7 @@ contract('Cream', accounts => {
         proof
 	  } = await genProofAndPublicSignals(
         input,
-        'vote.circom',
+        'prod/vote.circom',
         'build/vote.zkey',
         'circuits/vote.wasm'
 	  )

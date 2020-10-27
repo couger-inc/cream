@@ -4,7 +4,7 @@
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
-import { SnarkBigInt } from 'libcream'
+import { SnarkBigInt, createDeposit, rbigInt } from 'libcream'
 
 const snarkjs = require('snarkjs')
 const ff = require('ffjavascript')
@@ -12,6 +12,60 @@ const tester = require('circom').tester
 
 const stringifyBigInts: (obj: object) => any = ff.utils.stringifyBigInts
 const unstringifyBigInts: (obj: object) => any = ff.utils.unstringifyBigInts
+
+interface Deposit {
+  commitment: SnarkBigInt,
+  nullifierHash: SnarkBigInt,
+  nullifier: SnarkBigInt,
+  secret: SnarkBigInt
+}
+
+interface CircuitInput {
+  root: SnarkBigInt,
+  nullifierHash: SnarkBigInt,
+  nullifier: SnarkBigInt,
+  relayer: any,
+  recipient: any,
+  fee: any,
+  secret: SnarkBigInt,
+  path_elements: any[any],
+  path_index: any[any]
+}
+
+const generateVote = (
+  merkleTree: any,
+  index: number,
+  relayer,
+  recipient,
+  fee,
+  length?: number
+): CircuitInput => {
+  // Default value of len
+  const len = length ? length : 31
+
+  // Create deposit
+  const deposit: Deposit = createDeposit(rbigInt(len), rbigInt(len))
+
+  const { commitment, nullifierHash, nullifier, secret } = deposit
+
+  // Update merkleTree
+  merkleTree.insert(commitment)
+  const merkleProof = merkleTree.getPathUpdate(index)
+
+  const input: CircuitInput = {
+    root: merkleTree.root,
+    nullifierHash,
+    nullifier,
+    relayer,
+    recipient,
+    fee,
+    secret: secret,
+    path_elements: merkleProof[0],
+    path_index: merkleProof[1]
+  }
+
+  return input
+}
 
 const compileAndLoadCircuit = async (
     circuitFilename: string
@@ -100,6 +154,9 @@ const snarkVerify = async (
 
 export {
     SnarkBigInt,
+    Deposit,
+    CircuitInput,
+    generateVote,
     compileAndLoadCircuit,
     executeCircuit,
     genProofAndPublicSignals,
