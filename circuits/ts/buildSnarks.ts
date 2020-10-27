@@ -33,7 +33,7 @@ const main = () => {
         console.log(`${voteCircuit} file exists. Skipping...`)
     } else {
         execSync(
-            `npx circom ./circom/vote.circom -r ${voteCircuit} -w ${voteCircuitWasm} -v`
+            `npx circom ./circom/prod/vote.circom -r ${voteCircuit} -w ${voteCircuitWasm} -v`
         )
         console.log(`Compiled circuit: \n${voteCircuit} and ${voteCircuitWasm}`)
     }
