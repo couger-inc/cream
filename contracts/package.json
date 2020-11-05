@@ -23,7 +23,7 @@
     "truffle": "^5.1.18"
   },
   "devDependencies": {
-    "cream-circuits": "^0.1.2",
+    "cream-circuits": "^0.1.3",
     "cream-config": "0.0.1",
     "ganache-cli": "^6.10.1",
     "libcream": "0.0.5",

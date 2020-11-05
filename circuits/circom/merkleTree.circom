@@ -1,6 +1,5 @@
 include "../node_modules/circomlib/circuits/mux1.circom";
 include "../node_modules/circomlib/circuits/mimcsponge.circom";
-include "../node_modules/circomlib/circuits/mux1.circom";
 
 // TODO: remove param
 // Computes MiMC([left, right])
