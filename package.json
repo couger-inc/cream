@@ -5,6 +5,7 @@
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
+    "format": "npx prettier './**/ts/**/*.{js,ts}' --write",
     "migrate": "npx truffle migrate",
     "test:circuits": "cd circuits && npm run test",
     "test:compile": "cd contracts && npm run compile",
@@ -26,6 +27,7 @@
   "dependencies": {},
   "devDependencies": {
     "lerna": "^3.22.1",
+    "prettier": "^2.2.1",
     "typescript": "^3.9.7"
   }
 }

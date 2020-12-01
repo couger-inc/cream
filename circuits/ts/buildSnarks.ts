@@ -23,7 +23,8 @@ const main = () => {
     // Should be replaced by ptau file created by MPC seremony in the future
     if (!isFileExists(ptauPath)) {
         console.log(`${ptauPath} not found. Downloading...`)
-        const PTAU_URL = 'https://www.dropbox.com/s/ibc9504n107dlg1/pot19_final.ptau?dl=1'
+        const PTAU_URL =
+            'https://www.dropbox.com/s/ibc9504n107dlg1/pot19_final.ptau?dl=1'
         execSync(`wget -nc -q -O ${ptauPath} ${PTAU_URL}`)
     }
 
@@ -69,7 +70,7 @@ const main = () => {
 }
 
 if (require.main === module) {
-    let exitCode;
+    let exitCode
     try {
         exitCode = main()
     } catch (err) {

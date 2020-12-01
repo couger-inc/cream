@@ -17,12 +17,16 @@ describe('MiMC hash circuits', () => {
 
             const input = {
                 nullifier,
-                secret
+                secret,
             }
 
             const witness = await executeCircuit(circuit, input)
-            expect(witness[circuit.symbols['main.commitment'].varIdx].toString()).toEqual(deposit.commitment.toString())
-            expect(witness[circuit.symbols['main.nullifierHash'].varIdx].toString()).toEqual(deposit.nullifierHash.toString())
+            expect(
+                witness[circuit.symbols['main.commitment'].varIdx].toString()
+            ).toEqual(deposit.commitment.toString())
+            expect(
+                witness[circuit.symbols['main.nullifierHash'].varIdx].toString()
+            ).toEqual(deposit.nullifierHash.toString())
         })
 
         // TODO : throw with invalid bytes length

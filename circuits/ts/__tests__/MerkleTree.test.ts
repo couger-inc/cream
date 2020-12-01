@@ -7,15 +7,11 @@ import { SnarkBigInt, compileAndLoadCircuit, executeCircuit } from '../'
 const LEVELS = 4
 const ZERO_VALUE = 0
 
-const hashOne = (
-    preImage: SnarkBigInt
-): SnarkBigInt => {
+const hashOne = (preImage: SnarkBigInt): SnarkBigInt => {
     return mimcsponge.multiHash([preImage], 0, 1)
 }
 
-const multiHash = (
-    d: SnarkBigInt[]
-): SnarkBigInt => {
+const multiHash = (d: SnarkBigInt[]): SnarkBigInt => {
     return mimcsponge.multiHash(d)
 }
 
@@ -24,17 +20,19 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('test/merkleTreeHashLeftRight_test.circom')
+            circuit = await compileAndLoadCircuit(
+                'test/merkleTreeHashLeftRight_test.circom'
+            )
         })
 
         it('should hash correctly', async () => {
             const input = {
-                left: "12345",
-                right: "45678"
+                left: '12345',
+                right: '45678',
             }
 
             const witness = await executeCircuit(circuit, input)
-            const output = witness[circuit.symbols["main.hash"].varIdx]
+            const output = witness[circuit.symbols['main.hash'].varIdx]
             const outputJS = multiHash([bigInt(12345), bigInt(45678)])
 
             expect(output.toString()).toEqual(outputJS.toString())
@@ -45,7 +43,9 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('test/merkleTreeLeafExists_test.circom')
+            circuit = await compileAndLoadCircuit(
+                'test/merkleTreeLeafExists_test.circom'
+            )
         })
 
         it('should work with valid input for LeafExists', async () => {
@@ -71,7 +71,7 @@ describe('MerkleTree circuit', () => {
                 }
 
                 const witness = await executeCircuit(circuit, input)
-                const circuitRoot = witness[circuit.symbols["main.root"].varIdx]
+                const circuitRoot = witness[circuit.symbols['main.root'].varIdx]
                 expect(circuitRoot.toString()).toEqual(root.toString())
             }
         })
@@ -97,7 +97,7 @@ describe('MerkleTree circuit', () => {
                     // swapping input elements
                     path_elements: proof[1],
                     path_index: proof[0],
-                    root
+                    root,
                 }
 
                 try {
@@ -113,7 +113,9 @@ describe('MerkleTree circuit', () => {
         let circuit
 
         beforeAll(async () => {
-            circuit = await compileAndLoadCircuit('test/merkleTreeCheckRoot_test.circom')
+            circuit = await compileAndLoadCircuit(
+                'test/merkleTreeCheckRoot_test.circom'
+            )
         })
 
         it('should return valid root', async () => {
@@ -132,7 +134,9 @@ describe('MerkleTree circuit', () => {
             const input = { leaves }
 
             const witness = await executeCircuit(circuit, input)
-            expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
+            expect(
+                witness[circuit.symbols['main.root'].varIdx].toString()
+            ).toEqual(root.toString())
         })
 
         it('should generate different root from different leaves', async () => {
@@ -151,7 +155,9 @@ describe('MerkleTree circuit', () => {
             const root = tree.root
             const input = { leaves }
             const witness = await executeCircuit(circuit, input)
-            expect(witness[circuit.symbols["main.root"].varIdx].toString()).not.toEqual(root.toString())
+            expect(
+                witness[circuit.symbols['main.root'].varIdx].toString()
+            ).not.toEqual(root.toString())
         })
     })
 
@@ -180,11 +186,13 @@ describe('MerkleTree circuit', () => {
                 const input = {
                     leaf: leaves[i],
                     path_elements: proof[0],
-                    path_index: proof[1]
+                    path_index: proof[1],
                 }
 
                 const witness = await executeCircuit(circuit, input)
-                expect(witness[circuit.symbols["main.root"].varIdx].toString()).toEqual(root.toString())
+                expect(
+                    witness[circuit.symbols['main.root'].varIdx].toString()
+                ).toEqual(root.toString())
             }
         })
 
@@ -205,7 +213,7 @@ describe('MerkleTree circuit', () => {
                     leaf: leaves[i],
                     // swapped proof
                     path_elements: proof[1],
-                    path_index: proof[0]
+                    path_index: proof[0],
                 }
 
                 try {
@@ -217,4 +225,3 @@ describe('MerkleTree circuit', () => {
         })
     })
 })
-
