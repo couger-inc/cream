@@ -28,7 +28,5 @@ describe('MiMC hash circuits', () => {
                 witness[circuit.symbols['main.nullifierHash'].varIdx].toString()
             ).toEqual(deposit.nullifierHash.toString())
         })
-
-        // TODO : throw with invalid bytes length
     })
 })
