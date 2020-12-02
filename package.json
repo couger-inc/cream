@@ -5,7 +5,7 @@
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
-    "format": "npx prettier './**/ts/**/*.{js,ts}' --write",
+    "format": "npx prettier './**/**/**/*.{js,ts}' --write",
     "migrate": "npx truffle migrate",
     "test:circuits": "cd circuits && npm run test",
     "test:compile": "cd contracts && npm run compile",

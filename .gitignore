@@ -2,7 +2,10 @@ config/default.json
 **/config/default.json
 **/build/
 node_modules
-solc
+
+# typechain generated files
+types
+migrations
 
 # exported files
 *ABI.json

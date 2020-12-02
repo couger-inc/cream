@@ -1,0 +1,9 @@
+build
+coverage
+contracts/types
+contracts/migrations
+contracts/test
+
+# config
+jest.config.js
+truffle-config.js

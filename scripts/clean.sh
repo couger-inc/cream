@@ -17,6 +17,12 @@ echo "Cleaned build"
 find . -name "dist" -type d -prune -exec rm -rf "{}" \;
 echo "Cleaned dist"
 
+find . -name "types" -type d -prune -exec rm -rf "{}" \;
+echo "Cleaned types"
+
+find . -name "migrations" -type d -prune -exec rm -rf "{}" \;
+echo "Cleaned migrations"
+
 find . -name ".cache" -type d -prune -exec rm -rf "{}" \;
 echo "Cleaned cache"
 
