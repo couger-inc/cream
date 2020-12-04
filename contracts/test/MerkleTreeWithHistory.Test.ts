@@ -1,13 +1,10 @@
 const { config } = require('cream-config')
+const { toHex } = require('libcream')
+const { MerkleTree } = require('cream-merkle-tree')
+const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
 const hasherContract = artifacts.require('MiMC.sol')
-
-const { toHex } = require('libcream')
-
-const { MerkleTree } = require('cream-merkle-tree')
-
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 
 contract('MerkleTreeWithHistory', (accounts) => {
     let tree

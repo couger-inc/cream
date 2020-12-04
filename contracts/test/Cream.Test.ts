@@ -2,14 +2,15 @@ const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
-
+const { MerkleTree } = require('cream-merkle-tree')
+const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const truffleAssert = require('truffle-assertions')
 const {
     genProofAndPublicSignals,
     snarkVerify,
     stringifyBigInts,
     unstringifyBigInts,
 } = require('cream-circuits')
-
 const {
     bigInt,
     toHex,
@@ -18,15 +19,10 @@ const {
     rbigInt,
 } = require('libcream')
 
-const { MerkleTree } = require('cream-merkle-tree')
-
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
-
-const truffleAssert = require('truffle-assertions')
-
 const Cream = artifacts.require('./Cream.sol')
 const SignUpToken = artifacts.require('./SignUpToken.sol')
 const Verifier = artifacts.require('./Verifier.sol')
+const MiMC = artifacts.require('MiMC')
 
 const toHex32 = (number) => {
     let str = number.toString(16)
@@ -75,7 +71,17 @@ contract('Cream', (accounts) => {
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        instance = await Cream.deployed()
+        verifier = await Verifier.deployed()
+        mimc = await MiMC.deployed()
+        tokenContract = await SignUpToken.deployed()
+        await Cream.link(MiMC, mimc.address)
+        instance = await Cream.new(
+            verifier.address,
+            tokenContract.address,
+            value,
+            LEVELS,
+            config.cream.recipients
+        )
         tokenContract = await SignUpToken.deployed()
         snapshotId = await takeSnapshot()
     })

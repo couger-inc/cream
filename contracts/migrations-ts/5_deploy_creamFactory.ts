@@ -3,8 +3,8 @@ import * as path from 'path'
 import FS from 'fs-extra'
 import { promisify } from 'util'
 import {
-    CreamContract,
-    CreamInstance,
+    CreamFactoryContract,
+    CreamFactoryInstance,
     VerifierContract,
     VerifierInstance,
     SignUpTokenContract,
@@ -12,7 +12,7 @@ import {
     MiMCInstance,
 } from '../types/truffle-contracts'
 
-const Cream: CreamContract = artifacts.require('Cream')
+const CreamFactory: CreamFactoryContract = artifacts.require('CreamFactory')
 const Verifier: VerifierContract = artifacts.require('Verifier')
 const SignUpToken: SignUpTokenContract = artifacts.require('SignUpToken')
 const MiMC: any = artifacts.require('MiMC')
@@ -24,27 +24,20 @@ module.exports = (deployer: any) => {
             const signUpToken: SignUpTokenInstance = await SignUpToken.deployed()
             const mimc: MiMCInstance = await MiMC.deployed()
             const { config } = require('cream-config')
-            await Cream.link(MiMC, mimc.address)
-            await deployer.deploy(
-                Cream,
-                verifier.address,
-                signUpToken.address,
-                config.cream.denomination.toString(),
-                config.cream.merkleTrees.toString(),
-                config.cream.recipients
-            )
+            await CreamFactory.link(MiMC, mimc.address)
+            await deployer.deploy(CreamFactory)
         })
         .then(async () => {
             const basePath = path.resolve(__dirname, '../app/constants')
-            const cream: any = await Cream.deployed()
+            const creamFactory: any = await CreamFactory.deployed()
             FS.mkdirsSync(basePath)
             await promisify(fs.writeFile)(
-                path.join(basePath, 'CreamABI.json'),
-                JSON.stringify(cream.abi, null, ' ')
+                path.join(basePath, 'CreamFactoryABI.json'),
+                JSON.stringify(creamFactory.abi, null, ' ')
             )
             await promisify(fs.writeFile)(
-                path.join(basePath, 'CreamNetworks.json'),
-                JSON.stringify(cream.networks, null, ' ')
+                path.join(basePath, 'CreamFactoryNetworks.json'),
+                JSON.stringify(creamFactory.networks, null, ' ')
             )
         })
 }
