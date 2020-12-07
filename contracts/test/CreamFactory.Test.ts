@@ -40,7 +40,6 @@ contract('CreamFactory', (accounts) => {
 
     describe('initialize', () => {
         it('should correctly initialize ownership', async () => {
-            assert(await instance.isOwner())
             assert.notEqual(await instance.owner(), accounts[1])
         })
         it('should fail when non owner tried to create Cream contract', async () => {

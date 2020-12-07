@@ -3,16 +3,17 @@
 * C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer
 *
 */
-pragma solidity >=0.4.21 <0.7.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 import "./MerkleTreeWithHistory.sol";
 import "./SignUpToken.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract IVerifier {
-    function verifyProof(bytes memory _proof, uint256[5] memory _input) public returns(bool);
+abstract contract IVerifier {
+    function verifyProof(bytes memory _proof, uint256[5] memory _input) public virtual returns(bool);
 }
 
 contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable {
