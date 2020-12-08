@@ -2,11 +2,18 @@
 pragma solidity ^0.6.12;
 
 import "./Cream.sol";
+// import "./MACIFactory.sol";
 
 contract CreamFactory is Ownable {
 	// TODO: storeing voting info to ipfs is durable?
 	mapping(address => string) public electionDetails;
 	event CreamCreated(address indexed creamAddress, string ipfsHash);
+
+    // MACIFactory public maciFactory;
+
+    // constructor(MACIFactory _maciFactory) public {
+    //     maciFactory = _maciFactory;
+    // }
 
 	function createCream(
         IVerifier _verifier,

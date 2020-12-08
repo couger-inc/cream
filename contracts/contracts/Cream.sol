@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: MIT
 /*
 *
 * C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer
 *
 */
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
 import "./MerkleTreeWithHistory.sol";

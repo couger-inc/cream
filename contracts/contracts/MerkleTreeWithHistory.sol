@@ -1,5 +1,5 @@
-// heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
 // SPDX-License-Identifier: MIT
+// heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
 pragma solidity ^0.6.12;
 
 library MiMC {
