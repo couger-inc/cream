@@ -23,9 +23,15 @@
   "bugs": {
     "url": "https://github.com/couger-inc/cream/issues"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run format"
+    }
+  },
   "homepage": "https://github.com/couger-inc/cream#readme",
   "dependencies": {},
   "devDependencies": {
+    "husky": "^4.3.5",
     "lerna": "^3.22.1",
     "prettier": "^2.2.1",
     "typescript": "^3.9.7"
