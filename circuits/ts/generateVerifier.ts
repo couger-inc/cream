@@ -10,7 +10,9 @@ const generateVerifier = (vk: any) => {
     )
 
     const vkalpha1_str =
-        `uint256(${vk.vk_alpha_1[0].toString()}),uint256(` + `${vk.vk_alpha_1[1].toString()}` + `)`
+        `uint256(${vk.vk_alpha_1[0].toString()}),uint256(` +
+        `${vk.vk_alpha_1[1].toString()}` +
+        `)`
     template = template.replace('<%vk_alpha1%>', vkalpha1_str)
 
     const vkbeta2_str =
@@ -46,7 +48,9 @@ const generateVerifier = (vk: any) => {
         if (vi != '') vi = vi + '        '
         vi =
             vi +
-            `vk.IC[${i}] = Pairing.G1Point(uint256(${vk.IC[i][0].toString()}),` +
+            `vk.IC[${i}] = Pairing.G1Point(uint256(${vk.IC[
+                i
+            ][0].toString()}),` +
             `uint256(${vk.IC[i][1].toString()}));\n`
     }
     template = template.replace('<%vk_ic_pts%>', vi)
