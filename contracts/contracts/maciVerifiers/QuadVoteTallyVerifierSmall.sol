@@ -37,7 +37,7 @@ library Pairing {
     }
 
     /*
-     * @return The negation of p, i.e. p.plus(p.negate()) should be zero. 
+     * @return The negation of p, i.e. p.plus(p.negate()) should be zero.
      */
     function negate(G1Point memory p) internal pure returns (G1Point memory) {
 
@@ -182,7 +182,7 @@ contract QuadVoteTallyVerifierSmall {
         vk.IC[10] = Pairing.G1Point(uint256(15605709166243729662592538680270637173571150650813811365783520170029334798567),uint256(4345473546780187573696151628194422341215917155792411747260297969138473728308));
 
     }
-    
+
     /*
      * @returns Whether the proof is valid given the hardcoded verifying key
      *          above and the public inputs

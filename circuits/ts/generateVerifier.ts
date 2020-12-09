@@ -10,28 +10,28 @@ const generateVerifier = (vk: any) => {
     )
 
     const vkalpha1_str =
-        `${vk.vk_alpha_1[0].toString()},` + `${vk.vk_alpha_1[1].toString()}`
+        `uint256(${vk.vk_alpha_1[0].toString()}),uint256(` + `${vk.vk_alpha_1[1].toString()}` + `)`
     template = template.replace('<%vk_alpha1%>', vkalpha1_str)
 
     const vkbeta2_str =
-        `[${vk.vk_beta_2[0][1].toString()},` +
-        `${vk.vk_beta_2[0][0].toString()}], ` +
-        `[${vk.vk_beta_2[1][1].toString()},` +
-        `${vk.vk_beta_2[1][0].toString()}]`
+        `[uint256(${vk.vk_beta_2[0][1].toString()}),` +
+        `uint256(${vk.vk_beta_2[0][0].toString()})], ` +
+        `[uint256(${vk.vk_beta_2[1][1].toString()}),` +
+        `uint256(${vk.vk_beta_2[1][0].toString()})]`
     template = template.replace('<%vk_beta2%>', vkbeta2_str)
 
     const vkgamma2_str =
-        `[${vk.vk_gamma_2[0][1].toString()},` +
-        `${vk.vk_gamma_2[0][0].toString()}], ` +
-        `[${vk.vk_gamma_2[1][1].toString()},` +
-        `${vk.vk_gamma_2[1][0].toString()}]`
+        `[uint256(${vk.vk_gamma_2[0][1].toString()}),` +
+        `uint256(${vk.vk_gamma_2[0][0].toString()})], ` +
+        `[uint256(${vk.vk_gamma_2[1][1].toString()}),` +
+        `uint256(${vk.vk_gamma_2[1][0].toString()})]`
     template = template.replace('<%vk_gamma2%>', vkgamma2_str)
 
     const vkdelta2_str =
-        `[${vk.vk_delta_2[0][1].toString()},` +
-        `${vk.vk_delta_2[0][0].toString()}], ` +
-        `[${vk.vk_delta_2[1][1].toString()},` +
-        `${vk.vk_delta_2[1][0].toString()}]`
+        `[uint256(${vk.vk_delta_2[0][1].toString()}),` +
+        `uint256(${vk.vk_delta_2[0][0].toString()})], ` +
+        `[uint256(${vk.vk_delta_2[1][1].toString()}),` +
+        `uint256(${vk.vk_delta_2[1][0].toString()})]`
     template = template.replace('<%vk_delta2%>', vkdelta2_str)
 
     // The points
@@ -46,8 +46,8 @@ const generateVerifier = (vk: any) => {
         if (vi != '') vi = vi + '        '
         vi =
             vi +
-            `vk.IC[${i}] = Pairing.G1Point(${vk.IC[i][0].toString()},` +
-            `${vk.IC[i][1].toString()});\n`
+            `vk.IC[${i}] = Pairing.G1Point(uint256(${vk.IC[i][0].toString()}),` +
+            `uint256(${vk.IC[i][1].toString()}));\n`
     }
     template = template.replace('<%vk_ic_pts%>', vi)
 
