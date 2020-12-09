@@ -3,7 +3,7 @@ const { toHex, createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 
 const CreamFactory = artifacts.require('CreamFactory')
-const Verifier = artifacts.require('Verifier')
+const CreamVerifier = artifacts.require('CreamVerifier')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
 
@@ -23,10 +23,9 @@ contract('CreamFactory', (accounts) => {
 
     before(async () => {
         instance = await CreamFactory.deployed()
-        verifier = await Verifier.deployed()
+        creamVerifier = await CreamVerifier.deployed()
         signUpToken = await SignUpToken.deployed()
         tx = await instance.createCream(
-            verifier.address,
             signUpToken.address,
             DENOMINATION,
             MERKLE_HEIGHT,
@@ -45,7 +44,6 @@ contract('CreamFactory', (accounts) => {
         it('should fail when non owner tried to create Cream contract', async () => {
             try {
                 await instance.createCream(
-                    verifier.address,
                     signUpToken.address,
                     DENOMINATION,
                     MERKLE_HEIGHT,
@@ -74,7 +72,7 @@ contract('CreamFactory', (accounts) => {
         })
 
         it('should be able to reveive correct value from cream contract side', async () => {
-            assert.equal(await cream.verifier(), verifier.address)
+            assert.equal(await cream.verifier(), creamVerifier.address)
             assert.equal(await cream.signUpToken(), signUpToken.address)
             assert.equal(await cream.denomination(), DENOMINATION)
             assert.equal(await cream.recipients(0), RECIPIENTS[0])
@@ -86,11 +84,9 @@ contract('CreamFactory', (accounts) => {
                 from: VOTER,
             })
 
-            verifier = await Verifier.new()
             signUpToken = await SignUpToken.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await instance.createCream(
-                verifier.address,
                 signUpToken.address,
                 DENOMINATION,
                 MERKLE_HEIGHT,

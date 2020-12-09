@@ -1,7 +1,7 @@
-import { VerifierContract } from '../types/truffle-contracts'
+import { CreamVerifierContract } from '../types/truffle-contracts'
 
-const Verifier: VerifierContract = artifacts.require('Verifier')
+const CreamVerifier: CreamVerifierContract = artifacts.require('CreamVerifier')
 
 module.exports = (deployer) => {
-    deployer.deploy(Verifier)
+    deployer.deploy(CreamVerifier)
 }

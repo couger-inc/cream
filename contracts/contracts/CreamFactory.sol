@@ -10,21 +10,23 @@ contract CreamFactory is Ownable {
 	event CreamCreated(address indexed creamAddress, string ipfsHash);
 
     // MACIFactory public maciFactory;
+	IVerifier public creamVerifier;
 
-    // constructor(MACIFactory _maciFactory) public {
-    //     maciFactory = _maciFactory;
-    // }
-
+    constructor(IVerifier _creamVerifier) public {
+		creamVerifier = _creamVerifier;
+    }
+	
 	function createCream(
-        IVerifier _verifier,
         SignUpToken _signUpToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
         string memory _ipfsHash
     ) public onlyOwner {
-	    address newCreamAddress = address(new Cream(_verifier, _signUpToken, _denomination, _merkleTreeHeight, _recipients));
+	    address newCreamAddress = address(new Cream(creamVerifier, _signUpToken, _denomination, _merkleTreeHeight, _recipients));
 		electionDetails[newCreamAddress] = _ipfsHash;
 		emit CreamCreated(newCreamAddress, _ipfsHash);
 	}
+
+	// TODO: add variable update method
 }

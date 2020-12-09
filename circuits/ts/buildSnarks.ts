@@ -17,7 +17,7 @@ const main = () => {
     const ptauPath = './build/pot19_final.ptau'
     const zkey = './build/vote.zkey'
     const vkOut = './build/circuits/verification_key.json'
-    const solVerifier = '../contracts/contracts/Verifier.sol'
+    const creamVerifier = '../contracts/contracts/verifiers/CreamVerifier.sol'
 
     // 0: TEMP using this local centralised created ptau file
     // Should be replaced by ptau file created by MPC seremony in the future
@@ -64,9 +64,9 @@ const main = () => {
         JSON.parse(fs.readFileSync(vkOut).toString())
     )
 
-    fs.writeFileSync(solVerifier, verifier)
+    fs.writeFileSync(creamVerifier, verifier)
 
-    console.log(`Generated verifier contract: \n ${solVerifier}`)
+    console.log(`Generated verifier contract: \n ${creamVerifier}`)
 }
 
 if (require.main === module) {

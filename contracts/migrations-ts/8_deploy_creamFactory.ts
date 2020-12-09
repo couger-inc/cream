@@ -5,27 +5,27 @@ import { promisify } from 'util'
 import {
     CreamFactoryContract,
     CreamFactoryInstance,
-    VerifierContract,
-    VerifierInstance,
+    CreamVerifierContract,
+    CreamVerifierInstance,
     SignUpTokenContract,
     SignUpTokenInstance,
     MiMCInstance,
 } from '../types/truffle-contracts'
 
 const CreamFactory: CreamFactoryContract = artifacts.require('CreamFactory')
-const Verifier: VerifierContract = artifacts.require('Verifier')
+const CreamVerifier: CreamVerifierContract = artifacts.require('CreamVerifier')
 const SignUpToken: SignUpTokenContract = artifacts.require('SignUpToken')
 const MiMC: any = artifacts.require('MiMC')
 
 module.exports = (deployer: any) => {
     deployer
         .then(async () => {
-            const verifier: VerifierInstance = await Verifier.deployed()
+            const creamVerifier: CreamVerifierInstance = await CreamVerifier.deployed()
             const signUpToken: SignUpTokenInstance = await SignUpToken.deployed()
             const mimc: MiMCInstance = await MiMC.deployed()
             const { config } = require('cream-config')
             await CreamFactory.link(MiMC, mimc.address)
-            await deployer.deploy(CreamFactory)
+            await deployer.deploy(CreamFactory, creamVerifier.address)
         })
         .then(async () => {
             const basePath = path.resolve(__dirname, '../app/constants')

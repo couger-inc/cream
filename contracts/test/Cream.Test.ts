@@ -19,9 +19,9 @@ const {
     rbigInt,
 } = require('libcream')
 
-const Cream = artifacts.require('./Cream.sol')
-const SignUpToken = artifacts.require('./SignUpToken.sol')
-const Verifier = artifacts.require('./Verifier.sol')
+const Cream = artifacts.require('Cream')
+const SignUpToken = artifacts.require('SignUpToken')
+const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 
 const toHex32 = (number) => {
@@ -71,12 +71,12 @@ contract('Cream', (accounts) => {
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        verifier = await Verifier.deployed()
+        creamVerifier = await CreamVerifier.deployed()
         mimc = await MiMC.deployed()
         tokenContract = await SignUpToken.deployed()
         await Cream.link(MiMC, mimc.address)
         instance = await Cream.new(
-            verifier.address,
+            creamVerifier.address,
             tokenContract.address,
             value,
             LEVELS,
@@ -122,14 +122,14 @@ contract('Cream', (accounts) => {
 
         it('should be able to update verifier contract by owner', async () => {
             const oldVerifier = await instance.verifier()
-            const newVerifier = await Verifier.new()
+            const newVerifier = await CreamVerifier.new()
             await instance.updateVerifier(newVerifier.address)
             const result = await instance.verifier()
             assert.notEqual(oldVerifier, result)
         })
 
         it('should prevent update verifier contract by non-owner', async () => {
-            const newVerifier = await Verifier.new()
+            const newVerifier = await CreamVerifier.new()
             try {
                 await instance.updateVerifier(newVerifier.address, {
                     from: voter,
