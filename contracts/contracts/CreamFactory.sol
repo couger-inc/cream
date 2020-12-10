@@ -29,9 +29,9 @@ contract CreamFactory is Ownable {
     ) public onlyOwner {
         // TODO add deployMACI()
 
-	    address newCreamAddress = address(new Cream(creamVerifier, _signUpToken, _denomination, _merkleTreeHeight, _recipients));
-		electionDetails[newCreamAddress] = _ipfsHash;
-		emit CreamCreated(newCreamAddress, _ipfsHash);
+	    address creamAddress = address(new Cream(creamVerifier, _signUpToken, _denomination, _merkleTreeHeight, _recipients));
+		electionDetails[creamAddress] = _ipfsHash;
+		emit CreamCreated(creamAddress, _ipfsHash);
 	}
 
 	// TODO: add variable update method
