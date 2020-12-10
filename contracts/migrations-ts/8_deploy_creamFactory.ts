@@ -9,8 +9,8 @@ import {
     CreamVerifierInstance,
     SignUpTokenContract,
     SignUpTokenInstance,
-	MACIFactoryContract,
-	MACIFactoryInstance,
+    MACIFactoryContract,
+    MACIFactoryInstance,
     MiMCInstance,
 } from '../types/truffle-contracts'
 
@@ -23,13 +23,17 @@ const MiMC: any = artifacts.require('MiMC')
 module.exports = (deployer: any) => {
     deployer
         .then(async () => {
-          const creamVerifier: CreamVerifierInstance = await CreamVerifier.deployed()
-		  const maciFactory: MACIFactoryInstance = await MACIFactory.deployed()
+            const creamVerifier: CreamVerifierInstance = await CreamVerifier.deployed()
+            const maciFactory: MACIFactoryInstance = await MACIFactory.deployed()
             const signUpToken: SignUpTokenInstance = await SignUpToken.deployed()
             const mimc: MiMCInstance = await MiMC.deployed()
             const { config } = require('cream-config')
             await CreamFactory.link(MiMC, mimc.address)
-            await deployer.deploy(CreamFactory, maciFactory.address, creamVerifier.address)
+            await deployer.deploy(
+                CreamFactory,
+                maciFactory.address,
+                creamVerifier.address
+            )
         })
         .then(async () => {
             const basePath = path.resolve(__dirname, '../app/constants')
