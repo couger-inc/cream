@@ -1,20 +1,23 @@
 const truffleAssert = require('truffle-assertions')
 const { toHex, createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { Keypair } = require('maci-domainobjs')
 
 const CreamFactory = artifacts.require('CreamFactory')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
+const MACIFactory = artifacts.require('MACIFactory')
 
 contract('CreamFactory', (accounts) => {
-    let instance
+    let creamFactory
     let verifier
     let signUpToken
     let tx
     let creamAddress
     let cream
-    let snapshotId
+  let snapshotId
+  let coordinatorPubKey
     const MERKLE_HEIGHT = 1
     const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
@@ -22,33 +25,37 @@ contract('CreamFactory', (accounts) => {
     const VOTER = accounts[3]
 
     before(async () => {
-        instance = await CreamFactory.deployed()
+        creamFactory = await CreamFactory.deployed()
         creamVerifier = await CreamVerifier.deployed()
-        signUpToken = await SignUpToken.deployed()
-        tx = await instance.createCream(
-            signUpToken.address,
-            DENOMINATION,
-            MERKLE_HEIGHT,
-            RECIPIENTS,
-            IPFS_HASH
-        )
-        creamAddress = tx.logs[1].args[0]
-        cream = await Cream.at(creamAddress)
+      signUpToken = await SignUpToken.deployed()
+	  coordinatorPubKey = (new Keypair()).pubKey.asContractParam()
+      tx = await creamFactory.createCream(
+	      signUpToken.address,
+	      DENOMINATION,
+	      MERKLE_HEIGHT,
+	      RECIPIENTS,
+	      IPFS_HASH,
+	  	  coordinatorPubKey,
+            { from : accounts[0] }
+	  )
+	  creamAddress = tx.logs[3].args[0]
+	    cream = await Cream.at(creamAddress)
         snapshotId = await takeSnapshot()
     })
 
     describe('initialize', () => {
-        it('should correctly initialize ownership', async () => {
-            assert.notEqual(await instance.owner(), accounts[1])
+      it('should correctly initialize ownership', async () => {
+            assert.notEqual(await creamFactory.owner(), accounts[1])
         })
         it('should fail when non owner tried to create Cream contract', async () => {
             try {
-                await instance.createCream(
+                await creamFactory.createCream(
                     signUpToken.address,
                     DENOMINATION,
                     MERKLE_HEIGHT,
                     RECIPIENTS,
                     IPFS_HASH,
+                    coordinatorPubKey,
                     { from: VOTER }
                 )
             } catch (error) {
@@ -66,7 +73,7 @@ contract('CreamFactory', (accounts) => {
 
         it('should be able to reveive correct value from mapped contract address', async () => {
             assert.equal(
-                await instance.electionDetails(creamAddress),
+                await creamFactory.electionDetails(creamAddress),
                 IPFS_HASH
             )
         })
@@ -84,23 +91,26 @@ contract('CreamFactory', (accounts) => {
                 from: VOTER,
             })
 
+		  coordinatorPubKey = (new Keypair()).pubKey.asContractParam()
+
             signUpToken = await SignUpToken.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
-            tx = await instance.createCream(
+            tx = await creamFactory.createCream(
                 signUpToken.address,
                 DENOMINATION,
                 MERKLE_HEIGHT,
                 NEW_RECIPIENTS,
-                IPFS_HASH
+                IPFS_HASH,
+				coordinatorPubKey
             )
-            const newCreamAddress = tx.logs[1].args[0]
+            const newCreamAddress = tx.logs[3].args[0]
             const newCream = await Cream.at(newCreamAddress)
             assert.equal(
-                await instance.electionDetails(creamAddress),
+                await creamFactory.electionDetails(creamAddress),
                 IPFS_HASH
             )
             assert.equal(
-                await instance.electionDetails(newCreamAddress),
+                await creamFactory.electionDetails(newCreamAddress),
                 IPFS_HASH
             )
         })

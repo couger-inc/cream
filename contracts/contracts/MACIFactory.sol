@@ -117,6 +117,7 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
   }
 
   /**
+    * TODO: Adding onlyOwner modifier is a must
     * @dev Deploy new MACI instance.
     */
   function deployMaci(
@@ -125,7 +126,6 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
     PubKey calldata _coordinatorPubKey
   )
     external
-    onlyOwner
     returns (MACI _maci)
   {
     _maci = new MACI(

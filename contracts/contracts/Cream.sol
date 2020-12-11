@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "maci-contracts/sol/MACI.sol";
+
 abstract contract IVerifier {
     function verifyProof(bytes memory _proof, uint256[5] memory _input) public virtual returns(bool);
 }
@@ -24,6 +26,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
     address[] public recipients;
     IVerifier public verifier;
     SignUpToken public signUpToken;
+    MACI public maci;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
     event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
@@ -114,4 +117,17 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
     ) external onlyOwner {
         verifier = IVerifier(_newVerifier);
     }
+
+    function setMaci(
+        MACI _maci
+    ) external onlyOwner {
+        require(address(maci) == address(0), "Already linked to MACI instance");
+        require(
+            _maci.calcSignUpDeadline() > block.timestamp,
+			"Signup deadline must be in the future"
+        );
+        maci = _maci;
+    }
+
+	// TODO add more maci function call
 }
