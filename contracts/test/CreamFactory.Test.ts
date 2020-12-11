@@ -19,6 +19,7 @@ contract('CreamFactory', (accounts) => {
     let cream
     let snapshotId
     let coordinatorPubKey
+    let maciFactory
     const MERKLE_HEIGHT = 1
     const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
@@ -29,6 +30,8 @@ contract('CreamFactory', (accounts) => {
         creamFactory = await CreamFactory.deployed()
         creamVerifier = await CreamVerifier.deployed()
         signUpToken = await SignUpToken.deployed()
+        maciFactory = await MACIFactory.deployed()
+        await maciFactory.transferOwnership(creamFactory.address);
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
             signUpToken.address,

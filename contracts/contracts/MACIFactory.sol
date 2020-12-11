@@ -126,6 +126,7 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
     PubKey calldata _coordinatorPubKey
   )
     external
+    onlyOwner
     returns (MACI _maci)
   {
     _maci = new MACI(
