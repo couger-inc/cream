@@ -3,7 +3,7 @@
   "version": "0.3.3",
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "scripts": {
-    "bootstrap": "npx lerna bootstrap",
+    "bootstrap": "npm i && npx lerna bootstrap",
     "build": "npx lerna run build",
     "format": "npx prettier './**/**/**/*.{js,ts}' --write",
     "migrate": "npx truffle migrate",

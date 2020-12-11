@@ -8,6 +8,7 @@ const CreamVerifier = artifacts.require('CreamVerifier')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
 const MACIFactory = artifacts.require('MACIFactory')
+const MACI = artifacts.require('MACI')
 
 contract('CreamFactory', (accounts) => {
     let creamFactory
@@ -44,9 +45,10 @@ contract('CreamFactory', (accounts) => {
     })
 
     describe('initialize', () => {
-      it('should correctly initialize ownership', async () => {
+        it('should correctly initialize ownership', async () => {
             assert.notEqual(await creamFactory.owner(), accounts[1])
         })
+	  
         it('should fail when non owner tried to create Cream contract', async () => {
             try {
                 await creamFactory.createCream(
@@ -64,6 +66,14 @@ contract('CreamFactory', (accounts) => {
             }
             assert.fail('Expected revert not received')
         })
+
+	  it('should correctly set maci contract', async () => {
+		const maciAddress = await cream.maci()
+		const maci = await MACI.at(maciAddress)
+		const creamCoordinatorPubKey = await maci.coordinatorPubKey()
+		assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
+		assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)		
+	  })
     })
 
     describe('contract deploy', () => {
