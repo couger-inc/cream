@@ -20,6 +20,8 @@ contract('CreamFactory', (accounts) => {
     let snapshotId
     let coordinatorPubKey
     let maciFactory
+    let maciAddress
+    let maci
     const MERKLE_HEIGHT = 1
     const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
@@ -44,6 +46,8 @@ contract('CreamFactory', (accounts) => {
         )
         creamAddress = tx.logs[3].args[0]
         cream = await Cream.at(creamAddress)
+        maciAddress = await cream.maci()
+        maci = await MACI.at(maciAddress)
         snapshotId = await takeSnapshot()
     })
 
@@ -71,11 +75,33 @@ contract('CreamFactory', (accounts) => {
         })
 
         it('should correctly set maci contract', async () => {
-            const maciAddress = await cream.maci()
-            const maci = await MACI.at(maciAddress)
             const creamCoordinatorPubKey = await maci.coordinatorPubKey()
             assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
             assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)
+        })
+
+        it('should be able to set MACI parameters', async () => {
+            const _stateTreeDepth = 8
+            const _messageTreeDepth = 12
+            const _voteOptionTreeDepth = 4
+            const _tallyBatchSize = await maci.tallyBatchSize()
+            const _messageBatchSize = await maci.messageBatchSize()
+            const _signUpDuration = await maci.signUpDurationSeconds()
+            const _votingDuration = 86400
+            const _batchUstVerifier = await maciFactory.batchUstVerifier()
+            const _qvtVerifier = await maciFactory.qvtVerifier()
+
+            await creamFactory.setMaciParameters(
+                _stateTreeDepth,
+                _messageTreeDepth,
+                _voteOptionTreeDepth,
+                _tallyBatchSize,
+                _messageBatchSize,
+                _batchUstVerifier,
+                _qvtVerifier,
+                _signUpDuration,
+                _votingDuration
+            )
         })
     })
 

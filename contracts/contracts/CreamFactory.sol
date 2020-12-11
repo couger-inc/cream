@@ -24,6 +24,30 @@ contract CreamFactory is Ownable, MACISharedObjs {
 		creamVerifier = _creamVerifier;
     }
 
+    function setMaciParameters(
+        uint8 _stateTreeDepth,
+        uint8 _messageTreeDepth,
+        uint8 _voteOptionTreeDepth,
+        uint8 _tallyBatchSize,
+        uint8 _messageBatchSize,
+        SnarkVerifier _batchUstVerifier,
+        SnarkVerifier _qvtVerifier,
+        uint256 _signUpDuration,
+        uint256 _votingDuration
+   ) external onlyOwner {
+		maciFactory.setMaciParameters(
+            _stateTreeDepth,
+            _messageTreeDepth,
+            _voteOptionTreeDepth,
+            _tallyBatchSize,
+            _messageBatchSize,
+            _batchUstVerifier,
+            _qvtVerifier,
+            _signUpDuration,
+            _votingDuration
+        );
+	}
+
 	function createCream(
         SignUpToken _signUpToken,
         uint256 _denomination,
