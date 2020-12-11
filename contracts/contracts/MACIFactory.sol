@@ -119,27 +119,27 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
   /**
     * @dev Deploy new MACI instance.
     */
-//   function deployMaci(
-//     SignUpGatekeeper _signUpGatekeeper,
-//     InitialVoiceCreditProxy _initialVoiceCreditProxy,
-//     PubKey calldata _coordinatorPubKey
-//   )
-//     external
-//     onlyOwner
-//     returns (MACI _maci)
-//   {
-//     _maci = new MACI(
-//       treeDepths,
-//       batchSizes,
-//       maxValues,
-//       _signUpGatekeeper,
-//       batchUstVerifier,
-//       qvtVerifier,
-//       signUpDuration,
-//       votingDuration,
-//       _initialVoiceCreditProxy,
-//       _coordinatorPubKey
-//     );
-//     emit MaciDeployed(address(_maci));
-//   }
+  function deployMaci(
+    SignUpGatekeeper _signUpGatekeeper,
+    InitialVoiceCreditProxy _initialVoiceCreditProxy,
+    PubKey calldata _coordinatorPubKey
+  )
+    external
+    onlyOwner
+    returns (MACI _maci)
+  {
+    _maci = new MACI(
+      treeDepths,
+      batchSizes,
+      maxValues,
+      _signUpGatekeeper,
+      batchUstVerifier,
+      qvtVerifier,
+      signUpDuration,
+      votingDuration,
+      _initialVoiceCreditProxy,
+      _coordinatorPubKey
+    );
+    emit MaciDeployed(address(_maci));
+  }
 }
