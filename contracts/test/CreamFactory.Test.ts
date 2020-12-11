@@ -17,8 +17,8 @@ contract('CreamFactory', (accounts) => {
     let tx
     let creamAddress
     let cream
-  let snapshotId
-  let coordinatorPubKey
+    let snapshotId
+    let coordinatorPubKey
     const MERKLE_HEIGHT = 1
     const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
@@ -28,19 +28,19 @@ contract('CreamFactory', (accounts) => {
     before(async () => {
         creamFactory = await CreamFactory.deployed()
         creamVerifier = await CreamVerifier.deployed()
-      signUpToken = await SignUpToken.deployed()
-	  coordinatorPubKey = (new Keypair()).pubKey.asContractParam()
-      tx = await creamFactory.createCream(
-	      signUpToken.address,
-	      DENOMINATION,
-	      MERKLE_HEIGHT,
-	      RECIPIENTS,
-	      IPFS_HASH,
-	  	  coordinatorPubKey,
-            { from : accounts[0] }
-	  )
-	  creamAddress = tx.logs[3].args[0]
-	    cream = await Cream.at(creamAddress)
+        signUpToken = await SignUpToken.deployed()
+        coordinatorPubKey = new Keypair().pubKey.asContractParam()
+        tx = await creamFactory.createCream(
+            signUpToken.address,
+            DENOMINATION,
+            MERKLE_HEIGHT,
+            RECIPIENTS,
+            IPFS_HASH,
+            coordinatorPubKey,
+            { from: accounts[0] }
+        )
+        creamAddress = tx.logs[3].args[0]
+        cream = await Cream.at(creamAddress)
         snapshotId = await takeSnapshot()
     })
 
@@ -48,7 +48,7 @@ contract('CreamFactory', (accounts) => {
         it('should correctly initialize ownership', async () => {
             assert.notEqual(await creamFactory.owner(), accounts[1])
         })
-	  
+
         it('should fail when non owner tried to create Cream contract', async () => {
             try {
                 await creamFactory.createCream(
@@ -67,13 +67,13 @@ contract('CreamFactory', (accounts) => {
             assert.fail('Expected revert not received')
         })
 
-	  it('should correctly set maci contract', async () => {
-		const maciAddress = await cream.maci()
-		const maci = await MACI.at(maciAddress)
-		const creamCoordinatorPubKey = await maci.coordinatorPubKey()
-		assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
-		assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)		
-	  })
+        it('should correctly set maci contract', async () => {
+            const maciAddress = await cream.maci()
+            const maci = await MACI.at(maciAddress)
+            const creamCoordinatorPubKey = await maci.coordinatorPubKey()
+            assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
+            assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)
+        })
     })
 
     describe('contract deploy', () => {
@@ -101,7 +101,7 @@ contract('CreamFactory', (accounts) => {
                 from: VOTER,
             })
 
-		  coordinatorPubKey = (new Keypair()).pubKey.asContractParam()
+            coordinatorPubKey = new Keypair().pubKey.asContractParam()
 
             signUpToken = await SignUpToken.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
@@ -111,7 +111,7 @@ contract('CreamFactory', (accounts) => {
                 MERKLE_HEIGHT,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
-				coordinatorPubKey
+                coordinatorPubKey
             )
             const newCreamAddress = tx.logs[3].args[0]
             const newCream = await Cream.at(newCreamAddress)
