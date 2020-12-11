@@ -31,7 +31,7 @@ contract('CreamFactory', (accounts) => {
         creamVerifier = await CreamVerifier.deployed()
         signUpToken = await SignUpToken.deployed()
         maciFactory = await MACIFactory.deployed()
-        await maciFactory.transferOwnership(creamFactory.address);
+        await maciFactory.transferOwnership(creamFactory.address)
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
             signUpToken.address,

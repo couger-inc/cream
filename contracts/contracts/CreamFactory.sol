@@ -31,7 +31,8 @@ contract CreamFactory is Ownable, MACISharedObjs {
         address[] memory _recipients,
         string memory _ipfsHash,
 		PubKey memory _coordinatorPubKey
-    ) public onlyOwner {
+    ) external onlyOwner {
+		require(maciFactory.owner() == address(this), "MACI factory is not owned by CreamFactory contract");
 		// Deploy new Cream contract
 		Cream cream = new Cream(
             creamVerifier,
