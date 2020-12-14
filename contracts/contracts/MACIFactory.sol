@@ -117,7 +117,6 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
   }
 
   /**
-    * TODO: Adding onlyOwner modifier is a must
     * @dev Deploy new MACI instance.
     */
   function deployMaci(
