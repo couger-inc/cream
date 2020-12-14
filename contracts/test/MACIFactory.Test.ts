@@ -76,6 +76,7 @@ contract('MACIFactory', (accounts) => {
                     { from: accounts[2] }
                 )
             } catch (error) {
+                assert.equal(error.reason, 'Ownable: caller is not the owner')
                 return
             }
             assert.fail('Expected revert not received')
@@ -113,6 +114,47 @@ contract('MACIFactory', (accounts) => {
                 _votingDuration
             )
             truffleAssert.eventEmitted(tx2, 'MaciParametersChanged')
+        })
+
+        it('should fail if non owner try to set MACI pamameter', async () => {
+            const MACI = artifacts.require('MACI')
+            const tx = await maciFactory.deployMaci(
+                cream.address,
+                cream.address,
+                coordinatorPubKey
+            )
+
+            const maciAddress = tx.logs[2].args[0]
+            const maci = await MACI.at(maciAddress)
+
+            const _stateTreeDepth = 8
+            const _messageTreeDepth = 12
+            const _voteOptionTreeDepth = 4
+            const _tallyBatchSize = await maci.tallyBatchSize()
+            const _messageBatchSize = await maci.messageBatchSize()
+            const _signUpDuration = await maci.signUpDurationSeconds()
+            const _votingDuration = 86400
+            const _batchUstVerifier = await maciFactory.batchUstVerifier()
+            const _qvtVerifier = await maciFactory.qvtVerifier()
+
+            try {
+                const tx2 = await maciFactory.setMaciParameters(
+                    _stateTreeDepth,
+                    _messageTreeDepth,
+                    _voteOptionTreeDepth,
+                    _tallyBatchSize,
+                    _messageBatchSize,
+                    _batchUstVerifier,
+                    _qvtVerifier,
+                    _signUpDuration,
+                    _votingDuration,
+                    { from: accounts[2] }
+                )
+            } catch (error) {
+                assert.equal(error.reason, 'Ownable: caller is not the owner')
+                return
+            }
+            assert.fail('Expected revert not received')
         })
     })
 
