@@ -101,9 +101,62 @@ contract('MACIFactory', (accounts) => {
             assert.fail('Expected revert not received')
         })
 
-        // it('should be able to set MACI parameters', async () => {
-        // 		truffleAssert.eventEmitted(tx, 'MaciParametersChanged')
-        //  	  })
+        it('should be able to set MACI parameters', async () => {
+            const Cream = artifacts.require('Cream')
+            const SignUpToken = artifacts.require('SignUpToken')
+            const CreamVerifier = artifacts.require('CreamVerifier')
+            const MiMC = artifacts.require('MiMC')
+            const MACI = artifacts.require('MACI')
+
+            const LEVELS = config.cream.merkleTrees.toString()
+            const ZERO_VALUE = config.cream.zeroValue
+            const value = config.cream.denomination.toString()
+            const recipient = config.cream.recipients[0]
+            const fee = bigInt(value).shr(0)
+
+            const creamVerifier = await CreamVerifier.deployed()
+            const mimc = await MiMC.deployed()
+            const tokenContract = await SignUpToken.deployed()
+            await Cream.link(MiMC, mimc.address)
+            const cream = await Cream.new(
+                creamVerifier.address,
+                tokenContract.address,
+                value,
+                LEVELS,
+                config.cream.recipients
+            )
+            const coordinatorPubKey = new Keypair().pubKey.asContractParam()
+            const tx = await maciFactory.deployMaci(
+                cream.address,
+                cream.address,
+                coordinatorPubKey
+            )
+
+            const maciAddress = tx.logs[2].args[0]
+            const maci = await MACI.at(maciAddress)
+
+            const _stateTreeDepth = 8
+            const _messageTreeDepth = 12
+            const _voteOptionTreeDepth = 4
+            const _tallyBatchSize = await maci.tallyBatchSize()
+            const _messageBatchSize = await maci.messageBatchSize()
+            const _signUpDuration = await maci.signUpDurationSeconds()
+            const _votingDuration = 86400
+            const _batchUstVerifier = await maciFactory.batchUstVerifier()
+            const _qvtVerifier = await maciFactory.qvtVerifier()
+            const tx2 = await maciFactory.setMaciParameters(
+                _stateTreeDepth,
+                _messageTreeDepth,
+                _voteOptionTreeDepth,
+                _tallyBatchSize,
+                _messageBatchSize,
+                _batchUstVerifier,
+                _qvtVerifier,
+                _signUpDuration,
+                _votingDuration
+            )
+            truffleAssert.eventEmitted(tx2, 'MaciParametersChanged')
+        })
     })
 
     afterEach(async () => {
