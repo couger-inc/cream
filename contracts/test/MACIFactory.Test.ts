@@ -8,14 +8,41 @@ const MACIFactory = artifacts.require('MACIFactory')
 const BatchUpdateStateTreeVerifierSmall = artifacts.require(
     'BatchUpdateStateTreeVerifierSmall'
 )
+const Cream = artifacts.require('Cream')
+const SignUpToken = artifacts.require('SignUpToken')
+const CreamVerifier = artifacts.require('CreamVerifier')
+const MiMC = artifacts.require('MiMC')
+
+const LEVELS = config.cream.merkleTrees.toString()
+const ZERO_VALUE = config.cream.zeroValue
+const value = config.cream.denomination.toString()
+const recipient = config.cream.recipients[0]
+const fee = bigInt(value).shr(0)
 
 contract('MACIFactory', (accounts) => {
     let maciFactory
     let snapshotId
+    let creamVerifier
+    let mimc
+    let tokenContract
+    let cream
+    let coordinatorPubKey
 
     before(async () => {
         maciFactory = await MACIFactory.deployed()
         batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifierSmall.deployed()
+        creamVerifier = await CreamVerifier.deployed()
+        mimc = await MiMC.deployed()
+        tokenContract = await SignUpToken.deployed()
+        await Cream.link(MiMC, mimc.address)
+        cream = await Cream.new(
+            creamVerifier.address,
+            tokenContract.address,
+            value,
+            LEVELS,
+            config.cream.recipients
+        )
+        coordinatorPubKey = new Keypair().pubKey.asContractParam()
         snapshotId = await takeSnapshot()
     })
 
@@ -32,30 +59,6 @@ contract('MACIFactory', (accounts) => {
         })
 
         it('should be able to deploy MACI', async () => {
-            // deploy cream to get cream contract address
-            const Cream = artifacts.require('Cream')
-            const SignUpToken = artifacts.require('SignUpToken')
-            const CreamVerifier = artifacts.require('CreamVerifier')
-            const MiMC = artifacts.require('MiMC')
-
-            const LEVELS = config.cream.merkleTrees.toString()
-            const ZERO_VALUE = config.cream.zeroValue
-            const value = config.cream.denomination.toString()
-            const recipient = config.cream.recipients[0]
-            const fee = bigInt(value).shr(0)
-
-            const creamVerifier = await CreamVerifier.deployed()
-            const mimc = await MiMC.deployed()
-            const tokenContract = await SignUpToken.deployed()
-            await Cream.link(MiMC, mimc.address)
-            const cream = await Cream.new(
-                creamVerifier.address,
-                tokenContract.address,
-                value,
-                LEVELS,
-                config.cream.recipients
-            )
-            const coordinatorPubKey = new Keypair().pubKey.asContractParam()
             const tx = await maciFactory.deployMaci(
                 cream.address,
                 cream.address,
@@ -65,29 +68,6 @@ contract('MACIFactory', (accounts) => {
         })
 
         it('should revert if non owner try to deploy MACI', async () => {
-            const Cream = artifacts.require('Cream')
-            const SignUpToken = artifacts.require('SignUpToken')
-            const CreamVerifier = artifacts.require('CreamVerifier')
-            const MiMC = artifacts.require('MiMC')
-
-            const LEVELS = config.cream.merkleTrees.toString()
-            const ZERO_VALUE = config.cream.zeroValue
-            const value = config.cream.denomination.toString()
-            const recipient = config.cream.recipients[0]
-            const fee = bigInt(value).shr(0)
-
-            const creamVerifier = await CreamVerifier.deployed()
-            const mimc = await MiMC.deployed()
-            const tokenContract = await SignUpToken.deployed()
-            await Cream.link(MiMC, mimc.address)
-            const cream = await Cream.new(
-                creamVerifier.address,
-                tokenContract.address,
-                value,
-                LEVELS,
-                config.cream.recipients
-            )
-            const coordinatorPubKey = new Keypair().pubKey.asContractParam()
             try {
                 const tx = await maciFactory.deployMaci(
                     cream.address,
@@ -102,30 +82,7 @@ contract('MACIFactory', (accounts) => {
         })
 
         it('should be able to set MACI parameters', async () => {
-            const Cream = artifacts.require('Cream')
-            const SignUpToken = artifacts.require('SignUpToken')
-            const CreamVerifier = artifacts.require('CreamVerifier')
-            const MiMC = artifacts.require('MiMC')
             const MACI = artifacts.require('MACI')
-
-            const LEVELS = config.cream.merkleTrees.toString()
-            const ZERO_VALUE = config.cream.zeroValue
-            const value = config.cream.denomination.toString()
-            const recipient = config.cream.recipients[0]
-            const fee = bigInt(value).shr(0)
-
-            const creamVerifier = await CreamVerifier.deployed()
-            const mimc = await MiMC.deployed()
-            const tokenContract = await SignUpToken.deployed()
-            await Cream.link(MiMC, mimc.address)
-            const cream = await Cream.new(
-                creamVerifier.address,
-                tokenContract.address,
-                value,
-                LEVELS,
-                config.cream.recipients
-            )
-            const coordinatorPubKey = new Keypair().pubKey.asContractParam()
             const tx = await maciFactory.deployMaci(
                 cream.address,
                 cream.address,
