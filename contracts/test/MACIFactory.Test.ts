@@ -32,6 +32,7 @@ contract('MACIFactory', (accounts) => {
         })
 
         it('should be able to deploy MACI', async () => {
+            // deploy cream to get cream contract address
             const Cream = artifacts.require('Cream')
             const SignUpToken = artifacts.require('SignUpToken')
             const CreamVerifier = artifacts.require('CreamVerifier')
@@ -63,9 +64,42 @@ contract('MACIFactory', (accounts) => {
             truffleAssert.eventEmitted(tx, 'MaciDeployed')
         })
 
-        // it('should revert if non owner try to deploy MACI', async () => {
-        //
-        //  	  })
+        it('should revert if non owner try to deploy MACI', async () => {
+            const Cream = artifacts.require('Cream')
+            const SignUpToken = artifacts.require('SignUpToken')
+            const CreamVerifier = artifacts.require('CreamVerifier')
+            const MiMC = artifacts.require('MiMC')
+
+            const LEVELS = config.cream.merkleTrees.toString()
+            const ZERO_VALUE = config.cream.zeroValue
+            const value = config.cream.denomination.toString()
+            const recipient = config.cream.recipients[0]
+            const fee = bigInt(value).shr(0)
+
+            const creamVerifier = await CreamVerifier.deployed()
+            const mimc = await MiMC.deployed()
+            const tokenContract = await SignUpToken.deployed()
+            await Cream.link(MiMC, mimc.address)
+            const cream = await Cream.new(
+                creamVerifier.address,
+                tokenContract.address,
+                value,
+                LEVELS,
+                config.cream.recipients
+            )
+            const coordinatorPubKey = new Keypair().pubKey.asContractParam()
+            try {
+                const tx = await maciFactory.deployMaci(
+                    cream.address,
+                    cream.address,
+                    coordinatorPubKey,
+                    { from: accounts[2] }
+                )
+            } catch (error) {
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
 
         // it('should be able to set MACI parameters', async () => {
         // 		truffleAssert.eventEmitted(tx, 'MaciParametersChanged')
