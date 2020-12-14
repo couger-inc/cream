@@ -1,44 +1,73 @@
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { bigInt } = require('libcream')
+const { config } = require('cream-config')
+const { Keypair } = require('maci-domainobjs')
+const truffleAssert = require('truffle-assertions')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const BatchUpdateStateTreeVerifierSmall = artifacts.require(
     'BatchUpdateStateTreeVerifierSmall'
 )
 
-contract('MACIFactory', (accounts) => {
-    let instance
-    let snapshotId
-    before(async () => {
-        instance = await MACIFactory.deployed()
-        batchUstVerifierInstance = await BatchUpdateStateTreeVerifierSmall.deployed()
+contract('MACIFactory', (accounts) => {  
+  let maciFactory
+  let snapshotId
+  
+  before(async () => {
+	
+        maciFactory = await MACIFactory.deployed()
+        batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifierSmall.deployed()
         snapshotId = await takeSnapshot()
     })
 
     describe('initialize', () => {
         it('should correctly initialized', async () => {
-            // TODO: check more variables
-
-            const batchUstVerifierAddress = await instance.batchUstVerifier()
-            const votingDuration = await instance.votingDuration()
+            const batchUstVerifierAddress = await maciFactory.batchUstVerifier()
+          const votingDuration = await maciFactory.votingDuration()
+		  
             assert.equal(
                 batchUstVerifierAddress,
-                batchUstVerifierInstance.address
+                batchUstVerifierMaciFactory.address
             )
             assert.equal(votingDuration, 604800)
         })
 
-        // TODO
-        // it('should be able to set MACI parameters', async () => {
-        //
-        // 	})
+	  it('should be able to deploy MACI', async () => {
+		const Cream = artifacts.require('Cream')
+		const SignUpToken = artifacts.require('SignUpToken')
+		const CreamVerifier = artifacts.require('CreamVerifier')
+		const MiMC = artifacts.require('MiMC')
 
-        // TODO
-        // it('should be able to deploy MACI', async () => {
-        //
-        // 	})
-        // it('should revert if non owner try to deploy MACI', async () => {
-        //
-        // 	})
+		const LEVELS = config.cream.merkleTrees.toString()
+		const ZERO_VALUE = config.cream.zeroValue
+		const value = config.cream.denomination.toString()
+		const recipient = config.cream.recipients[0]
+		const fee = bigInt(value).shr(0)
+
+		const creamVerifier = await CreamVerifier.deployed()
+		const mimc = await MiMC.deployed()
+		const tokenContract = await SignUpToken.deployed()
+        await Cream.link(MiMC, mimc.address)
+        const cream = await Cream.new(
+          creamVerifier.address,
+          tokenContract.address,
+          value,
+          LEVELS,
+          config.cream.recipients
+        )
+		const coordinatorPubKey = new Keypair().pubKey.asContractParam()
+		const tx = await maciFactory.deployMaci(cream.address, cream.address, coordinatorPubKey)
+		truffleAssert.eventEmitted(tx, 'MaciDeployed')
+ 	  })
+	  
+	  // it('should revert if non owner try to deploy MACI', async () => {
+	  // 
+	  //  	  })
+
+      // it('should be able to set MACI parameters', async () => {
+	  // 		truffleAssert.eventEmitted(tx, 'MaciParametersChanged')
+	  //  	  })
+
     })
 
     afterEach(async () => {

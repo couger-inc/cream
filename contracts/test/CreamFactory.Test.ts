@@ -74,13 +74,13 @@ contract('CreamFactory', (accounts) => {
             assert.fail('Expected revert not received')
         })
 
-        it('should correctly set maci contract', async () => {
+        it('should correctly set maci contract from CreamFactory', async () => {
             const creamCoordinatorPubKey = await maci.coordinatorPubKey()
             assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
             assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)
         })
 
-        it('should be able to set MACI parameters', async () => {
+        it('should be able to set MACI parameters from CreamFactory', async () => {
             const _stateTreeDepth = 8
             const _messageTreeDepth = 12
             const _voteOptionTreeDepth = 4
