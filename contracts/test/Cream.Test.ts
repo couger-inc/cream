@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
+const { Keypair } = require('maci-domainobjs')
 const { MerkleTree } = require('cream-merkle-tree')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const truffleAssert = require('truffle-assertions')
@@ -23,6 +24,7 @@ const Cream = artifacts.require('Cream')
 const SignUpToken = artifacts.require('SignUpToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
+const MACIFactory = artifacts.require('MACIfactory')
 
 const toHex32 = (number) => {
     let str = number.toString(16)
@@ -52,10 +54,15 @@ const toSolidityInput = (proof) => {
 
 contract('Cream', (accounts) => {
     let instance
+    let tree
+    let creamVerifier
+    let mimc
     let tokenContract
+    let coordinatorPubKey
+    let maciFactory
+    let maciTx
     let snapshotId
     let proving_key
-    let tree
     let groth16
     let circuit
     const LEVELS = config.cream.merkleTrees.toString()
@@ -82,6 +89,14 @@ contract('Cream', (accounts) => {
             LEVELS,
             config.cream.recipients
         )
+        coordinatorPubKey = new Keypair().pubKey.asContractParam()
+        maciFactory = await MACIFactory.deployed()
+        maciTx = await maciFactory.deployMaci(
+            instance.address,
+            instance.address,
+            coordinatorPubKey
+        )
+        await instance.setMaci(maciTx.logs[2].args[0])
         tokenContract = await SignUpToken.deployed()
         snapshotId = await takeSnapshot()
     })

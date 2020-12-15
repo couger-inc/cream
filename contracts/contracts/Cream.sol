@@ -63,6 +63,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
     }
 
     function deposit(bytes32 _commitment) external payable nonReentrant {
+		require(address(maci) != address(0), "MACI contract have not set yet");
         require(!commitments[_commitment], "Already submitted");
 	    require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
