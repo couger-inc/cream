@@ -158,6 +158,26 @@ contract('Cream', (accounts) => {
     })
 
     describe('deposit', () => {
+        it('Should Fail deposit before calling setMaci()', async () => {
+            const newInstance = await Cream.new(
+                creamVerifier.address,
+                tokenContract.address,
+                value,
+                LEVELS,
+                config.cream.recipients
+            )
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+
+            try {
+                await newInstance.deposit(toHex(deposit.commitment), {
+                    from: voter,
+                })
+            } catch (error) {
+                assert.equal(error.reason, 'MACI contract have not set yet')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
         it('should correctly emit event', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             const tx = await instance.deposit(toHex(deposit.commitment), {
