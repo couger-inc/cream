@@ -45,7 +45,7 @@ module.exports = (deployer: any) => {
             )
             await promisify(fs.writeFile)(
                 path.join(basePath, 'CreamFactoryNetworks.json'),
-                JSON.stringify(creamFactory.networks, null, ' ')
+                JSON.stringify(creamFactory.constructor.networks, null, ' ')
             )
         })
 }
