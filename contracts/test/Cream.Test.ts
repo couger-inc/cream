@@ -24,7 +24,7 @@ const Cream = artifacts.require('Cream')
 const SignUpToken = artifacts.require('SignUpToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
-const MACIFactory = artifacts.require('MACIfactory')
+const MACIFactory = artifacts.require('MACIFactory')
 
 const toHex32 = (number) => {
     let str = number.toString(16)
