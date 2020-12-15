@@ -301,6 +301,8 @@ contract('Cream', (accounts) => {
             }
             assert.fail('Expected revert not received')
         })
+
+        // TODO: add isBeforeVotingDeadline test
     })
 
     describe('snark proof verification on js side', () => {

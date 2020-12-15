@@ -47,6 +47,16 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         recipients = _recipients;
     }
 
+	modifier isMaciReady() {
+		require(address(maci) != address(0), "MACI contract have not set yet");
+		_;
+	}
+
+	modifier isBeforeVotingDeadline(){
+		require(block.timestamp < maci.calcVotingDeadline(), "the voting period has passed");
+		_;
+	}
+
     function _processDeposit() internal {
 	    require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
         uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(msg.sender, 0);
@@ -62,8 +72,10 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         signUpToken.safeTransferFrom(address(this), _recipient, _tokenId);
     }
 
-    function deposit(bytes32 _commitment) external payable nonReentrant {
-		require(address(maci) != address(0), "MACI contract have not set yet");
+    function deposit(
+		bytes32 _commitment
+	) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
+		require(block.timestamp < maci.calcSignUpDeadline(), "the sign-up period has passed");
         require(!commitments[_commitment], "Already submitted");
 	    require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
