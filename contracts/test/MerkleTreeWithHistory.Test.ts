@@ -11,23 +11,23 @@ contract('MerkleTreeWithHistory', (accounts) => {
     let LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
     let hasherInstance
-    let instance
+    let merkleTree
     let snapshotId
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
         hasherInstance = await hasherContract.deployed()
         await MerkleTreeContract.link(hasherContract, hasherInstance.address)
-        instance = await MerkleTreeContract.new(LEVELS)
+        merkleTree = await MerkleTreeContract.new(LEVELS)
         snapshotId = await takeSnapshot()
     })
 
     describe('constructor', () => {
         it('should correctly initialze', async () => {
-            const zeroValue = await instance.ZERO_VALUE()
-            const firstSubtree = await instance.filledSubtrees(0)
-            const firstZero = await instance.zeros(0)
-            const rootFromContract = await instance.getLastRoot()
+            const zeroValue = await merkleTree.ZERO_VALUE()
+            const firstSubtree = await merkleTree.filledSubtrees(0)
+            const firstZero = await merkleTree.zeros(0)
+            const rootFromContract = await merkleTree.getLastRoot()
 
             assert.equal(firstSubtree, toHex(zeroValue))
             assert.equal(firstZero, toHex(zeroValue))
@@ -40,10 +40,10 @@ contract('MerkleTreeWithHistory', (accounts) => {
             let rootFromContract
 
             for (let i = 1; i < LEVELS; i++) {
-                await instance.insert(toHex(i), { from: accounts[0] })
+                await merkleTree.insert(toHex(i), { from: accounts[0] })
                 tree.insert(i)
                 const root = tree.root
-                rootFromContract = await instance.getLastRoot()
+                rootFromContract = await merkleTree.getLastRoot()
 
                 assert.equal(toHex(root), rootFromContract.toString())
             }
@@ -52,14 +52,14 @@ contract('MerkleTreeWithHistory', (accounts) => {
         it('should reject if tree is full', async () => {
             LEVELS = 6
 
-            const instance = await MerkleTreeContract.new(LEVELS)
+            const merkleTree = await MerkleTreeContract.new(LEVELS)
 
             for (let i = 0; i < 2 ** LEVELS; i++) {
-                await instance.insert(toHex(i + 42))
+                await merkleTree.insert(toHex(i + 42))
             }
 
             try {
-                await instance.insert(toHex(1))
+                await merkleTree.insert(toHex(1))
             } catch (error) {
                 assert.equal(error.reason, 'Merkle tree is full')
                 return

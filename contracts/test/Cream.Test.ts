@@ -53,7 +53,7 @@ const toSolidityInput = (proof) => {
 }
 
 contract('Cream', (accounts) => {
-    let instance
+    let cream
     let tree
     let creamVerifier
     let mimc
@@ -82,7 +82,7 @@ contract('Cream', (accounts) => {
         mimc = await MiMC.deployed()
         tokenContract = await SignUpToken.deployed()
         await Cream.link(MiMC, mimc.address)
-        instance = await Cream.new(
+        cream = await Cream.new(
             creamVerifier.address,
             tokenContract.address,
             value,
@@ -92,30 +92,30 @@ contract('Cream', (accounts) => {
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         maciFactory = await MACIFactory.deployed()
         maciTx = await maciFactory.deployMaci(
-            instance.address,
-            instance.address,
+            cream.address,
+            cream.address,
             coordinatorPubKey
         )
-        await instance.setMaci(maciTx.logs[2].args[0])
+        await cream.setMaci(maciTx.logs[2].args[0])
         tokenContract = await SignUpToken.deployed()
         snapshotId = await takeSnapshot()
     })
 
     beforeEach(async () => {
         await tokenContract.giveToken(voter)
-        await tokenContract.setApprovalForAll(instance.address, true, {
+        await tokenContract.setApprovalForAll(cream.address, true, {
             from: voter,
         })
     })
 
     describe('initialize', () => {
         it('should correctly initialize', async () => {
-            const denomination = await instance.denomination()
+            const denomination = await cream.denomination()
             assert.equal(denomination, value)
         })
 
         it('should return correct signuptoken address', async () => {
-            const tokenAddress = await instance.signUpToken.call()
+            const tokenAddress = await cream.signUpToken.call()
             assert.equal(tokenAddress, tokenContract.address)
         })
 
@@ -131,22 +131,22 @@ contract('Cream', (accounts) => {
 
         it('should return correct recipient address', async () => {
             const expected = recipient
-            const returned = await instance.recipients(0)
+            const returned = await cream.recipients(0)
             assert.equal(expected, returned)
         })
 
         it('should be able to update verifier contract by owner', async () => {
-            const oldVerifier = await instance.verifier()
+            const oldVerifier = await cream.verifier()
             const newVerifier = await CreamVerifier.new()
-            await instance.updateVerifier(newVerifier.address)
-            const result = await instance.verifier()
+            await cream.updateVerifier(newVerifier.address)
+            const result = await cream.verifier()
             assert.notEqual(oldVerifier, result)
         })
 
         it('should prevent update verifier contract by non-owner', async () => {
             const newVerifier = await CreamVerifier.new()
             try {
-                await instance.updateVerifier(newVerifier.address, {
+                await cream.updateVerifier(newVerifier.address, {
                     from: voter,
                 })
             } catch (error) {
@@ -159,7 +159,7 @@ contract('Cream', (accounts) => {
 
     describe('deposit', () => {
         it('Should Fail deposit before calling setMaci()', async () => {
-            const newInstance = await Cream.new(
+            const newCream = await Cream.new(
                 creamVerifier.address,
                 tokenContract.address,
                 value,
@@ -169,7 +169,7 @@ contract('Cream', (accounts) => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
 
             try {
-                await newInstance.deposit(toHex(deposit.commitment), {
+                await newCream.deposit(toHex(deposit.commitment), {
                     from: voter,
                 })
             } catch (error) {
@@ -178,18 +178,18 @@ contract('Cream', (accounts) => {
             }
             assert.fail('Expected revert not received')
         })
+
         it('should correctly emit event', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            const tx = await instance.deposit(toHex(deposit.commitment), {
+            const tx = await cream.deposit(toHex(deposit.commitment), {
                 from: voter,
             })
-            // truffleAssert.prettyPrintEmittedEvents(tx)
             truffleAssert.eventEmitted(tx, 'Deposit')
         })
 
         it('should return correct index', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            const tx = await instance.deposit(toHex(deposit.commitment), {
+            const tx = await cream.deposit(toHex(deposit.commitment), {
                 from: voter,
             })
             assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
@@ -197,22 +197,22 @@ contract('Cream', (accounts) => {
 
         it('should be able to find deposit event from commietment', async () => {
             const deposit1 = createDeposit(rbigInt(31), rbigInt(31))
-            const tx1 = await instance.deposit(toHex(deposit1.commitment), {
+            const tx1 = await cream.deposit(toHex(deposit1.commitment), {
                 from: voter,
             })
 
             // voter 2 deposit
             await tokenContract.giveToken(voter2)
-            await tokenContract.setApprovalForAll(instance.address, true, {
+            await tokenContract.setApprovalForAll(cream.address, true, {
                 from: voter2,
             })
             const deposit2 = createDeposit(rbigInt(31), rbigInt(31))
-            const tx2 = await instance.deposit(toHex(deposit2.commitment), {
+            const tx2 = await cream.deposit(toHex(deposit2.commitment), {
                 from: voter2,
             })
 
             // TODO : load `gemerateMerkleProof` function from cream-lib
-            const events = await instance.getPastEvents('Deposit', {
+            const events = await cream.getPastEvents('Deposit', {
                 fromBlock: 0,
             })
             const leaves = events
@@ -244,7 +244,7 @@ contract('Cream', (accounts) => {
         it('should throw an error for non-token holder', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             try {
-                await instance.deposit(toHex(deposit.commitment), {
+                await cream.deposit(toHex(deposit.commitment), {
                     from: badUser,
                 })
             } catch (error) {
@@ -260,7 +260,7 @@ contract('Cream', (accounts) => {
         // voter and bad user collude pattern
         it('should throw an error for more than two tokens holder', async () => {
             await tokenContract.giveToken(badUser)
-            await tokenContract.setApprovalForAll(instance.address, true, {
+            await tokenContract.setApprovalForAll(cream.address, true, {
                 from: badUser,
             })
             await tokenContract.setApprovalForAll(badUser, true, {
@@ -272,7 +272,7 @@ contract('Cream', (accounts) => {
 
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             try {
-                await instance.deposit(toHex(deposit.commitment), {
+                await cream.deposit(toHex(deposit.commitment), {
                     from: badUser,
                 })
             } catch (error) {
@@ -290,9 +290,9 @@ contract('Cream', (accounts) => {
 
         it('should throw an error for same commitment submittion', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             try {
-                await instance.deposit(toHex(deposit.commitment), {
+                await cream.deposit(toHex(deposit.commitment), {
                     from: voter,
                 })
             } catch (error) {
@@ -348,7 +348,7 @@ contract('Cream', (accounts) => {
         it('should correctly work and emit event', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -364,7 +364,7 @@ contract('Cream', (accounts) => {
                 path_index: merkleProof[1],
             }
 
-            let isSpent = await instance.isSpent(toHex(input.nullifierHash))
+            let isSpent = await cream.isSpent(toHex(input.nullifierHash))
             assert.isFalse(isSpent)
 
             const { proof } = await genProofAndPublicSignals(
@@ -383,7 +383,7 @@ contract('Cream', (accounts) => {
             ]
 
             const proofForSolidityInput = toSolidityInput(proof)
-            const tx = await instance.withdraw(proofForSolidityInput, ...args, {
+            const tx = await cream.withdraw(proofForSolidityInput, ...args, {
                 from: relayer,
             })
 
@@ -391,14 +391,14 @@ contract('Cream', (accounts) => {
             truffleAssert.eventEmitted(tx, 'Withdrawal')
 
             // check if nullifierhash status has changed correctly
-            isSpent = await instance.isSpent(toHex(input.nullifierHash))
+            isSpent = await cream.isSpent(toHex(input.nullifierHash))
             assert.isTrue(isSpent)
         })
 
         it('should correctly transfer token to recipient', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -430,7 +430,7 @@ contract('Cream', (accounts) => {
             ]
 
             const proofForSolidityInput = toSolidityInput(proof)
-            await instance.withdraw(proofForSolidityInput, ...args, {
+            await cream.withdraw(proofForSolidityInput, ...args, {
                 from: relayer,
             })
 
@@ -441,7 +441,7 @@ contract('Cream', (accounts) => {
         it('should prevent excess withdrawal', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -476,7 +476,7 @@ contract('Cream', (accounts) => {
             ]
 
             try {
-                await instance.withdraw(proofForSolidityInput, ...args, {
+                await cream.withdraw(proofForSolidityInput, ...args, {
                     from: relayer,
                 })
             } catch (error) {
@@ -489,7 +489,7 @@ contract('Cream', (accounts) => {
         it('should prevent double spend', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -521,11 +521,11 @@ contract('Cream', (accounts) => {
                 toHex(input.relayer, 20),
                 toHex(input.fee),
             ]
-            await instance.withdraw(proofForSolidityInput, ...args, {
+            await cream.withdraw(proofForSolidityInput, ...args, {
                 from: relayer,
             })
             try {
-                await instance.withdraw(proofForSolidityInput, ...args, {
+                await cream.withdraw(proofForSolidityInput, ...args, {
                     from: relayer,
                 })
             } catch (error) {
@@ -538,7 +538,7 @@ contract('Cream', (accounts) => {
         it('should prevent double sepnd with overflow', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -578,7 +578,7 @@ contract('Cream', (accounts) => {
             ]
 
             try {
-                await instance.withdraw(proofForSolidityInput, ...args, {
+                await cream.withdraw(proofForSolidityInput, ...args, {
                     from: relayer,
                 })
             } catch (error) {
@@ -591,7 +591,7 @@ contract('Cream', (accounts) => {
         it('should throw for corrupted merkle tree root', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -624,7 +624,7 @@ contract('Cream', (accounts) => {
                 toHex(input.fee),
             ]
             try {
-                await instance.withdraw(proofForSolidityInput, ...args, {
+                await cream.withdraw(proofForSolidityInput, ...args, {
                     from: relayer,
                 })
             } catch (error) {
@@ -637,7 +637,7 @@ contract('Cream', (accounts) => {
         it('should reject tampered public input on contract side', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -672,11 +672,9 @@ contract('Cream', (accounts) => {
             ]
 
             try {
-                await instance.withdraw(
-                    proofForSolidityInput,
-                    ...incorrectArgs,
-                    { from: relayer }
-                )
+                await cream.withdraw(proofForSolidityInput, ...incorrectArgs, {
+                    from: relayer,
+                })
             } catch (error) {
                 assert.equal(error.reason, 'Invalid withdraw proof')
                 return
@@ -688,7 +686,7 @@ contract('Cream', (accounts) => {
             recipient = '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await tree.insert(deposit.commitment)
-            await instance.deposit(toHex(deposit.commitment), { from: voter })
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
             const root = tree.root
             const merkleProof = tree.getPathUpdate(0)
             const input = {
@@ -722,7 +720,7 @@ contract('Cream', (accounts) => {
             ]
 
             try {
-                await instance.withdraw(proofForSolidityInput, ...args, {
+                await cream.withdraw(proofForSolidityInput, ...args, {
                     from: relayer,
                 })
             } catch (error) {
