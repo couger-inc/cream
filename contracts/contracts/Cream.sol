@@ -91,7 +91,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         address payable _recipient,
         address payable _relayer,
         uint256 _fee
-    ) external payable nonReentrant {
+    ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
         require(_fee <= denomination, "Fee exceeds transfer value");
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
