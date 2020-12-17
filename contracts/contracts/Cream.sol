@@ -21,7 +21,6 @@ abstract contract IVerifier {
 contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
-    mapping(address => bool) Recipients;
     uint256 public denomination;
     address[] public recipients;
     IVerifier public verifier;
@@ -29,7 +28,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
     MACI public maci;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
+    event Withdrawal(address recipient, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
     constructor(
         IVerifier _verifier,
@@ -43,7 +42,6 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         verifier = _verifier;
 	    signUpToken = _signUpToken;
         denomination = _denomination;
-        setRecipients(_recipients);
         recipients = _recipients;
     }
 
@@ -57,6 +55,9 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
 		_;
 	}
 
+	/*
+	 * Token transfer is executed as LIFO
+	 */
     function _processDeposit() internal {
 	    require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
         uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(msg.sender, 0);
@@ -65,11 +66,11 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
 
 
     function _processWithdraw(
-        address payable _recipient
+        address payable _recipientAddress
     ) internal {
         require(msg.value == 0, "ETH value is supposed to be 0 for withdrawal");
         uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(address(this), 0);
-        signUpToken.safeTransferFrom(address(this), _recipient, _tokenId);
+        signUpToken.safeTransferFrom(address(this), _recipientAddress, _tokenId);
     }
 
     function deposit(
@@ -88,7 +89,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         bytes calldata _proof,
         bytes32 _root,
         bytes32 _nullifierHash,
-        address payable _recipient,
+        uint256 _index,
         address payable _relayer,
         uint256 _fee
     ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
@@ -96,33 +97,10 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
         require(verifier.verifyProof(
-            _proof, [uint256(_root), uint256(_nullifierHash), uint256(_recipient), uint256(_relayer), _fee]), "Invalid withdraw proof");
-        require(isRecipient(_recipient), "Recipient do not exist");
+            _proof, [uint256(_root), uint256(_nullifierHash), _index, uint256(_relayer), _fee]), "Invalid withdraw proof");
         nullifierHashes[_nullifierHash] = true;
-        _processWithdraw(_recipient);
-        emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
-    }
-
-    function isSpent(bytes32 _nullifierHash) public view returns(bool) {
-        return nullifierHashes[_nullifierHash];
-    }
-
-    function setRecipients(
-        address[] memory _recipients
-    ) internal onlyOwner {
-        for (uint i; i < _recipients.length; i++) {
-            Recipients[_recipients[i]] = true;
-        }
-    }
-
-    function isRecipient(
-        address _recipient
-    ) internal view returns(bool) {
-        return Recipients[_recipient];
-    }
-
-    function getRecipients() public view returns(address[] memory) {
-        return recipients;
+		_processWithdraw(payable(recipients[_index]));
+        emit Withdrawal(recipients[_index], _nullifierHash, _relayer, _fee);
     }
 
     function updateVerifier(

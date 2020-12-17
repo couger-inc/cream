@@ -68,7 +68,8 @@ contract('Cream', (accounts) => {
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
     const value = config.cream.denomination.toString()
-    let recipient = config.cream.recipients[0]
+    // let recipient = config.cream.recipients[0]
+    let recipient = 0
     const fee = bigInt(value).shr(0)
     const contractOwner = accounts[0]
     const voter = accounts[1]
@@ -130,7 +131,7 @@ contract('Cream', (accounts) => {
         })
 
         it('should return correct recipient address', async () => {
-            const expected = recipient
+            const expected = config.cream.recipients[0]
             const returned = await cream.recipients(0)
             assert.equal(expected, returned)
         })
@@ -158,7 +159,7 @@ contract('Cream', (accounts) => {
     })
 
     describe('deposit', () => {
-        it('Should Fail deposit before calling setMaci()', async () => {
+        it('should Fail deposit before calling setMaci()', async () => {
             const newCream = await Cream.new(
                 creamVerifier.address,
                 tokenContract.address,
@@ -366,9 +367,6 @@ contract('Cream', (accounts) => {
                 path_index: merkleProof[1],
             }
 
-            let isSpent = await cream.isSpent(toHex(input.nullifierHash))
-            assert.isFalse(isSpent)
-
             const { proof } = await genProofAndPublicSignals(
                 input,
                 'prod/vote.circom',
@@ -393,7 +391,9 @@ contract('Cream', (accounts) => {
             truffleAssert.eventEmitted(tx, 'Withdrawal')
 
             // check if nullifierhash status has changed correctly
-            isSpent = await cream.isSpent(toHex(input.nullifierHash))
+            isSpent = await cream.nullifierHashes.call(
+                toHex(input.nullifierHash)
+            )
             assert.isTrue(isSpent)
         })
 
@@ -437,7 +437,7 @@ contract('Cream', (accounts) => {
             })
 
             const newTokenOwner = await tokenContract.ownerOf(1)
-            assert.equal(recipient, newTokenOwner)
+            assert.equal(config.cream.recipients[0], newTokenOwner)
         })
 
         it('should prevent excess withdrawal', async () => {
@@ -679,54 +679,6 @@ contract('Cream', (accounts) => {
                 })
             } catch (error) {
                 assert.equal(error.reason, 'Invalid withdraw proof')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should throw an error with random recipient', async () => {
-            recipient = '0x5aeda56215b167893e80b4fe645ba6d5bab767de'
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            await tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                relayer: relayer,
-                recipient,
-                fee,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                'prod/vote.circom',
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-
-            const proofForSolidityInput = toSolidityInput(proof)
-
-            const args = [
-                toHex(input.root),
-                toHex(input.nullifierHash),
-                toHex(input.recipient, 20),
-                toHex(input.relayer, 20),
-                toHex(input.fee),
-            ]
-
-            try {
-                await cream.withdraw(proofForSolidityInput, ...args, {
-                    from: relayer,
-                })
-            } catch (error) {
-                assert.equal(error.reason, 'Recipient do not exist')
                 return
             }
             assert.fail('Expected revert not received')
