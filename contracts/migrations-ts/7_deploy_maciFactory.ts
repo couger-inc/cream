@@ -18,13 +18,15 @@ const QuadVoteTallyVerifierSmall: QuadVoteTallyVerifierSmallContract = artifacts
     'QuadVoteTallyVerifierSmall'
 )
 
-const _stateTreeDepth = 4
-const _messageTreeDepth = 4
-const _voteOptionTreeDepth = 2
-const _tallyBatchSize = 4
-const _messageBatchSize = 4
-const _signUpDuration = 7 * 86400
-const _votingDuration = 7 * 86400
+const { config } = require('cream-config')
+
+const _stateTreeDepth = config.maci.merkleTrees.stateTreeDepth
+const _messageTreeDepth = config.maci.merkleTrees.messageTreeDepth
+const _voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth
+const _tallyBatchSize = config.maci.tallyBatchsize
+const _messageBatchSize = config.maci.messageBatchSize
+const _signUpDuration = 7 * 2 * 24 * Number(config.maci.signUpDurationInSeconds)
+const _votingDuration = 7 * 2 * 24 * Number(config.maci.signUpDurationInSeconds)
 
 module.exports = (deployer: any) => {
     deployer.then(async () => {
@@ -34,8 +36,8 @@ module.exports = (deployer: any) => {
         await MACIFactory.link(PoseidonT3, poseidonT3.address)
         await MACIFactory.link(PoseidonT6, poseidonT6.address)
 
-        const batchUstVerifier: BatchUpdateStateTreeVerifierSmallInstance = await BatchUpdateStateTreeVerifierSmall.deployed()
-        const qvtVerifier: QuadVoteTallyVerifierSmallInstance = await QuadVoteTallyVerifierSmall.deployed()
+        const _batchUstVerifier: BatchUpdateStateTreeVerifierSmallInstance = await BatchUpdateStateTreeVerifierSmall.deployed()
+        const _qvtVerifier: QuadVoteTallyVerifierSmallInstance = await QuadVoteTallyVerifierSmall.deployed()
         await deployer.deploy(
             MACIFactory,
             _stateTreeDepth,
@@ -43,8 +45,8 @@ module.exports = (deployer: any) => {
             _voteOptionTreeDepth,
             _tallyBatchSize,
             _messageBatchSize,
-            batchUstVerifier.address,
-            qvtVerifier.address,
+            _batchUstVerifier.address,
+            _qvtVerifier.address,
             _signUpDuration,
             _votingDuration
         )
