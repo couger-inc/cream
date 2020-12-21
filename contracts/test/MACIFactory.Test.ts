@@ -50,7 +50,6 @@ contract('MACIFactory', (accounts) => {
         it('should correctly initialized', async () => {
             const batchUstVerifierAddress = await maciFactory.batchUstVerifier()
             const votingDuration = await maciFactory.votingDuration()
-
             assert.equal(
                 batchUstVerifierAddress,
                 batchUstVerifierMaciFactory.address

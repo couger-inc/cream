@@ -25,8 +25,8 @@ const _messageTreeDepth = config.maci.merkleTrees.messageTreeDepth
 const _voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth
 const _tallyBatchSize = config.maci.tallyBatchsize
 const _messageBatchSize = config.maci.messageBatchSize
-const _signUpDuration = 7 * 2 * 24 * Number(config.maci.signUpDurationInSeconds)
-const _votingDuration = 7 * 2 * 24 * Number(config.maci.signUpDurationInSeconds)
+const _signUpDuration = 7 * 86400
+const _votingDuration = 7 * 86400
 
 module.exports = (deployer: any) => {
     deployer.then(async () => {
