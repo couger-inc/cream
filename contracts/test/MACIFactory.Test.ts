@@ -50,11 +50,13 @@ contract('MACIFactory', (accounts) => {
         it('should correctly initialized', async () => {
             const batchUstVerifierAddress = await maciFactory.batchUstVerifier()
             const votingDuration = await maciFactory.votingDuration()
+            const expectedDuration =
+                7 * 24 * config.maci.votingDurationInSeconds
             assert.equal(
                 batchUstVerifierAddress,
                 batchUstVerifierMaciFactory.address
             )
-            assert.equal(votingDuration, 604800)
+            assert.equal(expectedDuration, votingDuration)
         })
 
         it('should be able to deploy MACI', async () => {
