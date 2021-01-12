@@ -1,10 +1,13 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
+
 /*
 *
 * C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer
 *
 */
+
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./MerkleTreeWithHistory.sol";
 import "./SignUpToken.sol";
@@ -13,12 +16,15 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "maci-contracts/sol/MACI.sol";
+import "maci-contracts/sol/MACISharedObjs.sol";
+import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
+import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
 
 abstract contract IVerifier {
     function verifyProof(bytes memory _proof, uint256[5] memory _input) public virtual returns(bool);
 }
 
-contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable {
+contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
     uint256 public denomination;
@@ -120,5 +126,25 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, ReentrancyGuard, Ownable 
         maci = _maci;
     }
 
-	// TODO add more maci function call
+	function signUpMaci(
+		PubKey calldata pubKey,
+		bytes calldata _proof,
+        bytes32 _root,
+        bytes32 _nullifierHash,
+        uint256 _index,
+        address payable _relayer,
+        uint256 _fee
+    ) external nonReentrant isMaciReady isBeforeVotingDeadline {
+		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
+        require(isKnownRoot(_root), "Cannot find your merkle root");
+		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash), _index, uint256(_relayer), _fee]), "Invalid withdraw proof");
+        nullifierHashes[_nullifierHash] = true;
+
+		/* TODO: with voicecredits */
+		uint256 voiceCredits = 1;
+
+		bytes memory signUpGateKeeperData = abi.encode(msg.sender, voiceCredits);
+		bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
+		maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
+	}
 }

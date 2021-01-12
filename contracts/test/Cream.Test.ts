@@ -68,14 +68,15 @@ contract('Cream', (accounts) => {
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
     const value = config.cream.denomination.toString()
-    // let recipient = config.cream.recipients[0]
-    let recipient = 0
     const fee = bigInt(value).shr(0)
     const contractOwner = accounts[0]
     const voter = accounts[1]
     const relayer = accounts[2]
     const badUser = accounts[3]
     const voter2 = accounts[4]
+
+    // recipient index
+    let recipient = 0
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
@@ -344,6 +345,108 @@ contract('Cream', (accounts) => {
                 '133792158246920651341275668520530514036799294649489851421007411546007850802'
             result = await snarkVerify(proof, publicSignals)
             assert.equal(result, false)
+        })
+    })
+
+    describe('signUpMaci', () => {
+        const userKeypair = new Keypair()
+        it('should correctly sign up maci', async () => {
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                relayer: relayer,
+                recipient,
+                fee,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            const args = [
+                toHex(input.root),
+                toHex(input.nullifierHash),
+                toHex(input.recipient, 20),
+                toHex(input.relayer, 20),
+                toHex(input.fee),
+            ]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+            const tx = await cream.signUpMaci(
+                userPubKey,
+                proofForSolidityInput,
+                ...args
+            )
+
+            assert.equal(tx.receipt.status, true)
+        })
+
+        it('should fail signUp with same proof', async () => {
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                relayer: relayer,
+                recipient,
+                fee,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            const args = [
+                toHex(input.root),
+                toHex(input.nullifierHash),
+                toHex(input.recipient, 20),
+                toHex(input.relayer, 20),
+                toHex(input.fee),
+            ]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+            await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args)
+
+            try {
+                await cream.signUpMaci(
+                    userPubKey,
+                    proofForSolidityInput,
+                    ...args
+                )
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'The nullifier Has Been Already Spent'
+                )
+                return
+            }
+            assert.fail('Expected revert not received')
         })
     })
 
