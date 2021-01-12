@@ -144,6 +144,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 
 		bytes memory signUpGateKeeperData = abi.encode(msg.sender, voiceCredits);
 		bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
+
 		maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
 	}
 }

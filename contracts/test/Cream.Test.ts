@@ -16,6 +16,7 @@ const {
     bigInt,
     toHex,
     createDeposit,
+    createMessage,
     pedersenHash,
     rbigInt,
 } = require('libcream')
@@ -25,6 +26,7 @@ const SignUpToken = artifacts.require('SignUpToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 const MACIFactory = artifacts.require('MACIFactory')
+const MACI = artifacts.require('MACI')
 
 const toHex32 = (number) => {
     let str = number.toString(16)
@@ -59,6 +61,7 @@ contract('Cream', (accounts) => {
     let mimc
     let tokenContract
     let coordinatorPubKey
+    let maci
     let maciFactory
     let maciTx
     let snapshotId
@@ -91,15 +94,17 @@ contract('Cream', (accounts) => {
             LEVELS,
             config.cream.recipients
         )
-        coordinatorPubKey = new Keypair().pubKey.asContractParam()
+        coordinatorPubKey = new Keypair().pubKey
         maciFactory = await MACIFactory.deployed()
         maciTx = await maciFactory.deployMaci(
             cream.address,
             cream.address,
-            coordinatorPubKey
+            coordinatorPubKey.asContractParam()
         )
-        await cream.setMaci(maciTx.logs[2].args[0])
+        const maciAddress = maciTx.logs[2].args[0]
+        await cream.setMaci(maciAddress)
         tokenContract = await SignUpToken.deployed()
+        maci = await MACI.at(maciAddress)
         snapshotId = await takeSnapshot()
     })
 
@@ -447,6 +452,78 @@ contract('Cream', (accounts) => {
                 return
             }
             assert.fail('Expected revert not received')
+        })
+    })
+
+    describe('publishMessage', () => {
+        let userKeypair
+        let signUpTx
+        beforeEach(async () => {
+            userKeypair = new Keypair()
+            // Do signUpMaci process
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                relayer: relayer,
+                recipient,
+                fee,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            const args = [
+                toHex(input.root),
+                toHex(input.nullifierHash),
+                toHex(input.recipient, 20),
+                toHex(input.relayer, 20),
+                toHex(input.fee),
+            ]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+            signUpTx = await cream.signUpMaci(
+                userPubKey,
+                proofForSolidityInput,
+                ...args
+            )
+        })
+
+        it('should correctly publishMessage', async () => {
+            const userStateIndex = 1
+            const recipientIndex = 0
+            const singleVote = 1
+            const nonce = 1
+            const [message, encPubKey] = createMessage(
+                userStateIndex,
+                userKeypair,
+                null,
+                coordinatorPubKey,
+                recipientIndex,
+                null,
+                nonce
+            )
+
+            const tx = await maci.publishMessage(
+                message.asContractParam(),
+                encPubKey.asContractParam()
+            )
+
+            truffleAssert.eventEmitted(tx, 'PublishMessage')
         })
     })
 
