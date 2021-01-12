@@ -70,7 +70,6 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         signUpToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
-
     function _processWithdraw(
         address payable _recipientAddress
     ) internal {
@@ -134,7 +133,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         uint256 _index,
         address payable _relayer,
         uint256 _fee
-    ) external nonReentrant isMaciReady isBeforeVotingDeadline {
+    ) external nonReentrant {
 		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
 		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash), _index, uint256(_relayer), _fee]), "Invalid withdraw proof");
