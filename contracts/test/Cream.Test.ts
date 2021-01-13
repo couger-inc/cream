@@ -506,7 +506,6 @@ contract('Cream', (accounts) => {
         it('should correctly publishMessage', async () => {
             const userStateIndex = 1
             const recipientIndex = 0
-            const singleVote = 1
             const nonce = 1
             const [message, encPubKey] = createMessage(
                 userStateIndex,
@@ -525,6 +524,89 @@ contract('Cream', (accounts) => {
 
             truffleAssert.eventEmitted(tx, 'PublishMessage')
         })
+
+        it('should correctly publish key change message', async () => {
+            const newUserKeyPair = new Keypair()
+            const userStateIndex = 1
+            const nonce = 1
+            const [message, encPubKey] = createMessage(
+                userStateIndex,
+                userKeypair,
+                newUserKeyPair,
+                coordinatorPubKey,
+                null,
+                null,
+                nonce
+            )
+
+            const tx = await maci.publishMessage(
+                message.asContractParam(),
+                encPubKey.asContractParam()
+            )
+
+            truffleAssert.eventEmitted(tx, 'PublishMessage')
+        })
+
+        it('should be able to submit an invalid message', async () => {
+            const newUserKeyPair = new Keypair()
+            const userStateIndex = 1
+            const recipientIndex = 0
+            const nonce = 1
+            const [message1, encPubKey1] = createMessage(
+                userStateIndex,
+                userKeypair,
+                newUserKeyPair,
+                coordinatorPubKey,
+                null,
+                null,
+                nonce
+            )
+            const tx1 = await maci.publishMessage(
+                message1.asContractParam(),
+                encPubKey1.asContractParam()
+            )
+
+            const [message2, encPubKey2] = createMessage(
+                userStateIndex,
+                userKeypair,
+                null,
+                coordinatorPubKey,
+                recipientIndex,
+                null,
+                nonce + 1
+            )
+            const tx2 = await maci.publishMessage(
+                message2.asContractParam(),
+                encPubKey2.asContractParam()
+            )
+
+            truffleAssert.eventEmitted(tx1, 'PublishMessage')
+            truffleAssert.eventEmitted(tx2, 'PublishMessage')
+        })
+
+        it('should be able to submit an invalid recipient index', async () => {
+            const newUserKeyPair = new Keypair()
+            const userStateIndex = 1
+            const recipientIndex = 99
+            const nonce = 1
+            const [message, encPubKey] = createMessage(
+                userStateIndex,
+                userKeypair,
+                null,
+                coordinatorPubKey,
+                recipientIndex,
+                null,
+                nonce
+            )
+            const tx = await maci.publishMessage(
+                message.asContractParam(),
+                encPubKey.asContractParam()
+            )
+
+            truffleAssert.eventEmitted(tx, 'PublishMessage')
+        })
+
+        // TODO batch
     })
 
     describe('withdraw', () => {
