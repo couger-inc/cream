@@ -606,34 +606,34 @@ contract('Cream', (accounts) => {
             truffleAssert.eventEmitted(tx, 'PublishMessage')
         })
 
-        it('should be able to submit message batch', async () => {
-            let nonce
-            const messages = []
-            const encPubKeys = []
-            const numMessages = 2
-            const userStateIndex = 1
+        // it('should be able to submit message batch', async () => {
+        //     let nonce
+        //     const messages = []
+        //     const encPubKeys = []
+        //     const numMessages = 2
+        //     const userStateIndex = 1
 
-            for (
-                let recipientIndex = 1;
-                recipientIndex < numMessages + 1;
-                recipientIndex++
-            ) {
-                nonce = recipientIndex
-                const [message, encPubKey] = createMessage(
-                    userStateIndex,
-                    userKeypair,
-                    null,
-                    coordinatorPubKey,
-                    recipientIndex,
-                    null,
-                    nonce
-                )
-                messages.push(message.asContractParam())
-                encPubKeys.push(encPubKey.asContractParam())
-            }
+        //     for (
+        //         let recipientIndex = 1;
+        //         recipientIndex < numMessages + 1;
+        //         recipientIndex++
+        //     ) {
+        //         nonce = recipientIndex
+        //         const [message, encPubKey] = createMessage(
+        //             userStateIndex,
+        //             userKeypair,
+        //             null,
+        //             coordinatorPubKey,
+        //             recipientIndex,
+        //             null,
+        //             nonce
+        //         )
+        //         messages.push(message.asContractParam())
+        //         encPubKeys.push(encPubKey.asContractParam())
+        //     }
 
-            await cream.submitMessageBatch(messages, encPubKeys)
-        })
+        //     await cream.submitMessageBatch(messages, encPubKeys)
+        // })
     })
 
     describe('withdraw', () => {
