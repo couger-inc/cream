@@ -22,7 +22,7 @@ contract('MerkleTreeWithHistory', (accounts) => {
         snapshotId = await takeSnapshot()
     })
 
-    describe('constructor', () => {
+    describe('initialze', () => {
         it('should correctly initialze', async () => {
             const zeroValue = await merkleTree.ZERO_VALUE()
             const firstSubtree = await merkleTree.filledSubtrees(0)
