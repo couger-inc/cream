@@ -24,9 +24,6 @@ interface CircuitInput {
     root: SnarkBigInt
     nullifierHash: SnarkBigInt
     nullifier: SnarkBigInt
-    relayer: any
-    recipient: any
-    fee: any
     secret: SnarkBigInt
     path_elements: any[any]
     path_index: any[any]
@@ -35,9 +32,6 @@ interface CircuitInput {
 const generateVote = (
     merkleTree: any,
     index: number,
-    relayer,
-    recipient,
-    fee,
     length?: number
 ): CircuitInput => {
     // Default value of len
@@ -56,9 +50,6 @@ const generateVote = (
         root: merkleTree.root,
         nullifierHash,
         nullifier,
-        relayer,
-        recipient,
-        fee,
         secret: secret,
         path_elements: merkleProof[0],
         path_index: merkleProof[1],

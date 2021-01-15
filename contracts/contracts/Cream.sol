@@ -21,7 +21,7 @@ import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
 import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
 
 abstract contract IVerifier {
-    function verifyProof(bytes memory _proof, uint256[5] memory _input) public virtual returns(bool);
+    function verifyProof(bytes memory _proof, uint256[2] memory _input) public virtual returns(bool);
 }
 
 contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
@@ -34,7 +34,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     MACI public maci;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Withdrawal(address recipient, bytes32 nullifierHash, address indexed relayer, uint256 fee);
+    event Withdrawal(address recipient, bytes32 nullifierHash);
 
     constructor(
         IVerifier _verifier,
@@ -94,18 +94,14 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         bytes calldata _proof,
         bytes32 _root,
         bytes32 _nullifierHash,
-        uint256 _index,
-        address payable _relayer,
-        uint256 _fee
+        uint256 _index
     ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
-        require(_fee <= denomination, "Fee exceeds transfer value");
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
-        require(verifier.verifyProof(
-            _proof, [uint256(_root), uint256(_nullifierHash), _index, uint256(_relayer), _fee]), "Invalid withdraw proof");
+        require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid withdraw proof");
         nullifierHashes[_nullifierHash] = true;
 		_processWithdraw(payable(recipients[_index]));
-        emit Withdrawal(recipients[_index], _nullifierHash, _relayer, _fee);
+        emit Withdrawal(recipients[_index], _nullifierHash);
     }
 
     function updateVerifier(
@@ -129,14 +125,11 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 		PubKey calldata pubKey,
 		bytes calldata _proof,
         bytes32 _root,
-        bytes32 _nullifierHash,
-        uint256 _index,
-        address payable _relayer,
-        uint256 _fee
+        bytes32 _nullifierHash
     ) external nonReentrant {
 		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
-		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash), _index, uint256(_relayer), _fee]), "Invalid withdraw proof");
+		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid withdraw proof");
         nullifierHashes[_nullifierHash] = true;
 
 		/* TODO: with voicecredits */

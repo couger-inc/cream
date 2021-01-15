@@ -30,13 +30,7 @@ describe('Vote circuits', () => {
             circuit = await compileAndLoadCircuit('test/vote_test.circom')
 
             for (let i = 0; i < 2 ** LEVELS; i++) {
-                const input: CircuitInput = generateVote(
-                    tree,
-                    i,
-                    relayer,
-                    recipient,
-                    fee
-                )
+                const input: CircuitInput = generateVote(tree, i)
                 const witness = await executeCircuit(circuit, input)
                 const circuitRoot: SnarkBigInt =
                     witness[circuit.symbols['main.new_root'].varIdx]

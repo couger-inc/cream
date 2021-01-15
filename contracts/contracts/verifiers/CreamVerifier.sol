@@ -27,7 +27,7 @@ contract CreamVerifier {
         Pairing.G2Point beta2;
         Pairing.G2Point gamma2;
         Pairing.G2Point delta2;
-        Pairing.G1Point[6] IC;
+        Pairing.G1Point[3] IC;
     }
 
     struct Proof {
@@ -44,9 +44,6 @@ contract CreamVerifier {
         vk.IC[0] = Pairing.G1Point(uint256(7585777309369398165963736820165555350901304870387362214497922065040121296510),uint256(10986834294538259968718502015142614951296613244271626784753462324451892691570));
         vk.IC[1] = Pairing.G1Point(uint256(18610839689443244502120418056422662738489875157243132964783599972551167426279),uint256(10402011637735180535569165803883652770548181316369948147865414324749053801697));
         vk.IC[2] = Pairing.G1Point(uint256(20510478304699303615213848255156835486103477458220474959578724222999034706103),uint256(12083066256730062412219296953668669586426696087840447879497234645807083220903));
-        vk.IC[3] = Pairing.G1Point(uint256(20573910989993887838012841770295246836178060961525479779110688951738472233450),uint256(16094794095721748312211350365770406893359596698367238847655435714155177092663));
-        vk.IC[4] = Pairing.G1Point(uint256(10067763338356700048344444424620795971015425338172862328783646071254170533055),uint256(20744253118798278023470352961538720779173143469669346022332373733430975834789));
-        vk.IC[5] = Pairing.G1Point(uint256(14783505417878028994108930543902680012884247718051067115890383191067601858958),uint256(13541091104472712063782196879856489387361223693283046670293135267525889162511));
 
     }
 
@@ -54,7 +51,7 @@ contract CreamVerifier {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[5] memory input
+        uint[2] memory input
     ) internal view returns (bool r) {
 
         Proof memory proof;
@@ -79,7 +76,7 @@ contract CreamVerifier {
         require(proof.C.X < PRIME_Q, "verifier-cX-gte-prime-q");
         require(proof.C.Y < PRIME_Q, "verifier-cY-gte-prime-q");
 
-        for (uint i = 0; i < 5; i++) {
+        for (uint i = 0; i < 2; i++) {
             require(input[i] < SNARK_SCALAR_FIELD,"verifier-gte-snark-scalar-field");
             vk_x = Pairing.plus(vk_x, Pairing.scalar_mul(vk.IC[i + 1], input[i]));
         }
@@ -100,7 +97,7 @@ contract CreamVerifier {
 
     function verifyProof(
 		bytes calldata proof,
-		uint[5] calldata inputs
+		uint[2] calldata inputs
 	) external view returns (bool r) {
         // solidity does not support decoding uint[2][2] yet
         (uint[2] memory a, uint[2] memory b1, uint[2] memory b2, uint[2] memory c) = abi.decode(proof, (uint[2], uint[2], uint[2], uint[2]));
