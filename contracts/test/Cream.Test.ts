@@ -327,10 +327,7 @@ contract('Cream', (accounts) => {
                 path_index: merkleProof[1],
             }
 
-            const {
-                proof,
-                publicSignals
-            } = await genProofAndPublicSignals(
+            const { proof, publicSignals } = await genProofAndPublicSignals(
                 input,
                 'prod/vote.circom',
                 'build/vote.zkey',
@@ -373,10 +370,7 @@ contract('Cream', (accounts) => {
                 'circuits/vote.wasm'
             )
 
-            const args = [
-                toHex(input.root),
-                toHex(input.nullifierHash)
-            ]
+            const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
             const proofForSolidityInput = toSolidityInput(proof)
@@ -412,10 +406,7 @@ contract('Cream', (accounts) => {
                 'circuits/vote.wasm'
             )
 
-            const args = [
-                toHex(input.root),
-                toHex(input.nullifierHash)
-            ]
+            const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
             const proofForSolidityInput = toSolidityInput(proof)
@@ -466,10 +457,7 @@ contract('Cream', (accounts) => {
                 'circuits/vote.wasm'
             )
 
-            const args = [
-                toHex(input.root),
-                toHex(input.nullifierHash)
-            ]
+            const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
             const proofForSolidityInput = toSolidityInput(proof)
