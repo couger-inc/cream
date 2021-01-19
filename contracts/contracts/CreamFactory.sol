@@ -54,8 +54,10 @@ contract CreamFactory is Ownable, MACISharedObjs {
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
         string memory _ipfsHash,
-		PubKey memory _coordinatorPubKey
+		PubKey memory _coordinatorPubKey,
+		address _coordinator
     ) external onlyOwner {
+		require(_coordinator != address(0), "Coordinator cannot be zero address");
 		require(maciFactory.owner() == address(this), "MACI factory is not owned by CreamFactory contract");
 		// Deploy new Cream contract
 		Cream cream = new Cream(
@@ -63,7 +65,8 @@ contract CreamFactory is Ownable, MACISharedObjs {
             _signUpToken,
             _denomination,
             _merkleTreeHeight,
-            _recipients
+            _recipients,
+			_coordinator
         );
 
         address creamAddress = address(cream);
