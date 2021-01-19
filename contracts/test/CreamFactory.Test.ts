@@ -26,7 +26,8 @@ contract('CreamFactory', (accounts) => {
     const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
-    const VOTER = accounts[3]
+  const VOTER = accounts[3]
+  const COORDINATOR = accounts[4]
 
     before(async () => {
         creamFactory = await CreamFactory.deployed()
@@ -42,6 +43,7 @@ contract('CreamFactory', (accounts) => {
             RECIPIENTS,
             IPFS_HASH,
             coordinatorPubKey,
+			COORDINATOR,
             { from: accounts[0] }
         )
         creamAddress = tx.logs[3].args[0]
@@ -65,6 +67,7 @@ contract('CreamFactory', (accounts) => {
                     RECIPIENTS,
                     IPFS_HASH,
                     coordinatorPubKey,
+					COORDINATOR,
                     { from: VOTER }
                 )
             } catch (error) {
@@ -121,7 +124,8 @@ contract('CreamFactory', (accounts) => {
             assert.equal(await cream.verifier(), creamVerifier.address)
             assert.equal(await cream.signUpToken(), signUpToken.address)
             assert.equal(await cream.denomination(), DENOMINATION)
-            assert.equal(await cream.recipients(0), RECIPIENTS[0])
+          assert.equal(await cream.recipients(0), RECIPIENTS[0])
+		  assert.equal(await cream.coordinator(), COORDINATOR)
         })
 
         it('should be able to deploy another cream contract', async () => {
@@ -140,7 +144,8 @@ contract('CreamFactory', (accounts) => {
                 MERKLE_HEIGHT,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
-                coordinatorPubKey
+                coordinatorPubKey,
+				COORDINATOR
             )
             const newCreamAddress = tx.logs[3].args[0]
             const newCream = await Cream.at(newCreamAddress)
