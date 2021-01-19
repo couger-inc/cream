@@ -76,7 +76,8 @@ contract('Cream', (accounts) => {
     const voter = accounts[1]
     const relayer = accounts[2]
     const badUser = accounts[3]
-    const voter2 = accounts[4]
+    const coordinator = accounts[4]
+    const voter2 = accounts[5]
 
     // recipient index
     let recipient = 0
@@ -92,7 +93,8 @@ contract('Cream', (accounts) => {
             tokenContract.address,
             value,
             LEVELS,
-            config.cream.recipients
+            config.cream.recipients,
+            coordinator
         )
         coordinatorPubKey = new Keypair().pubKey
         maciFactory = await MACIFactory.deployed()
@@ -171,7 +173,8 @@ contract('Cream', (accounts) => {
                 tokenContract.address,
                 value,
                 LEVELS,
-                config.cream.recipients
+                config.cream.recipients,
+                coordinator
             )
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
 
@@ -202,7 +205,7 @@ contract('Cream', (accounts) => {
             assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
         })
 
-        it('should be able to find deposit event from commietment', async () => {
+        it('should be able to find deposit event from commitment', async () => {
             const deposit1 = createDeposit(rbigInt(31), rbigInt(31))
             const tx1 = await cream.deposit(toHex(deposit1.commitment), {
                 from: voter,
@@ -427,6 +430,139 @@ contract('Cream', (accounts) => {
             }
             assert.fail('Expected revert not received')
         })
+
+        it('should prevent double spent with overflow', async () => {
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            const args = [
+                toHex(input.root),
+                toHex(
+                    toBN(stringifyBigInts(input.nullifierHash)).add(
+                        toBN(
+                            '21888242871839275222246405745257275088548364400416034343698204186575808495617'
+                        )
+                    )
+                ),
+            ]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+
+            try {
+                await cream.signUpMaci(
+                    userPubKey,
+                    proofForSolidityInput,
+                    ...args
+                )
+            } catch (error) {
+                assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
+        it('should throw for corrupted merkle tree root', async () => {
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+            const fakeRandomRoot = randomHex(32)
+            const args = [toHex(fakeRandomRoot), toHex(input.nullifierHash)]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+
+            try {
+                await cream.signUpMaci(
+                    userPubKey,
+                    proofForSolidityInput,
+                    ...args
+                )
+            } catch (error) {
+                assert.equal(error.reason, 'Cannot find your merkle root')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
+        it('should reject tampered public input on contract side', async () => {
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            // Use commitment as nullifierHash
+            const args = [toHex(input.root), toHex(deposit.commitment)]
+
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+
+            try {
+                await cream.signUpMaci(
+                    userPubKey,
+                    proofForSolidityInput,
+                    ...args
+                )
+            } catch (error) {
+                assert.equal(error.reason, 'Invalid deposit proof')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
     })
 
     describe('publishMessage', () => {
@@ -571,373 +707,305 @@ contract('Cream', (accounts) => {
             truffleAssert.eventEmitted(tx, 'PublishMessage')
         })
 
-        // it('should be able to submit message batch', async () => {
-        //     let nonce
-        //     const messages = []
-        //     const encPubKeys = []
-        //     const numMessages = 2
-        //     const userStateIndex = 1
+        it('should be able to submit message batch', async () => {
+            let nonce
+            const messages = []
+            const encPubKeys = []
+            const numMessages = 2
+            const userStateIndex = 1
 
-        //     for (
-        //         let recipientIndex = 1;
-        //         recipientIndex < numMessages + 1;
-        //         recipientIndex++
-        //     ) {
-        //         nonce = recipientIndex
-        //         const [message, encPubKey] = createMessage(
-        //             userStateIndex,
-        //             userKeypair,
-        //             null,
-        //             coordinatorPubKey,
-        //             recipientIndex,
-        //             null,
-        //             nonce
-        //         )
-        //         messages.push(message.asContractParam())
-        //         encPubKeys.push(encPubKey.asContractParam())
-        //     }
+            for (
+                let recipientIndex = 1;
+                recipientIndex < numMessages + 1;
+                recipientIndex++
+            ) {
+                nonce = recipientIndex
+                const [message, encPubKey] = createMessage(
+                    userStateIndex,
+                    userKeypair,
+                    null,
+                    coordinatorPubKey,
+                    recipientIndex,
+                    null,
+                    nonce
+                )
+                messages.push(message.asContractParam())
+                encPubKeys.push(encPubKey.asContractParam())
+            }
 
-        //     await cream.submitMessageBatch(messages, encPubKeys)
-        // })
+            await cream.submitMessageBatch(messages, encPubKeys)
+        })
     })
 
-    // describe('withdraw', () => {
-    //     it('should correctly work and emit event', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+    describe('publishTallyHash', () => {
+        it('should correctly publish tally hash', async () => {
+            const hash = 'hash'
+            const tx = await cream.publishTallyHash(hash, { from: coordinator })
+            truffleAssert.eventEmitted(tx, 'TallyPublished')
+        })
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+        it('should revert if non-coordinator try to publish tally hash', async () => {
+            const hash = 'hash'
+            try {
+                await cream.publishTallyHash(hash)
+            } catch (error) {
+                assert.equal(error.reason, 'Sender is not the coordinator')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
 
-    //         const args = [
-    //             toHex(input.root),
-    //             toHex(input.nullifierHash),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
+        it('should revert with an empty string', async () => {
+            try {
+                await cream.publishTallyHash('', { from: coordinator })
+            } catch (error) {
+                assert.equal(error.reason, 'Tally hash cannot be empty string')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+    })
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
-    //         const tx = await cream.withdraw(proofForSolidityInput, ...args, {
-    //             from: relayer,
-    //         })
+    describe('withdraw', () => {
+        beforeEach(async () => {
+            const userKeypair = new Keypair()
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(0)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
 
-    //         // truffleAssert.prettyPrintEmittedEvents(tx)
-    //         truffleAssert.eventEmitted(tx, 'Withdrawal')
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
 
-    //         // check if nullifierhash status has changed correctly
-    //         isSpent = await cream.nullifierHashes.call(
-    //             toHex(input.nullifierHash)
-    //         )
-    //         assert.isTrue(isSpent)
-    //     })
+            const args = [toHex(input.root), toHex(input.nullifierHash)]
 
-    //     it('should correctly transfer token to recipient', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const proofForSolidityInput = toSolidityInput(proof)
+            await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args)
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+            const userStateIndex = 1
+            const recipientIndex = 0
+            const nonce = 1
+            const [message, encPubKey] = createMessage(
+                userStateIndex,
+                userKeypair,
+                null,
+                coordinatorPubKey,
+                recipientIndex,
+                null,
+                nonce
+            )
 
-    //         const args = [
-    //             toHex(input.root),
-    //             toHex(input.nullifierHash),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
+            await maci.publishMessage(
+                message.asContractParam(),
+                encPubKey.asContractParam()
+            )
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
-    //         await cream.withdraw(proofForSolidityInput, ...args, {
-    //             from: relayer,
-    //         })
+            const hash = 'hash'
+            await cream.publishTallyHash(hash, { from: coordinator })
+        })
 
-    //         const newTokenOwner = await tokenContract.ownerOf(1)
-    //         assert.equal(config.cream.recipients[0], newTokenOwner)
-    //     })
+        it('should tally be approved', async () => {
+            const tx = await cream.approveTally()
+            truffleAssert.eventEmitted(tx, 'TallyApproved')
+            assert.isTrue(await cream.approved())
+        })
 
-    //     it('should prevent excess withdrawal', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         await tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+        it('should revert before approval', async () => {
+            try {
+                await cream.withdraw(1, { from: coordinator })
+            } catch (error) {
+                assert.equal(error.reason, 'Tally result is not approved yet')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+        it('should revert if non-coordinator try to withdraw', async () => {
+            await cream.approveTally()
+            try {
+                await cream.withdraw(1, { from: voter })
+            } catch (error) {
+                assert.equal(error.reason, 'Sender is not the coordinator')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
+        it('should correctly work and emit event', async () => {
+            await cream.approveTally()
+            const tx = await cream.withdraw(1, { from: coordinator })
+            truffleAssert.eventEmitted(tx, 'Withdrawal')
+        })
 
-    //         const fake = bigInt('2000000000000000000')
-    //         const args = [
-    //             toHex(input.root),
-    //             toHex(input.nullifierHash),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(fake),
-    //         ]
+        it('should correctly transfer token to recipient', async () => {
+            await cream.approveTally()
+            const tx = await cream.withdraw(0, { from: coordinator })
+            const newTokenOwner = await tokenContract.ownerOf(1)
+            assert.equal(config.cream.recipients[0], newTokenOwner)
+        })
 
-    //         try {
-    //             await cream.withdraw(proofForSolidityInput, ...args, {
-    //                 from: relayer,
-    //             })
-    //         } catch (error) {
-    //             assert.equal(error.reason, 'Fee exceeds transfer value')
-    //             return
-    //         }
-    //         assert.fail('Expected revert not received')
-    //     })
+        //     it('should prevent double sepnd with overflow', async () => {
+        //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
+        //         await tree.insert(deposit.commitment)
+        //         await cream.deposit(toHex(deposit.commitment), { from: voter })
+        //         const root = tree.root
+        //         const merkleProof = tree.getPathUpdate(0)
+        //         const input = {
+        //             root,
+        //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+        //                 .babyJubX,
+        //             relayer: relayer,
+        //             recipient,
+        //             fee,
+        //             nullifier: deposit.nullifier,
+        //             secret: deposit.secret,
+        //             path_elements: merkleProof[0],
+        //             path_index: merkleProof[1],
+        //         }
 
-    //     it('should prevent double spend', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         await tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+        //         const { proof } = await genProofAndPublicSignals(
+        //             input,
+        //             'prod/vote.circom',
+        //             'build/vote.zkey',
+        //             'circuits/vote.wasm'
+        //         )
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+        //         const proofForSolidityInput = toSolidityInput(proof)
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
+        //         const args = [
+        //             toHex(input.root),
+        //             toHex(
+        //                 toBN(stringifyBigInts(input.nullifierHash)).add(
+        //                     toBN(
+        //                         '21888242871839275222246405745257275088548364400416034343698204186575808495617'
+        //                     )
+        //                 )
+        //             ),
+        //             toHex(input.recipient, 20),
+        //             toHex(input.relayer, 20),
+        //             toHex(input.fee),
+        //         ]
 
-    //         const args = [
-    //             toHex(input.root),
-    //             toHex(input.nullifierHash),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
-    //         await cream.withdraw(proofForSolidityInput, ...args, {
-    //             from: relayer,
-    //         })
-    //         try {
-    //             await cream.withdraw(proofForSolidityInput, ...args, {
-    //                 from: relayer,
-    //             })
-    //         } catch (error) {
-    //             assert.equal(error.reason, 'The note has been already spent')
-    //             return
-    //         }
-    //         assert.fail('Expected revert not received')
-    //     })
+        //         try {
+        //             await cream.withdraw(proofForSolidityInput, ...args, {
+        //                 from: relayer,
+        //             })
+        //         } catch (error) {
+        //             assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
+        //             return
+        //         }
+        //         assert.fail('Expected revert not received')
+        //     })
 
-    //     it('should prevent double sepnd with overflow', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         await tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+        //     it('should throw for corrupted merkle tree root', async () => {
+        //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
+        //         await tree.insert(deposit.commitment)
+        //         await cream.deposit(toHex(deposit.commitment), { from: voter })
+        //         const root = tree.root
+        //         const merkleProof = tree.getPathUpdate(0)
+        //         const input = {
+        //             root,
+        //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+        //                 .babyJubX,
+        //             relayer: relayer,
+        //             recipient,
+        //             fee,
+        //             nullifier: deposit.nullifier,
+        //             secret: deposit.secret,
+        //             path_elements: merkleProof[0],
+        //             path_index: merkleProof[1],
+        //         }
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+        //         const { proof } = await genProofAndPublicSignals(
+        //             input,
+        //             'prod/vote.circom',
+        //             'build/vote.zkey',
+        //             'circuits/vote.wasm'
+        //         )
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
+        //         const proofForSolidityInput = toSolidityInput(proof)
 
-    //         const args = [
-    //             toHex(input.root),
-    //             toHex(
-    //                 toBN(stringifyBigInts(input.nullifierHash)).add(
-    //                     toBN(
-    //                         '21888242871839275222246405745257275088548364400416034343698204186575808495617'
-    //                     )
-    //                 )
-    //             ),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
+        //         const args = [
+        //             toHex(randomHex(32)),
+        //             toHex(input.nullifierHash),
+        //             toHex(input.recipient, 20),
+        //             toHex(input.relayer, 20),
+        //             toHex(input.fee),
+        //         ]
+        //         try {
+        //             await cream.withdraw(proofForSolidityInput, ...args, {
+        //                 from: relayer,
+        //             })
+        //         } catch (error) {
+        //             assert.equal(error.reason, 'Cannot find your merkle root')
+        //             return
+        //         }
+        //         assert.fail('Expected revert not received')
+        //     })
 
-    //         try {
-    //             await cream.withdraw(proofForSolidityInput, ...args, {
-    //                 from: relayer,
-    //             })
-    //         } catch (error) {
-    //             assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
-    //             return
-    //         }
-    //         assert.fail('Expected revert not received')
-    //     })
+        //     it('should reject tampered public input on contract side', async () => {
+        //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
+        //         await tree.insert(deposit.commitment)
+        //         await cream.deposit(toHex(deposit.commitment), { from: voter })
+        //         const root = tree.root
+        //         const merkleProof = tree.getPathUpdate(0)
+        //         const input = {
+        //             root,
+        //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+        //                 .babyJubX,
+        //             relayer: relayer,
+        //             recipient,
+        //             fee,
+        //             nullifier: deposit.nullifier,
+        //             secret: deposit.secret,
+        //             path_elements: merkleProof[0],
+        //             path_index: merkleProof[1],
+        //         }
 
-    //     it('should throw for corrupted merkle tree root', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         await tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
+        //         const { proof } = await genProofAndPublicSignals(
+        //             input,
+        //             'prod/vote.circom',
+        //             'build/vote.zkey',
+        //             'circuits/vote.wasm'
+        //         )
 
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
+        //         const proofForSolidityInput = toSolidityInput(proof)
 
-    //         const proofForSolidityInput = toSolidityInput(proof)
+        //         // incorrect nullifierHash, using commitment instead
+        //         let incorrectArgs = [
+        //             toHex(input.root),
+        //             toHex(deposit.commitment),
+        //             toHex(input.recipient, 20),
+        //             toHex(input.relayer, 20),
+        //             toHex(input.fee),
+        //         ]
 
-    //         const args = [
-    //             toHex(randomHex(32)),
-    //             toHex(input.nullifierHash),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
-    //         try {
-    //             await cream.withdraw(proofForSolidityInput, ...args, {
-    //                 from: relayer,
-    //             })
-    //         } catch (error) {
-    //             assert.equal(error.reason, 'Cannot find your merkle root')
-    //             return
-    //         }
-    //         assert.fail('Expected revert not received')
-    //     })
-
-    //     it('should reject tampered public input on contract side', async () => {
-    //         const deposit = createDeposit(rbigInt(31), rbigInt(31))
-    //         await tree.insert(deposit.commitment)
-    //         await cream.deposit(toHex(deposit.commitment), { from: voter })
-    //         const root = tree.root
-    //         const merkleProof = tree.getPathUpdate(0)
-    //         const input = {
-    //             root,
-    //             nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-    //                 .babyJubX,
-    //             relayer: relayer,
-    //             recipient,
-    //             fee,
-    //             nullifier: deposit.nullifier,
-    //             secret: deposit.secret,
-    //             path_elements: merkleProof[0],
-    //             path_index: merkleProof[1],
-    //         }
-
-    //         const { proof } = await genProofAndPublicSignals(
-    //             input,
-    //             'prod/vote.circom',
-    //             'build/vote.zkey',
-    //             'circuits/vote.wasm'
-    //         )
-
-    //         const proofForSolidityInput = toSolidityInput(proof)
-
-    //         // incorrect nullifierHash, using commitment instead
-    //         let incorrectArgs = [
-    //             toHex(input.root),
-    //             toHex(deposit.commitment),
-    //             toHex(input.recipient, 20),
-    //             toHex(input.relayer, 20),
-    //             toHex(input.fee),
-    //         ]
-
-    //         try {
-    //             await cream.withdraw(proofForSolidityInput, ...incorrectArgs, {
-    //                 from: relayer,
-    //             })
-    //         } catch (error) {
-    //             assert.equal(error.reason, 'Invalid withdraw proof')
-    //             return
-    //         }
-    //         assert.fail('Expected revert not received')
-    //     })
-    // })
+        //         try {
+        //             await cream.withdraw(proofForSolidityInput, ...incorrectArgs, {
+        //                 from: relayer,
+        //             })
+        //         } catch (error) {
+        //             assert.equal(error.reason, 'Invalid withdraw proof')
+        //             return
+        //         }
+        //         assert.fail('Expected revert not received')
+        //     })
+    })
 
     afterEach(async () => {
         await revertSnapshot(snapshotId.result)

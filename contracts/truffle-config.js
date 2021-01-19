@@ -2,7 +2,7 @@ module.exports = {
   networks: {
     development: {
       network_id: '*',
-      gas: 10000000,
+      gas: 15000000,
       host: 'localhost',
       port: 8545
     }

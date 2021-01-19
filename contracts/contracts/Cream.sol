@@ -32,16 +32,23 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     IVerifier public verifier;
     SignUpToken public signUpToken;
     MACI public maci;
+	address public coordinator;
+	string public tallyHash;
+	bool public approved;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Withdrawal(address recipient, bytes32 nullifierHash);
+    event Withdrawal(address recipient);
+	event TallyPublished(string tallyHash);
+	event TallyApproved(uint256 timestamp);
+
 
     constructor(
         IVerifier _verifier,
 	    SignUpToken _signUpToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
-        address[] memory _recipients
+        address[] memory _recipients,
+		address _coordinator
     ) MerkleTreeWithHistory(_merkleTreeHeight) public {
         require(_denomination > 0, "Denomination should be greater than 0");
         require(_recipients.length > 0, "Recipients number be more than one");
@@ -49,6 +56,8 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 	    signUpToken = _signUpToken;
         denomination = _denomination;
         recipients = _recipients;
+		coordinator = _coordinator;
+		approved = false;
     }
 
 	modifier isMaciReady() {
@@ -73,7 +82,6 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     function _processWithdraw(
         address payable _recipientAddress
     ) internal {
-        require(msg.value == 0, "ETH value is supposed to be 0 for withdrawal");
         uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(address(this), 0);
         signUpToken.safeTransferFrom(address(this), _recipientAddress, _tokenId);
     }
@@ -91,17 +99,12 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     }
 
     function withdraw(
-        bytes calldata _proof,
-        bytes32 _root,
-        bytes32 _nullifierHash,
         uint256 _index
-    ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(isKnownRoot(_root), "Cannot find your merkle root");
-        require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid withdraw proof");
-        nullifierHashes[_nullifierHash] = true;
+    ) external payable nonReentrant isMaciReady {
+		require(approved, "Tally result is not approved yet");
+		require(msg.sender == coordinator, "Sender is not the coordinator");
 		_processWithdraw(payable(recipients[_index]));
-        emit Withdrawal(recipients[_index], _nullifierHash);
+        emit Withdrawal(recipients[_index]);
     }
 
     function updateVerifier(
@@ -129,7 +132,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     ) external nonReentrant {
 		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
-		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid withdraw proof");
+		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
         nullifierHashes[_nullifierHash] = true;
 
 		/* TODO: with voicecredits */
@@ -141,13 +144,27 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 		maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
 	}
 
-	// function submitMessageBatch(
-	// 	Message[] calldata _messages,
-	// 	PubKey[] calldata _encPubKeys
-    // ) external {
-	// 	uint256 _batchSize = _messages.length;
-	// 	for (uint8 i = 0; i < _batchSize; i++) {
-	// 		maci.publishMessage(_messages[i], _encPubKeys[i]);
-	// 	}
-	// }
+	function publishTallyHash(
+	    string calldata _tallyHash
+    ) external isMaciReady {
+		require(msg.sender == coordinator, "Sender is not the coordinator");
+		require(bytes(_tallyHash).length != 0, "Tally hash cannot be empty string");
+		tallyHash = _tallyHash;
+		emit TallyPublished(_tallyHash);
+	}
+
+	function approveTally() external onlyOwner isMaciReady {
+		approved = true;
+		emit TallyApproved(block.timestamp);
+	}
+
+	function submitMessageBatch(
+		Message[] calldata _messages,
+		PubKey[] calldata _encPubKeys
+    ) external isMaciReady {
+		uint256 _batchSize = _messages.length;
+		for (uint8 i = 0; i < _batchSize; i++) {
+			maci.publishMessage(_messages[i], _encPubKeys[i]);
+		}
+	}
 }

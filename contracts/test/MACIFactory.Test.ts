@@ -27,6 +27,7 @@ contract('MACIFactory', (accounts) => {
     let tokenContract
     let cream
     let coordinatorPubKey
+    const coordinator = accounts[1]
 
     before(async () => {
         maciFactory = await MACIFactory.deployed()
@@ -40,7 +41,8 @@ contract('MACIFactory', (accounts) => {
             tokenContract.address,
             value,
             LEVELS,
-            config.cream.recipients
+            config.cream.recipients,
+            coordinator
         )
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         snapshotId = await takeSnapshot()
