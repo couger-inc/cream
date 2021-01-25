@@ -1,5 +1,3 @@
-const fs = require('fs')
-const path = require('path')
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
 const { Keypair } = require('maci-domainobjs')
@@ -105,7 +103,6 @@ contract('Cream', (accounts) => {
         )
         const maciAddress = maciTx.logs[2].args[0]
         await cream.setMaci(maciAddress)
-        tokenContract = await SignUpToken.deployed()
         maci = await MACI.at(maciAddress)
         snapshotId = await takeSnapshot()
     })
