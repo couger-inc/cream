@@ -69,7 +69,6 @@ contract('Cream', (accounts) => {
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
     const value = config.cream.denomination.toString()
-    const fee = bigInt(value).shr(0)
     const contractOwner = accounts[0]
     const voter = accounts[1]
     const relayer = accounts[2]
