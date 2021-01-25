@@ -71,10 +71,9 @@ contract('Cream', (accounts) => {
     const value = config.cream.denomination.toString()
     const contractOwner = accounts[0]
     const voter = accounts[1]
-    const relayer = accounts[2]
-    const badUser = accounts[3]
-    const coordinator = accounts[4]
-    const voter2 = accounts[5]
+    const badUser = accounts[2]
+    const coordinator = accounts[3]
+    const voter2 = accounts[4]
 
     // recipient index
     let recipient = 0
