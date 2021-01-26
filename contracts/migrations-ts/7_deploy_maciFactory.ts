@@ -32,9 +32,8 @@ module.exports = (deployer: any) => {
     deployer.then(async () => {
         const poseidonT3: PoseidonT3Instance = await PoseidonT3.deployed()
         const poseidonT6: PoseidonT6Instance = await PoseidonT6.deployed()
-
-        await MACIFactory.link(PoseidonT3, poseidonT3.address)
-        await MACIFactory.link(PoseidonT6, poseidonT6.address)
+        await deployer.link(PoseidonT3, MACIFactory)
+        await deployer.link(PoseidonT6, MACIFactory)
 
         const _batchUstVerifier: BatchUpdateStateTreeVerifierSmallInstance = await BatchUpdateStateTreeVerifierSmall.deployed()
         const _qvtVerifier: QuadVoteTallyVerifierSmallInstance = await QuadVoteTallyVerifierSmall.deployed()
