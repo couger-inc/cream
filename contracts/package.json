@@ -28,6 +28,7 @@
     "cream-merkle-tree": "0.0.5",
     "fs-extra": "^9.1.0",
     "maci-contracts": "^0.4.11",
+    "maci-core": "^0.4.11",
     "maci-crypto": "^0.4.11",
     "maci-domainobjs": "^0.4.11",
     "truffle": "^5.1.63",

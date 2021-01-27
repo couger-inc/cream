@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import FS from 'fs-extra'
-import { promisify } from 'util'
+// import { promisify } from 'util'
 import {
     CreamFactoryContract,
     CreamFactoryInstance,
@@ -35,17 +35,17 @@ module.exports = (deployer: any) => {
                 creamVerifier.address
             )
         })
-        .then(async () => {
-            const basePath = path.resolve(__dirname, '../app/constants')
-            const creamFactory: any = await CreamFactory.deployed()
-            FS.mkdirsSync(basePath)
-            await promisify(fs.writeFile)(
-                path.join(basePath, 'CreamFactoryABI.json'),
-                JSON.stringify(creamFactory.abi, null, ' ')
-            )
-            await promisify(fs.writeFile)(
-                path.join(basePath, 'CreamFactoryNetworks.json'),
-                JSON.stringify(creamFactory.constructor.networks, null, ' ')
-            )
-        })
+  // .then(async () => {
+  //     const basePath = path.resolve(__dirname, '../app/constants')
+  //     const creamFactory: any = await CreamFactory.deployed()
+  //     FS.mkdirsSync(basePath)
+  // await promisify(fs.writeFile)(
+  //     path.join(basePath, 'CreamFactoryABI.json'),
+			  //     JSON.stringify(creamFactory.abi, null, ' ')
+  // )
+  // await promisify(fs.writeFile)(
+  //     path.join(basePath, 'CreamFactoryNetworks.json'),
+			  //     JSON.stringify(creamFactory.constructor.networks, null, ' ')
+  // )
+  // })
 }
