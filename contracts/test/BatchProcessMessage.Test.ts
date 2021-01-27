@@ -61,26 +61,28 @@ contract('Maci', (accounts) => {
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
     const value = config.cream.denomination.toString()
-  const batchSize = config.maci.messageBatchSize // 4
-  const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
-  const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
-  const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
-  const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex
+    const batchSize = config.maci.messageBatchSize // 4
+    const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
+    const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
+    const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
+    const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex
 
-  const contractOwner = accounts[0]
-  const coordinatorAddress = accounts[1]
-  const coordinator = new Keypair(new PrivKey(BigInt(config.maci.coordinatorPrivKey)))
-  console.log(coordinator.pubKey.serialize())
+    const contractOwner = accounts[0]
+    const coordinatorAddress = accounts[1]
+    const coordinator = new Keypair(
+        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    )
+    console.log(coordinator.pubKey.serialize())
     const voters = []
-  const users = []
+    const users = []
 
-  const maciState = new MaciState(
- 	coordinator,
- 	stateTreeDepth,
- 	messageTreeDepth,
- 	voteOptionTreeDepth,
- 	voteOptionsMaxIndex
-  )
+    const maciState = new MaciState(
+        coordinator,
+        stateTreeDepth,
+        messageTreeDepth,
+        voteOptionTreeDepth,
+        voteOptionsMaxIndex
+    )
 
     let totalVotes = BigInt(0)
     let totalVoteWeight = BigInt(0)
@@ -173,7 +175,7 @@ contract('Maci', (accounts) => {
                 const signature = command.sign(userKeypair.privKey)
                 const sharedKey = Keypair.genEcdhSharedKey(
                     ephemeralKeypair.privKey,
-					coordinator.pubKey
+                    coordinator.pubKey
                 )
                 const message = command.encrypt(signature, sharedKey)
 
@@ -212,50 +214,50 @@ contract('Maci', (accounts) => {
         })
 
         it('should verify a proof and update the stateRoot', async () => {
-          const randomStateLeaf = StateLeaf.genRandomLeaf()
+            const randomStateLeaf = StateLeaf.genRandomLeaf()
 
-		  // check state root after users publishmessage()
-		  let stateRootBefore = maciState.genStateRoot()
+            // check state root after users publishmessage()
+            let stateRootBefore = maciState.genStateRoot()
 
-		  for (const user of users) {
-			maciState.publishMessage(user.message, user.ephemeralKeypair.pubKey)
-			await maci.publishMessage(
-			  user.message.asContractParam(),
-			  user.ephemeralKeypair.pubKey.asContractParam()
-			)
-		  }
+            for (const user of users) {
+                maciState.publishMessage(
+                    user.message,
+                    user.ephemeralKeypair.pubKey
+                )
+                await maci.publishMessage(
+                    user.message.asContractParam(),
+                    user.ephemeralKeypair.pubKey.asContractParam()
+                )
+            }
 
-		  const onChainMessageRoot = (await maci.getMessageTreeRoot()).toString()
-		  const offChainMessageRoot = maciState.genMessageRoot().toString()
-		  assert.equal(onChainMessageRoot, offChainMessageRoot)
+            const onChainMessageRoot = (
+                await maci.getMessageTreeRoot()
+            ).toString()
+            const offChainMessageRoot = maciState.genMessageRoot().toString()
+            assert.equal(onChainMessageRoot, offChainMessageRoot)
 
-		  // ???
-		  // const circuitInputs = maciState.genBatchUpdateStateTreeCircuitInputs(
-		  // 		 	0,
-		  // 		   	batchSize,
-		  // 		   	randomStateLeaf
-		  // 		  )
+            // ???
+            // const circuitInputs = maciState.genBatchUpdateStateTreeCircuitInputs(
+            // 		 	0,
+            // 		   	batchSize,
+            // 		   	randomStateLeaf
+            // 		  )
 
-		  // console.log(circuitInputs)
+            // console.log(circuitInputs)
 
-		  maciState.batchProcessMessage(
-			0,
-			batchSize,
-			randomStateLeaf,
-		  )
+            maciState.batchProcessMessage(0, batchSize, randomStateLeaf)
 
-          // const stateRootAfter = maciState.genStateRoot()
-          //
-          // // Contract interaction
-          // const tx = await maci.batchProcessMessage(
-          // 	// newStateRoot
-          // 	'0x' + stateRootAfter.toString(16),
-           // 	// stateTreeRoots,
-           // 	// ecdhPubKeys,
-           // 	// proof,
-           // 	{ from: coordinator }
-          // )
-
+            // const stateRootAfter = maciState.genStateRoot()
+            //
+            // // Contract interaction
+            // const tx = await maci.batchProcessMessage(
+            // 	// newStateRoot
+            // 	'0x' + stateRootAfter.toString(16),
+            // 	// stateTreeRoots,
+            // 	// ecdhPubKeys,
+            // 	// proof,
+            // 	{ from: coordinator }
+            // )
         })
     })
 })
