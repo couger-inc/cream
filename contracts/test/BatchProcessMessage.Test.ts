@@ -1,8 +1,15 @@
 const { config } = require('cream-config')
 const { MerkleTree } = require('cream-merkle-tree')
-const { Keypair, StateLeaf, Command, PrivKey } = require('maci-domainobjs')
+// const { genBatchUstProofAndPublicSignals } = require('maci-circuits')
 const { MaciState } = require('maci-core')
 const { genRandomSalt, IncrementalQuinTree } = require('maci-crypto')
+const {
+    Keypair,
+    StateLeaf,
+    Command,
+    PrivKey,
+    PubKey,
+} = require('maci-domainobjs')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const {
     createDeposit,
@@ -47,7 +54,7 @@ const toSolidityInput = (proof) => {
     )
 }
 
-contract('Maci', (accounts) => {
+contract('Maci(BatchProcessMessage)', (accounts) => {
     let tree
     let creamVerifier
     let mimc
@@ -72,7 +79,7 @@ contract('Maci', (accounts) => {
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
-    console.log(coordinator.pubKey.serialize())
+
     const voters = []
     const users = []
 
@@ -88,7 +95,7 @@ contract('Maci', (accounts) => {
     let totalVoteWeight = BigInt(0)
 
     before(async () => {
-        for (let i = 0; i < batchSize - 2; i++) {
+        for (let i = 0; i < batchSize; i++) {
             voters.push(accounts[i + 2])
         }
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
@@ -118,12 +125,9 @@ contract('Maci', (accounts) => {
     })
 
     beforeEach(async () => {
-        for (let i = 0; i < voters.length; i++) {
-            await tokenContract.giveToken(voters[i])
-            await tokenContract.setApprovalForAll(cream.address, true, {
-                from: voters[i],
-            })
-        }
+        // for (let i = 0; i < voters.length; i++) {
+        //
+        // }
     })
 
     describe('batchProcessMessage', () => {
@@ -133,30 +137,6 @@ contract('Maci', (accounts) => {
             for (let i = 0; i < voters.length; i++) {
                 // deposit and signUpMaci
                 const userKeypair = new Keypair()
-                // const deposit = createDeposit(rbigInt(31), rbigInt(31))
-                // tree.insert(deposit.commitment)
-                // await cream.deposit(toHex(deposit.commitment), { from: voters[i] })
-                // const root = tree.root
-                // const merkleProof = tree.getPathUpdate(i)
-                // const input = {
-                //     root,
-                //     nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                //         .babyJubX,
-                //     nullifier: deposit.nullifier,
-                //     secret: deposit.secret,
-                //     path_elements: merkleProof[0],
-                //     path_index: merkleProof[1],
-                // }
-                // const { proof } = await genProofAndPublicSignals(
-                //     input,
-                //     'prod/vote.circom',
-                //     'build/vote.zkey',
-                //     'circuits/vote.wasm'
-                // )
-                // const args = [toHex(input.root), toHex(input.nullifierHash)]
-                // const userPubKey = userKeypair.pubKey.asContractParam()
-                // const proofForSolidityInput = toSolidityInput(proof)
-                // await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args)
 
                 // create command per user
                 const voteOptionIndex = 0
@@ -214,11 +194,53 @@ contract('Maci', (accounts) => {
         })
 
         it('should verify a proof and update the stateRoot', async () => {
-            const randomStateLeaf = StateLeaf.genRandomLeaf()
-
             // check state root after users publishmessage()
-            let stateRootBefore = maciState.genStateRoot()
 
+            for (let i = 0; i < voters.length; i++) {
+                await tokenContract.giveToken(voters[i])
+                await tokenContract.setApprovalForAll(cream.address, true, {
+                    from: voters[i],
+                })
+
+                const deposit = createDeposit(rbigInt(31), rbigInt(31))
+                tree.insert(deposit.commitment)
+                await cream.deposit(toHex(deposit.commitment), {
+                    from: voters[i],
+                })
+                const root = tree.root
+                const merkleProof = tree.getPathUpdate(i)
+                const input = {
+                    root,
+                    nullifierHash: pedersenHash(
+                        deposit.nullifier.leInt2Buff(31)
+                    ).babyJubX,
+                    nullifier: deposit.nullifier,
+                    secret: deposit.secret,
+                    path_elements: merkleProof[0],
+                    path_index: merkleProof[1],
+                }
+                const { proof } = await genProofAndPublicSignals(
+                    input,
+                    'prod/vote.circom',
+                    'build/vote.zkey',
+                    'circuits/vote.wasm'
+                )
+                const args = [toHex(input.root), toHex(input.nullifierHash)]
+                const userPubKey = users[i].keypair.pubKey.asContractParam()
+                const proofForSolidityInput = toSolidityInput(proof)
+                await cream.signUpMaci(
+                    userPubKey,
+                    proofForSolidityInput,
+                    ...args,
+                    { from: voters[i] }
+                )
+                maciState.signUp(
+                    users[i].keypair.pubKey,
+                    BigInt(config.maci.initialVoiceCreditBalance)
+                )
+            }
+
+            // publishMessage
             for (const user of users) {
                 maciState.publishMessage(
                     user.message,
@@ -230,22 +252,40 @@ contract('Maci', (accounts) => {
                 )
             }
 
+            // check message root correctly updated
             const onChainMessageRoot = (
                 await maci.getMessageTreeRoot()
             ).toString()
             const offChainMessageRoot = maciState.genMessageRoot().toString()
+
             assert.equal(onChainMessageRoot, offChainMessageRoot)
 
-            // ???
-            // const circuitInputs = maciState.genBatchUpdateStateTreeCircuitInputs(
-            // 		 	0,
-            // 		   	batchSize,
-            // 		   	randomStateLeaf
-            // 		  )
-
-            // console.log(circuitInputs)
-
+            // get circuit inputs
+            const randomStateLeaf = StateLeaf.genRandomLeaf()
+            const circuitInputs = maciState.genBatchUpdateStateTreeCircuitInputs(
+                0,
+                batchSize,
+                randomStateLeaf
+            )
             maciState.batchProcessMessage(0, batchSize, randomStateLeaf)
+
+            const stateRootAfter = maciState.genStateRoot()
+
+            console.log('Generating proof...')
+
+            const ecdhPubKeys = []
+            for (const p of circuitInputs['ecdh_public_key']) {
+                const pubKey = new PubKey(p)
+                ecdhPubKeys.push(pubKey)
+            }
+
+            const contractPublicSignals = await maci.genBatchUstPublicSignals(
+                '0x' + stateRootAfter.toString(16),
+                circuitInputs['state_tree_root'].map((x) => x.toString()),
+                ecdhPubKeys.map((x) => x.asContractParam())
+            )
+
+            //const { witness, proof, publicSignals } = await genBatchUstProofAndPublicSignals(circuitInputs, config.env)
 
             // const stateRootAfter = maciState.genStateRoot()
             //
