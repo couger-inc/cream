@@ -21,6 +21,7 @@ jobs:
       run: |
         npm run bootstrap
         npm run build
+        ./circuits/scripts/installZkutil.sh
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
