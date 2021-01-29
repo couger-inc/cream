@@ -1,6 +1,5 @@
 const { config } = require('cream-config')
 const { MerkleTree } = require('cream-merkle-tree')
-// const { genBatchUstProofAndPublicSignals } = require('maci-circuits')
 const { MaciState } = require('maci-core')
 const { genRandomSalt, IncrementalQuinTree } = require('maci-crypto')
 const {
@@ -21,6 +20,7 @@ const {
 const {
     genProofAndPublicSignals,
     unstringifyBigInts,
+    genBatchUstProofAndPublicSignals,
 } = require('cream-circuits')
 
 const CreamVerifier = artifacts.require('CreamVerifier')
@@ -285,7 +285,14 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 ecdhPubKeys.map((x) => x.asContractParam())
             )
 
-            //const { witness, proof, publicSignals } = await genBatchUstProofAndPublicSignals(circuitInputs, config.env)
+            const {
+                witness,
+                proof,
+                publicSignals,
+            } = await genBatchUstProofAndPublicSignals(
+                circuitInputs,
+                config.env
+            )
 
             // const stateRootAfter = maciState.genStateRoot()
             //

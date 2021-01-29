@@ -5,6 +5,7 @@ import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import { SnarkBigInt, createDeposit, rbigInt } from 'libcream'
+import { genBatchUstProofAndPublicSignals } from 'maci-circuits'
 
 const snarkjs = require('snarkjs')
 const ff = require('ffjavascript')
@@ -169,4 +170,5 @@ export {
     snarkVerify,
     stringifyBigInts,
     unstringifyBigInts,
+    genBatchUstProofAndPublicSignals,
 }
