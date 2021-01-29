@@ -4,9 +4,10 @@
   "description": "",
   "main": "build/index.js",
   "scripts": {
-    "build": "npx tsc && npm run setup",
+    "build": "npx tsc && npm run setup && npm run maci:modules",
     "watch": "tsc --watch",
     "setup": "./scripts/buildSnarks.sh",
+    "maci:modules": "cd node_modules/maci-circuits/ && npm i",
     "test": "npx jest",
     "test:merkleTree": "npx jest MerkleTree.test.ts",
     "test:hasher": "jest Hasher.test.ts",
