@@ -1,17 +1,17 @@
 import {
-    BatchUpdateStateTreeVerifierSmallContract,
-    QuadVoteTallyVerifierSmallContract,
+    BatchUpdateStateTreeVerifierContract,
+    QuadVoteTallyVerifierContract,
 } from '../types/truffle-contracts'
 
 // TODO : prepare for both small and normal size verifier
-const BatchUpdateStateTreeVerifierSmall: BatchUpdateStateTreeVerifierSmallContract = artifacts.require(
-    'BatchUpdateStateTreeVerifierSmall'
+const BatchUpdateStateTreeVerifier: BatchUpdateStateTreeVerifierContract = artifacts.require(
+    'BatchUpdateStateTreeVerifier'
 )
-const QuadVoteTallyVerifierSmall: QuadVoteTallyVerifierSmallContract = artifacts.require(
-    'QuadVoteTallyVerifierSmall'
+const QuadVoteTallyVerifier: QuadVoteTallyVerifierContract = artifacts.require(
+    'QuadVoteTallyVerifier'
 )
 
 module.exports = (deployer) => {
-    deployer.deploy(BatchUpdateStateTreeVerifierSmall)
-    deployer.deploy(QuadVoteTallyVerifierSmall)
+    deployer.deploy(BatchUpdateStateTreeVerifier)
+    deployer.deploy(QuadVoteTallyVerifier)
 }

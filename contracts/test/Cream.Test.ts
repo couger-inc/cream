@@ -20,11 +20,16 @@ const {
 } = require('libcream')
 
 const Cream = artifacts.require('Cream')
+const VotingToken = artifacts.require('VotingToken')
 const SignUpToken = artifacts.require('SignUpToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 const MACIFactory = artifacts.require('MACIFactory')
 const MACI = artifacts.require('MACI')
+const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
+const ConstantInitialVoiceCreditProxy = artifacts.require(
+    'ConstantInitialVoiceCreditProxy'
+)
 
 const toHex32 = (number) => {
     let str = number.toString(16)
@@ -57,7 +62,8 @@ contract('Cream', (accounts) => {
     let tree
     let creamVerifier
     let mimc
-    let tokenContract
+    let votingToken
+    let signUpToken
     let coordinatorPubKey
     let maci
     let maciFactory
@@ -82,11 +88,11 @@ contract('Cream', (accounts) => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
         creamVerifier = await CreamVerifier.deployed()
         mimc = await MiMC.deployed()
-        tokenContract = await SignUpToken.deployed()
+        votingToken = await VotingToken.deployed()
         await Cream.link(MiMC, mimc.address)
         cream = await Cream.new(
             creamVerifier.address,
-            tokenContract.address,
+            votingToken.address,
             value,
             LEVELS,
             config.cream.recipients,
@@ -94,20 +100,30 @@ contract('Cream', (accounts) => {
         )
         coordinatorPubKey = new Keypair().pubKey
         maciFactory = await MACIFactory.deployed()
+        signUpToken = await SignUpToken.deployed()
+        const signUpGatekeeper = await SignUpTokenGatekeeper.new(
+            signUpToken.address
+        )
+        const ConstantinitialVoiceCreditProxy = await ConstantInitialVoiceCreditProxy.new(
+            config.maci.initialVoiceCreditBalance
+        )
         maciTx = await maciFactory.deployMaci(
-            cream.address,
-            cream.address,
+            signUpGatekeeper.address,
+            ConstantinitialVoiceCreditProxy.address,
             coordinatorPubKey.asContractParam()
         )
         const maciAddress = maciTx.logs[2].args[0]
-        await cream.setMaci(maciAddress)
+        await signUpToken.transferOwnership(cream.address)
+        await cream.setMaci(maciAddress, signUpToken.address, {
+            from: accounts[0],
+        })
         maci = await MACI.at(maciAddress)
         snapshotId = await takeSnapshot()
     })
 
     beforeEach(async () => {
-        await tokenContract.giveToken(voter)
-        await tokenContract.setApprovalForAll(cream.address, true, {
+        await votingToken.giveToken(voter)
+        await votingToken.setApprovalForAll(cream.address, true, {
             from: voter,
         })
     })
@@ -118,18 +134,18 @@ contract('Cream', (accounts) => {
             assert.equal(denomination, value)
         })
 
-        it('should return correct signuptoken address', async () => {
-            const tokenAddress = await cream.signUpToken.call()
-            assert.equal(tokenAddress, tokenContract.address)
+        it('should return correct votingToken address', async () => {
+            const tokenAddress = await cream.votingToken.call()
+            assert.equal(tokenAddress, votingToken.address)
         })
 
         it('should return correct current token supply amount', async () => {
-            const crrSupply = await tokenContract.getCurrentSupply()
+            const crrSupply = await votingToken.getCurrentSupply()
             assert.equal(crrSupply.toString(), 2)
         })
 
         it('should return corret token owner address', async () => {
-            const ownerOfToken1 = await tokenContract.ownerOf(1)
+            const ownerOfToken1 = await votingToken.ownerOf(1)
             assert.equal(ownerOfToken1, voter)
         })
 
@@ -165,7 +181,7 @@ contract('Cream', (accounts) => {
         it('should Fail deposit before calling setMaci()', async () => {
             const newCream = await Cream.new(
                 creamVerifier.address,
-                tokenContract.address,
+                votingToken.address,
                 value,
                 LEVELS,
                 config.cream.recipients,
@@ -207,8 +223,8 @@ contract('Cream', (accounts) => {
             })
 
             // voter 2 deposit
-            await tokenContract.giveToken(voter2)
-            await tokenContract.setApprovalForAll(cream.address, true, {
+            await votingToken.giveToken(voter2)
+            await votingToken.setApprovalForAll(cream.address, true, {
                 from: voter2,
             })
             const deposit2 = createDeposit(rbigInt(31), rbigInt(31))
@@ -264,14 +280,14 @@ contract('Cream', (accounts) => {
 
         // voter and bad user collude pattern
         it('should throw an error for more than two tokens holder', async () => {
-            await tokenContract.giveToken(badUser)
-            await tokenContract.setApprovalForAll(cream.address, true, {
+            await votingToken.giveToken(badUser)
+            await votingToken.setApprovalForAll(cream.address, true, {
                 from: badUser,
             })
-            await tokenContract.setApprovalForAll(badUser, true, {
+            await votingToken.setApprovalForAll(badUser, true, {
                 from: voter,
             })
-            await tokenContract.safeTransferFrom(voter, badUser, 1, {
+            await votingToken.safeTransferFrom(voter, badUser, 1, {
                 from: voter,
             })
 
@@ -289,7 +305,7 @@ contract('Cream', (accounts) => {
             }
             assert.fail('Expected revert not received')
 
-            const balance = await tokenContract.balanceOf(badUser)
+            const balance = await votingToken.balanceOf(badUser)
             assert.equal(2, balance)
         })
 
@@ -850,7 +866,7 @@ contract('Cream', (accounts) => {
         it('should correctly transfer token to recipient', async () => {
             await cream.approveTally()
             const tx = await cream.withdraw(0, { from: coordinator })
-            const newTokenOwner = await tokenContract.ownerOf(1)
+            const newTokenOwner = await votingToken.ownerOf(1)
             assert.equal(config.cream.recipients[0], newTokenOwner)
         })
     })

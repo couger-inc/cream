@@ -1,18 +1,25 @@
 const truffleAssert = require('truffle-assertions')
+const { config } = require('cream-config')
 const { toHex, createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const { Keypair } = require('maci-domainobjs')
 
 const CreamFactory = artifacts.require('CreamFactory')
 const CreamVerifier = artifacts.require('CreamVerifier')
+const VotingToken = artifacts.require('VotingToken')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
 const MACIFactory = artifacts.require('MACIFactory')
 const MACI = artifacts.require('MACI')
+const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
+const ConstantInitialVoiceCreditProxy = artifacts.require(
+    'ConstantInitialVoiceCreditProxy'
+)
 
 contract('CreamFactory', (accounts) => {
     let creamFactory
     let verifier
+    let votingToken
     let signUpToken
     let tx
     let creamAddress
@@ -32,18 +39,26 @@ contract('CreamFactory', (accounts) => {
     before(async () => {
         creamFactory = await CreamFactory.deployed()
         creamVerifier = await CreamVerifier.deployed()
+        votingToken = await VotingToken.deployed()
         signUpToken = await SignUpToken.deployed()
         maciFactory = await MACIFactory.deployed()
+        const signUpGatekeeper = await SignUpTokenGatekeeper.new(
+            signUpToken.address
+        )
+        const ConstantinitialVoiceCreditProxy = await ConstantInitialVoiceCreditProxy.new(
+            config.maci.initialVoiceCreditBalance
+        )
         await maciFactory.transferOwnership(creamFactory.address)
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
-            signUpToken.address,
+            votingToken.address,
             DENOMINATION,
             MERKLE_HEIGHT,
             RECIPIENTS,
             IPFS_HASH,
             coordinatorPubKey,
             COORDINATOR,
+            signUpToken.address,
             { from: accounts[0] }
         )
         creamAddress = tx.logs[3].args[0]
@@ -61,13 +76,14 @@ contract('CreamFactory', (accounts) => {
         it('should fail when non owner tried to create Cream contract', async () => {
             try {
                 await creamFactory.createCream(
-                    signUpToken.address,
+                    votingToken.address,
                     DENOMINATION,
                     MERKLE_HEIGHT,
                     RECIPIENTS,
                     IPFS_HASH,
                     coordinatorPubKey,
                     COORDINATOR,
+                    signUpToken.address,
                     { from: VOTER }
                 )
             } catch (error) {
@@ -122,30 +138,31 @@ contract('CreamFactory', (accounts) => {
 
         it('should be able to reveive correct value from cream contract side', async () => {
             assert.equal(await cream.verifier(), creamVerifier.address)
-            assert.equal(await cream.signUpToken(), signUpToken.address)
+            assert.equal(await cream.votingToken(), votingToken.address)
             assert.equal(await cream.denomination(), DENOMINATION)
             assert.equal(await cream.recipients(0), RECIPIENTS[0])
             assert.equal(await cream.coordinator(), COORDINATOR)
         })
 
         it('should be able to deploy another cream contract', async () => {
-            await signUpToken.giveToken(VOTER)
-            await signUpToken.setApprovalForAll(creamAddress, true, {
+            await votingToken.giveToken(VOTER)
+            await votingToken.setApprovalForAll(creamAddress, true, {
                 from: VOTER,
             })
 
             coordinatorPubKey = new Keypair().pubKey.asContractParam()
 
-            signUpToken = await SignUpToken.new()
+            votingToken = await VotingToken.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await creamFactory.createCream(
-                signUpToken.address,
+                votingToken.address,
                 DENOMINATION,
                 MERKLE_HEIGHT,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
                 coordinatorPubKey,
-                COORDINATOR
+                COORDINATOR,
+                signUpToken.address
             )
             const newCreamAddress = tx.logs[3].args[0]
             const newCream = await Cream.at(newCreamAddress)

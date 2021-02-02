@@ -14,7 +14,8 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
   // Constants
   uint256 private constant STATE_TREE_BASE = 2;
   uint256 private constant MESSAGE_TREE_BASE = 2;
-  uint256 private constant VOTE_OPTION_TREE_BASE = 5;
+  // uint256 private constant VOTE_OPTION_TREE_BASE = 5;
+  uint256 private constant VOTE_OPTION_TREE_BASE = 2;
 
   // State
   TreeDepths public treeDepths;

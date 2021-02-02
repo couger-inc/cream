@@ -49,20 +49,22 @@ contract CreamFactory is Ownable, MACISharedObjs {
 	}
 
 	function createCream(
-        SignUpToken _signUpToken,
+        VotingToken _votingToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
         string memory _ipfsHash,
 		PubKey memory _coordinatorPubKey,
-		address _coordinator
+		address _coordinator,
+        SignUpToken _signUpToken
     ) external onlyOwner {
 		require(_coordinator != address(0), "Coordinator cannot be zero address");
 		require(maciFactory.owner() == address(this), "MACI factory is not owned by CreamFactory contract");
-		// Deploy new Cream contract
+
+        // Deploy new Cream contract
 		Cream cream = new Cream(
             creamVerifier,
-            _signUpToken,
+            _votingToken,
             _denomination,
             _merkleTreeHeight,
             _recipients,
@@ -72,14 +74,14 @@ contract CreamFactory is Ownable, MACISharedObjs {
         address creamAddress = address(cream);
 
 		// Deploy new MACI contract
-		MACI maci = maciFactory.deployMaci(
+		MACI _maci = maciFactory.deployMaci(
             SignUpGatekeeper(creamAddress),
             InitialVoiceCreditProxy(creamAddress),
             _coordinatorPubKey
         );
 
 		// Link Cream and MACI
-        cream.setMaci(maci);
+        cream.setMaci(_maci, _signUpToken);
 
 		electionDetails[creamAddress] = _ipfsHash;
 		emit CreamCreated(creamAddress, _ipfsHash);

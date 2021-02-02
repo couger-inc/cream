@@ -10,6 +10,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./MerkleTreeWithHistory.sol";
+import "./VotingToken.sol";
 import "./SignUpToken.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -30,8 +31,9 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     uint256 public denomination;
     address[] public recipients;
     IVerifier public verifier;
-    SignUpToken public signUpToken;
+    VotingToken public votingToken;
     MACI public maci;
+    SignUpToken public signUpToken;
 	address public coordinator;
 	string public tallyHash;
 	bool public approved;
@@ -44,7 +46,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 
     constructor(
         IVerifier _verifier,
-	    SignUpToken _signUpToken,
+	    VotingToken _votingToken,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
@@ -53,7 +55,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         require(_denomination > 0, "Denomination should be greater than 0");
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
-	    signUpToken = _signUpToken;
+	    votingToken = _votingToken;
         denomination = _denomination;
         recipients = _recipients;
 		coordinator = _coordinator;
@@ -75,15 +77,15 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 	 */
     function _processDeposit() internal {
 	    require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
-        uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(msg.sender, 0);
-        signUpToken.safeTransferFrom(msg.sender, address(this), _tokenId);
+        uint256 _tokenId = votingToken.tokenOfOwnerByIndex(msg.sender, 0);
+        votingToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
 
     function _processWithdraw(
         address payable _recipientAddress
     ) internal {
-        uint256 _tokenId = signUpToken.tokenOfOwnerByIndex(address(this), 0);
-        signUpToken.safeTransferFrom(address(this), _recipientAddress, _tokenId);
+        uint256 _tokenId = votingToken.tokenOfOwnerByIndex(address(this), 0);
+        votingToken.safeTransferFrom(address(this), _recipientAddress, _tokenId);
     }
 
     function deposit(
@@ -91,7 +93,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 	) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
 		require(block.timestamp < maci.calcSignUpDeadline(), "the sign-up period has passed");
         require(!commitments[_commitment], "Already submitted");
-	    require(signUpToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
+	    require(votingToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
         _processDeposit();
@@ -114,14 +116,17 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     }
 
     function setMaci(
-        MACI _maci
+        MACI _maci,
+        SignUpToken _signUpToken
     ) external onlyOwner {
         require(address(maci) == address(0), "Already linked to MACI instance");
+        require(address(signUpToken) == address(0), "Already linked to SignUpToken instance");
         require(
             _maci.calcSignUpDeadline() > block.timestamp,
 			"Signup deadline must be in the future"
         );
         maci = _maci;
+        signUpToken = _signUpToken;
     }
 
 	function signUpMaci(
@@ -136,12 +141,14 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         nullifierHashes[_nullifierHash] = true;
 
 		/* TODO: with voicecredits */
-		uint256 voiceCredits = 1;
-
-		bytes memory signUpGateKeeperData = abi.encode(msg.sender, voiceCredits);
+		// uint256 voiceCredits = 100;
+        uint256 maciTokenId = signUpToken.getCurrentSupply();
+        bytes memory signUpGateKeeperData = abi.encode(maciTokenId);
 		bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
 
+        signUpToken.giveToken(address(this));
 		maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
+        signUpToken.safeTransferFrom(address(this), msg.sender, maciTokenId);
 	}
 
 	function publishTallyHash(

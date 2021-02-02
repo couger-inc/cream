@@ -30,7 +30,13 @@ const revertSnapshot = async (id) => {
     await send('evm_revert', [id])
 }
 
+const timeTravel = async (seconds) => {
+    await send('evm_increaseTime', seconds)
+    await send('evm_mine')
+}
+
 module.exports = {
     takeSnapshot,
     revertSnapshot,
+    timeTravel,
 }

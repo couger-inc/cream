@@ -5,11 +5,11 @@ const { Keypair } = require('maci-domainobjs')
 const truffleAssert = require('truffle-assertions')
 
 const MACIFactory = artifacts.require('MACIFactory')
-const BatchUpdateStateTreeVerifierSmall = artifacts.require(
-    'BatchUpdateStateTreeVerifierSmall'
+const BatchUpdateStateTreeVerifier = artifacts.require(
+    'BatchUpdateStateTreeVerifier'
 )
 const Cream = artifacts.require('Cream')
-const SignUpToken = artifacts.require('SignUpToken')
+const VotingToken = artifacts.require('VotingToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 
@@ -31,10 +31,10 @@ contract('MACIFactory', (accounts) => {
 
     before(async () => {
         maciFactory = await MACIFactory.deployed()
-        batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifierSmall.deployed()
+        batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifier.deployed()
         creamVerifier = await CreamVerifier.deployed()
         mimc = await MiMC.deployed()
-        tokenContract = await SignUpToken.deployed()
+        tokenContract = await VotingToken.deployed()
         await Cream.link(MiMC, mimc.address)
         cream = await Cream.new(
             creamVerifier.address,
@@ -52,8 +52,7 @@ contract('MACIFactory', (accounts) => {
         it('should correctly initialized', async () => {
             const batchUstVerifierAddress = await maciFactory.batchUstVerifier()
             const votingDuration = await maciFactory.votingDuration()
-            const expectedDuration =
-                7 * 24 * config.maci.votingDurationInSeconds
+            const expectedDuration = config.maci.votingDurationInSeconds
             assert.equal(
                 batchUstVerifierAddress,
                 batchUstVerifierMaciFactory.address

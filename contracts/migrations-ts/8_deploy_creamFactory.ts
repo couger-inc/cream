@@ -7,8 +7,8 @@ import {
     CreamFactoryInstance,
     CreamVerifierContract,
     CreamVerifierInstance,
-    SignUpTokenContract,
-    SignUpTokenInstance,
+    VotingTokenContract,
+    VotingTokenInstance,
     MACIFactoryContract,
     MACIFactoryInstance,
     MiMCInstance,
@@ -16,7 +16,7 @@ import {
 
 const CreamFactory: CreamFactoryContract = artifacts.require('CreamFactory')
 const CreamVerifier: CreamVerifierContract = artifacts.require('CreamVerifier')
-const SignUpToken: SignUpTokenContract = artifacts.require('SignUpToken')
+const VotingToken: VotingTokenContract = artifacts.require('VotingToken')
 const MACIFactory: MACIFactoryContract = artifacts.require('MACIFactory')
 const MiMC: any = artifacts.require('MiMC')
 
@@ -24,9 +24,8 @@ module.exports = (deployer: any) => {
     deployer.then(async () => {
         const creamVerifier: CreamVerifierInstance = await CreamVerifier.deployed()
         const maciFactory: MACIFactoryInstance = await MACIFactory.deployed()
-        const signUpToken: SignUpTokenInstance = await SignUpToken.deployed()
+        const votingToken: VotingTokenInstance = await VotingToken.deployed()
         const mimc: MiMCInstance = await MiMC.deployed()
-        const { config } = require('cream-config')
         await CreamFactory.link(MiMC, mimc.address)
         await deployer.deploy(
             CreamFactory,
