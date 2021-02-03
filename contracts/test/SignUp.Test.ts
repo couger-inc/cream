@@ -1,9 +1,10 @@
+const { ethers } = require('ethers')
 const { config } = require('cream-config')
 const { MaciState } = require('maci-core')
-const { IncrementalQuinTree } = require('maci-crypto')
+const { hashLeftRight, IncrementalQuinTree } = require('maci-crypto')
 const { Keypair, PrivKey } = require('maci-domainobjs')
-
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { timeTravel } = require('./TestUtil')
+const truffleAssert = require('truffle-assertions')
 
 const SignUpToken = artifacts.require('SignUpToken')
 const MACIFactory = artifacts.require('MACIFactory')
@@ -13,6 +14,9 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
     'ConstantInitialVoiceCreditProxy'
 )
 
+/*
+ * To make this app more loose coupling this test should work without Cream contract implementation
+ */
 contract('Maci(SignUp)', (accounts) => {
     let coordinatorPubKey
     let maciFactory
@@ -32,7 +36,15 @@ contract('Maci(SignUp)', (accounts) => {
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
 
-    const voters = []
+    const user1 = {
+        wallet: accounts[2],
+        keypair: new Keypair(),
+    }
+
+    const user2 = {
+        wallet: accounts[3],
+        keypair: new Keypair(),
+    }
 
     const maciState = new MaciState(
         coordinator,
@@ -43,9 +55,6 @@ contract('Maci(SignUp)', (accounts) => {
     )
 
     before(async () => {
-        for (let i = 0; i < batchSize; i++) {
-            voters.push(accounts[i + 2])
-        }
         maciFactory = await MACIFactory.deployed()
         signUpToken = await SignUpToken.deployed()
         const signUpGatekeeper = await SignUpTokenGatekeeper.new(
@@ -62,17 +71,43 @@ contract('Maci(SignUp)', (accounts) => {
         const maciAddress = maciTx.logs[2].args[0]
         maci = await MACI.at(maciAddress)
 
-        snapshotId = await takeSnapshot()
+        // give away a signUpToken to each user
+        await signUpToken.giveToken(user1.wallet)
+        await signUpToken.giveToken(user2.wallet)
     })
 
     describe('initialize', () => {
-        it('should have correct empty root values', async () => {
+        it('should own a token', async () => {
+            const ownerOfToken1 = await signUpToken.ownerOf(1)
+            assert.equal(ownerOfToken1, user1.wallet)
+
+            const ownerOfToken2 = await signUpToken.ownerOf(2)
+            assert.equal(ownerOfToken2, user2.wallet)
+        })
+
+        it('should have correct emptyVoteOptionTreeRoot value', async () => {
             const temp = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0))
             const emptyVoteOptionTreeRoot = temp.root
 
             const root = await maci.emptyVoteOptionTreeRoot()
             assert.equal(emptyVoteOptionTreeRoot.toString(), root.toString())
         })
+
+        it('should have correct currentResultsCommitment value', async () => {
+            const crc = await maci.currentResultsCommitment()
+            const tree = new IncrementalQuinTree(voteOptionTreeDepth, 0)
+            const expected = hashLeftRight(tree.root, BigInt(0))
+
+            assert.equal(crc.toString(), expected.toString())
+        })
+
+        it('should have correct currentSpentVoiceCreditsCommitment value', async () => {
+            const comm = await maci.currentSpentVoiceCreditsCommitment()
+            const expected = hashLeftRight(BigInt(0), BigInt(0))
+
+            assert.equal(comm.toString(), expected.toString())
+        })
+
         it('should have same state root value', async () => {
             const root = await maci.getStateTreeRoot()
             assert.equal(maciState.genStateRoot().toString(), root.toString())
@@ -84,6 +119,87 @@ contract('Maci(SignUp)', (accounts) => {
         it('should have same state root value', async () => {
             const root = await maci.getStateTreeRoot()
             assert.equal(maciState.genStateRoot().toString(), root.toString())
+        })
+
+        it('should revert if user does not own a SignUpToken', async () => {
+            const user3 = {
+                wallet: accounts[5],
+                keypair: new Keypair(),
+            }
+
+            try {
+                await maci.signUp(
+                    user3.keypair.pubKey.asContractParam(),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [1]),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [0]),
+                    { from: user3.wallet }
+                )
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'SignUpTokenGatekeeper: this user does not own the token'
+                )
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
+        it('should be able to sign up with SignUpToken', async () => {
+            maciState.signUp(
+                user1.keypair.pubKey,
+                BigInt(config.maci.initialVoiceCreditBalance)
+            )
+
+            const tx = await maci.signUp(
+                user1.keypair.pubKey.asContractParam(),
+                ethers.utils.defaultAbiCoder.encode(['uint256'], [1]),
+                ethers.utils.defaultAbiCoder.encode(['uint256'], [0]),
+                { from: user1.wallet }
+            )
+
+            truffleAssert.eventEmitted(tx, 'SignUp')
+
+            // The roots should match
+            const root = await maci.getStateTreeRoot()
+            assert.equal(maciState.genStateRoot().toString(), root.toString())
+        })
+
+        it('should revert if user uses to sign up with previously used SignUpToken', async () => {
+            try {
+                await maci.signUp(
+                    user1.keypair.pubKey.asContractParam(),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [1]),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [0]),
+                    { from: user1.wallet }
+                )
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'SignUpTokenGatekeeper: this token has already been used to sign up'
+                )
+                return
+            }
+            assert.fail('Expected revet not received')
+        })
+
+        it('should revert after sign up deadline', async () => {
+            const duration = config.maci.signUpDurationInSeconds + 1
+            await timeTravel(duration)
+            try {
+                await maci.signUp(
+                    user2.keypair.pubKey.asContractParam(),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [2]),
+                    ethers.utils.defaultAbiCoder.encode(['uint256'], [0]),
+                    { from: user2.wallet }
+                )
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'MACI: the sign-up period has passed'
+                )
+                return
+            }
+            assert.fail('Expected revet not received')
         })
     })
 })
