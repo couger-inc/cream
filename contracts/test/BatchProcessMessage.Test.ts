@@ -196,7 +196,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     })
 
     describe('signUpMaci', () => {
-        it('should be correct after signing up some users', async () => {
+        beforeEach(async () => {
             for (let i = 0; i < voters.length; i++) {
                 await votingToken.giveToken(voters[i])
                 await votingToken.setApprovalForAll(cream.address, true, {
@@ -240,10 +240,19 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                     BigInt(config.maci.initialVoiceCreditBalance)
                 )
             }
+        })
 
-            // const onChainStateRoot = (await maci.getStateTreeRoot()).toString()
-            // const offChainStateRoot = maciState.genStateRoot().toString()
-            // assert.equal(onChainstateroot, offChainStateRoot)
+        it('should have same root hash after signing up some users', async () => {
+            const onChainStateRoot = (await maci.getStateTreeRoot()).toString()
+            const offChainStateRoot = maciState.genStateRoot().toString()
+            assert.equal(onChainStateRoot, offChainStateRoot)
+        })
+
+        it('should own a SignUpToken', async () => {
+            for (let i = 0; i < voters.length; i++) {
+                const ownerOfToken = await signUpToken.ownerOf(i + 1)
+                assert.equal(ownerOfToken, voters[i])
+            }
         })
     })
 
@@ -444,5 +453,12 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             // 	  const stateRoot = await maci.stateRoot()
             // 	  assert.equal(stateRoot.toString(), stateRootAfter.toString())
         })
+    })
+
+    afterEach(async () => {
+        await revertSnapshot(snapshotId.result)
+        // eslint-disable-next-line require-atomic-updates
+        snapshotId = await takeSnapshot()
+        tree = new MerkleTree(LEVELS, ZERO_VALUE)
     })
 })
