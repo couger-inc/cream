@@ -6,7 +6,12 @@ const {
     genSpentVoiceCreditsCommitment,
     genPerVOSpentVoiceCreditsCommitment,
 } = require('maci-core')
-const { genRandomSalt, IncrementalQuinTree } = require('maci-crypto')
+const {
+    genRandomSalt,
+    IncrementalQuinTree,
+    hashLeftRight: poseidonHashLeftRight,
+    hash5: poseidonHash5,
+} = require('maci-crypto')
 const {
     Keypair,
     StateLeaf,
@@ -390,7 +395,8 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
     describe('Tally votes', () => {
         let tally
-        let newResultSalt
+        let newResultsSalt
+        let newSpentVoiceCreditSalt
 
         it('should tally a batch votes', async () => {
             const startIndex = BigInt(0)
@@ -399,7 +405,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 startIndex,
                 quadVoteTallyBatchSize
             )
-            newResultSalt = genRandomSalt()
+            newResultsSalt = genRandomSalt()
             const currentResultSalt = BigInt(0)
 
             const currentSpentVoiceCreditsSalt = BigInt(0)
@@ -412,7 +418,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 startIndex,
                 quadVoteTallyBatchSize,
                 currentResultSalt,
-                newResultSalt,
+                newResultsSalt,
                 currentSpentVoiceCreditsSalt,
                 newSpentVoiceCreditSalt,
                 currentPerVOSpentVoiceCreditsSalt,
@@ -434,7 +440,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
             const newResultsCommitment = genTallyResultCommitment(
                 tally,
-                newResultSalt,
+                newResultsSalt,
                 voteOptionTreeDepth
             )
             assert.equal(
@@ -559,6 +565,104 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             )
 
             assert.isTrue(tx.receipt.status)
+        })
+
+        it('on-chain verification of the total number of spent voice credits', async () => {
+            const result = await maci.verifySpentVoiceCredits(
+                totalVoteWeight.toString(),
+                newSpentVoiceCreditSalt.toString()
+            )
+
+            assert.isTrue(result)
+        })
+
+        it('on-chain tally result verification of one leaf', async () => {
+            const tree = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0))
+
+            for (const t of tally) {
+                tree.insert(t)
+            }
+
+            const expectedCommitment = poseidonHashLeftRight(
+                tree.root,
+                newResultsSalt
+            )
+            const currentResultsCommitment = await maci.currentResultsCommitment()
+
+            assert.equal(
+                expectedCommitment.toString(),
+                currentResultsCommitment.toString()
+            )
+
+            const index = 0
+            const leaf = tally[index]
+            const proof = tree.genMerklePath(index)
+
+            // Any contract can call the MACI contract's verifyTallyResult()
+            // function to prove that they know the value of the leaf.
+            const verified = await maci.verifyTallyResult(
+                voteOptionTreeDepth,
+                index,
+                leaf.toString(),
+                proof.pathElements.map((x) => x.map((y) => y.toString())),
+                newResultsSalt.toString()
+            )
+            assert.isTrue(verified)
+        })
+
+        it('on-chain tally result verification of a batch of leaves', async () => {
+            const depth = voteOptionTreeDepth - 1
+            const tree = new IncrementalQuinTree(depth, BigInt(0))
+            for (let i = 0; i < tally.length; i += 5) {
+                const batch = poseidonHash5(tally.slice(i, i + 5))
+                tree.insert(batch)
+            }
+
+            const index = 0
+            const leaf = tree.leaves[index]
+            const proof = tree.genMerklePath(index)
+
+            // Any contract can call the MACI contract's verifyTallyResult()
+            // function to prove that they know the value of a batch of leaves.
+            const verified = await maci.verifyTallyResult(
+                depth,
+                index,
+                leaf.toString(),
+                proof.pathElements.map((x) => x.map((y) => y.toString())),
+                newResultsSalt.toString()
+            )
+            assert.isTrue(verified)
+        })
+
+        it('on-chain per VO spent voice credit verification of one leaf', async () => {
+            const tree = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0))
+            for (const t of perVOSpentVoiceCredits) {
+                tree.insert(t)
+            }
+            const expectedCommitment = poseidonHashLeftRight(
+                tree.root,
+                newPerVOSpentVoiceCreditsSalt
+            )
+            const currentPerVOSpentVoiceCreditsCommitment = await maci.currentPerVOSpentVoiceCreditsCommitment()
+            assert(
+                expectedCommitment.toString(),
+                currentPerVOSpentVoiceCreditsCommitment.toString()
+            )
+
+            const index = 0
+            const leaf = perVOSpentVoiceCredits[index]
+            const proof = tree.genMerklePath(index)
+
+            // Any contract can call the MACI contract's verifyTallyResult()
+            // function to prove that they know the value of the leaf.
+            const verified = await maci.verifyPerVOSpentVoiceCredits(
+                voteOptionTreeDepth,
+                index,
+                leaf.toString(),
+                proof.pathElements.map((x) => x.map((y) => y.toString())),
+                newPerVOSpentVoiceCreditsSalt.toString()
+            )
+            assert.isTrue(verified)
         })
     })
 })
