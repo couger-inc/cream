@@ -7,8 +7,10 @@ import * as path from 'path'
 import { SnarkBigInt, createDeposit, rbigInt } from 'libcream'
 import {
     genBatchUstProofAndPublicSignals,
+    genQvtProofAndPublicSignals,
     getSignalByName,
     verifyBatchUstProof,
+    verifyQvtProof,
 } from 'maci-circuits'
 
 const snarkjs = require('snarkjs')
@@ -175,6 +177,8 @@ export {
     stringifyBigInts,
     unstringifyBigInts,
     genBatchUstProofAndPublicSignals,
+    genQvtProofAndPublicSignals,
     getSignalByName,
     verifyBatchUstProof,
+    verifyQvtProof,
 }

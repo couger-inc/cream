@@ -1,6 +1,11 @@
 const { config } = require('cream-config')
 const { MerkleTree } = require('cream-merkle-tree')
-const { MaciState } = require('maci-core')
+const {
+    MaciState,
+    genTallyResultCommitment,
+    genSpentVoiceCreditsCommitment,
+    genPerVOSpentVoiceCreditsCommitment,
+} = require('maci-core')
 const { genRandomSalt, IncrementalQuinTree } = require('maci-crypto')
 const {
     Keypair,
@@ -21,8 +26,10 @@ const {
     genProofAndPublicSignals,
     unstringifyBigInts,
     genBatchUstProofAndPublicSignals,
+    genQvtProofAndPublicSignals,
     getSignalByName,
     verifyBatchUstProof,
+    verifyQvtProof,
 } = require('cream-circuits')
 
 const CreamVerifier = artifacts.require('CreamVerifier')
@@ -98,6 +105,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
     const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
     const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
+    const quadVoteTallyBatchSize = config.maci.quadVoteTallyBatchSize //
 
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
@@ -118,9 +126,15 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
     let totalVotes = BigInt(0)
     let totalVoteWeight = BigInt(0)
+    let newPerVOSpentVoiceCreditsSalt
+    let perVOSpentVoiceCredits = []
+    const emptyTally = []
+    for (let i = 0; i < 5 ** voteOptionTreeDepth; i++) {
+        emptyTally[i] = BigInt(0)
+    }
 
     before(async () => {
-        for (let i = 0; i < batchSize; i++) {
+        for (let i = 0; i < batchSize - 2; i++) {
             voters.push(accounts[i + 2])
         }
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
@@ -300,13 +314,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             const duration = config.maci.signUpDurationInSeconds
             await timeTravel(duration)
 
-            for (const user of users) {
-                await maci.publishMessage(
-                    user.message.asContractParam(),
-                    user.ephemeralKeypair.pubKey.asContractParam()
-                )
-            }
-
             // end voting period
             await timeTravel(duration)
 
@@ -381,10 +388,177 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
         })
     })
 
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
-        tree = new MerkleTree(LEVELS, ZERO_VALUE)
+    describe('Tally votes', () => {
+        let tally
+        let newResultSalt
+
+        it('should tally a batch votes', async () => {
+            const startIndex = BigInt(0)
+
+            tally = maciState.computeBatchVoteTally(
+                startIndex,
+                quadVoteTallyBatchSize
+            )
+            newResultSalt = genRandomSalt()
+            const currentResultSalt = BigInt(0)
+
+            const currentSpentVoiceCreditsSalt = BigInt(0)
+            newSpentVoiceCreditSalt = genRandomSalt()
+
+            const currentPerVOSpentVoiceCreditsSalt = BigInt(0)
+            newPerVOSpentVoiceCreditsSalt = genRandomSalt()
+
+            const circuitInputs = maciState.genQuadVoteTallyCircuitInputs(
+                startIndex,
+                quadVoteTallyBatchSize,
+                currentResultSalt,
+                newResultSalt,
+                currentSpentVoiceCreditsSalt,
+                newSpentVoiceCreditSalt,
+                currentPerVOSpentVoiceCreditsSalt,
+                newPerVOSpentVoiceCreditsSalt
+            )
+            console.log('Generating proof...')
+            const {
+                circuit,
+                witness,
+                proof,
+                publicSignals,
+            } = await genQvtProofAndPublicSignals(circuitInputs, config.env)
+
+            const newResultsCommitmentOutput = getSignalByName(
+                circuit,
+                witness,
+                'main.newResultsCommitment'
+            )
+
+            const newResultsCommitment = genTallyResultCommitment(
+                tally,
+                newResultSalt,
+                voteOptionTreeDepth
+            )
+            assert.equal(
+                newResultsCommitmentOutput.toString(),
+                newResultsCommitment.toString()
+            )
+
+            // Check the commitment to the total number of spent voice credits
+            const newSpentVoiceCreditsCommitment = genSpentVoiceCreditsCommitment(
+                totalVoteWeight,
+                newSpentVoiceCreditSalt
+            )
+
+            const newSpentVoiceCreditsCommitmentOutput = getSignalByName(
+                circuit,
+                witness,
+                'main.newSpentVoiceCreditsCommitment'
+            )
+            assert.equal(
+                newSpentVoiceCreditsCommitmentOutput.toString(),
+                newSpentVoiceCreditsCommitment.toString()
+            )
+
+            perVOSpentVoiceCredits = maciState.computeBatchPerVOSpentVoiceCredits(
+                startIndex,
+                quadVoteTallyBatchSize
+            )
+            // Check the commitment to the per vote option spent voice credits
+            const newPerVOSpentVoiceCreditsCommitment = genPerVOSpentVoiceCreditsCommitment(
+                perVOSpentVoiceCredits,
+                newPerVOSpentVoiceCreditsSalt,
+                voteOptionTreeDepth
+            )
+
+            const newPerVOSpentVoiceCreditsCommitmentOutput = getSignalByName(
+                circuit,
+                witness,
+                'main.newPerVOSpentVoiceCreditsCommitment'
+            )
+
+            assert.equal(
+                newPerVOSpentVoiceCreditsCommitmentOutput.toString(),
+                newPerVOSpentVoiceCreditsCommitment.toString()
+            )
+
+            const contractPublicSignals = await maci.genQvtPublicSignals(
+                circuitInputs.intermediateStateRoot.toString(),
+                newResultsCommitment.toString(),
+                newSpentVoiceCreditsCommitment.toString(),
+                newPerVOSpentVoiceCreditsCommitment.toString(),
+                totalVotes.toString()
+            )
+
+            const currentSpentVoiceCreditsCommitment = genSpentVoiceCreditsCommitment(
+                0,
+                currentSpentVoiceCreditsSalt
+            )
+            const currentPerVOSpentVoiceCreditsCommitment = genPerVOSpentVoiceCreditsCommitment(
+                emptyTally,
+                currentPerVOSpentVoiceCreditsSalt,
+                voteOptionTreeDepth
+            )
+
+            assert.equal(
+                publicSignals[0].toString(),
+                newResultsCommitment.toString()
+            )
+            assert.equal(
+                publicSignals[1].toString(),
+                newSpentVoiceCreditsCommitment.toString()
+            )
+            assert.equal(
+                publicSignals[2].toString(),
+                newPerVOSpentVoiceCreditsCommitmentOutput.toString()
+            )
+            assert.equal(publicSignals[3].toString(), totalVotes.toString())
+            assert.equal(
+                publicSignals[4].toString(),
+                maciState.genStateRoot().toString()
+            )
+            assert.equal(publicSignals[5].toString(), '0')
+            assert.equal(
+                publicSignals[6].toString(),
+                circuitInputs.intermediateStateRoot.toString()
+            )
+            assert.equal(
+                publicSignals[7].toString(),
+                circuitInputs.currentResultsCommitment.toString()
+            )
+            assert.equal(
+                publicSignals[8].toString(),
+                currentSpentVoiceCreditsCommitment.toString()
+            )
+            assert.equal(
+                publicSignals[9].toString(),
+                currentPerVOSpentVoiceCreditsCommitment.toString()
+            )
+
+            for (let i = 0; i < publicSignals.length; i++) {
+                assert.equal(
+                    publicSignals[i].toString(),
+                    contractPublicSignals[i].toString()
+                )
+            }
+
+            const isValid = await verifyQvtProof(
+                proof,
+                publicSignals,
+                config.env
+            )
+            assert.isTrue(isValid)
+
+            const formattedProof = formatProofForVerifierContract(proof)
+
+            const tx = await maci.proveVoteTallyBatch(
+                circuitInputs.intermediateStateRoot.toString(),
+                newResultsCommitment.toString(),
+                newSpentVoiceCreditsCommitment.toString(),
+                newPerVOSpentVoiceCreditsCommitment.toString(),
+                totalVotes.toString(),
+                formattedProof
+            )
+
+            assert.isTrue(tx.receipt.status)
+        })
     })
 })
