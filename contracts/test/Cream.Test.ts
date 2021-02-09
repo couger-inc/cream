@@ -353,7 +353,7 @@ contract('Cream', (accounts) => {
 
     describe('signUpMaci', () => {
         const userKeypair = new Keypair()
-        it('should correctly sign up maci', async () => {
+        it('should correctly sign up to maci with SignUpToken', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
             await cream.deposit(toHex(deposit.commitment), { from: voter })
@@ -383,10 +383,14 @@ contract('Cream', (accounts) => {
             const tx = await cream.signUpMaci(
                 userPubKey,
                 proofForSolidityInput,
-                ...args
+                ...args,
+                { from: voter }
             )
 
             assert.equal(tx.receipt.status, true)
+
+            const tokenOwnerAddress = await signUpToken.ownerOf(1)
+            assert.equal(tokenOwnerAddress, voter)
         })
 
         it('should fail signUp with same proof', async () => {
