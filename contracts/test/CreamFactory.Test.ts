@@ -42,12 +42,6 @@ contract('CreamFactory', (accounts) => {
         votingToken = await VotingToken.deployed()
         signUpToken = await SignUpToken.deployed()
         maciFactory = await MACIFactory.deployed()
-        const signUpGatekeeper = await SignUpTokenGatekeeper.new(
-            signUpToken.address
-        )
-        const ConstantinitialVoiceCreditProxy = await ConstantInitialVoiceCreditProxy.new(
-            config.maci.initialVoiceCreditBalance
-        )
         await maciFactory.transferOwnership(creamFactory.address)
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
