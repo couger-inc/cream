@@ -11,10 +11,6 @@ const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
 const MACIFactory = artifacts.require('MACIFactory')
 const MACI = artifacts.require('MACI')
-const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
-const ConstantInitialVoiceCreditProxy = artifacts.require(
-    'ConstantInitialVoiceCreditProxy'
-)
 
 contract('CreamFactory', (accounts) => {
     let creamFactory
