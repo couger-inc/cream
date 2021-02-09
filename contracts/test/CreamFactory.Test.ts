@@ -2,7 +2,7 @@ const truffleAssert = require('truffle-assertions')
 const { config } = require('cream-config')
 const { toHex, createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
-const { Keypair } = require('maci-domainobjs')
+const { Keypair, PrivKey } = require('maci-domainobjs')
 
 const CreamFactory = artifacts.require('CreamFactory')
 const CreamVerifier = artifacts.require('CreamVerifier')
@@ -14,7 +14,6 @@ const MACI = artifacts.require('MACI')
 
 contract('CreamFactory', (accounts) => {
     let creamFactory
-    let verifier
     let votingToken
     let signUpToken
     let tx
@@ -25,11 +24,15 @@ contract('CreamFactory', (accounts) => {
     let maciFactory
     let maciAddress
     let maci
-    const MERKLE_HEIGHT = 1
-    const RECIPIENTS = [accounts[1], accounts[2]]
+
+    const LEVELS = config.cream.merkleTrees
+    const RECIPIENTS = config.cream.recipients
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
-    const VOTER = accounts[3]
-    const COORDINATOR = accounts[4]
+    const voter = accounts[1]
+    const coordinatorAddress = accounts[2]
+    const coordinator = new Keypair(
+        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    )
 
     before(async () => {
         creamFactory = await CreamFactory.deployed()
@@ -38,16 +41,14 @@ contract('CreamFactory', (accounts) => {
         signUpToken = await SignUpToken.deployed()
         maciFactory = await MACIFactory.deployed()
         await maciFactory.transferOwnership(creamFactory.address)
-        coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
             votingToken.address,
-            MERKLE_HEIGHT,
+            LEVELS,
             RECIPIENTS,
             IPFS_HASH,
-            coordinatorPubKey,
-            COORDINATOR,
-            signUpToken.address,
-            { from: accounts[0] }
+            coordinator.pubKey.asContractParam(),
+            coordinatorAddress,
+            signUpToken.address
         )
         creamAddress = tx.logs[3].args[0]
         cream = await Cream.at(creamAddress)
@@ -65,13 +66,13 @@ contract('CreamFactory', (accounts) => {
             try {
                 await creamFactory.createCream(
                     votingToken.address,
-                    MERKLE_HEIGHT,
+                    LEVELS,
                     RECIPIENTS,
                     IPFS_HASH,
-                    coordinatorPubKey,
-                    COORDINATOR,
+                    coordinator.pubKey.asContractParam(),
+                    coordinatorAddress,
                     signUpToken.address,
-                    { from: VOTER }
+                    { from: voter }
                 )
             } catch (error) {
                 assert.equal(error.reason, 'Ownable: caller is not the owner')
@@ -82,8 +83,14 @@ contract('CreamFactory', (accounts) => {
 
         it('should correctly set maci contract from CreamFactory', async () => {
             const creamCoordinatorPubKey = await maci.coordinatorPubKey()
-            assert(creamCoordinatorPubKey.x, coordinatorPubKey.x)
-            assert(creamCoordinatorPubKey.y, coordinatorPubKey.y)
+            assert(
+                creamCoordinatorPubKey.x,
+                coordinator.pubKey.asContractParam().x
+            )
+            assert(
+                creamCoordinatorPubKey.y,
+                coordinator.pubKey.asContractParam().y
+            )
         })
 
         it('should be able to set MACI parameters from CreamFactory', async () => {
@@ -127,26 +134,24 @@ contract('CreamFactory', (accounts) => {
             assert.equal(await cream.verifier(), creamVerifier.address)
             assert.equal(await cream.votingToken(), votingToken.address)
             assert.equal(await cream.recipients(0), RECIPIENTS[0])
-            assert.equal(await cream.coordinator(), COORDINATOR)
+            assert.equal(await cream.coordinator(), coordinatorAddress)
         })
 
         it('should be able to deploy another cream contract', async () => {
-            await votingToken.giveToken(VOTER)
+            await votingToken.giveToken(voter)
             await votingToken.setApprovalForAll(creamAddress, true, {
-                from: VOTER,
+                from: voter,
             })
-
-            coordinatorPubKey = new Keypair().pubKey.asContractParam()
 
             votingToken = await VotingToken.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await creamFactory.createCream(
                 votingToken.address,
-                MERKLE_HEIGHT,
+                LEVELS,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
-                coordinatorPubKey,
-                COORDINATOR,
+                coordinator.pubKey.asContractParam(),
+                coordinatorAddress,
                 signUpToken.address
             )
             const newCreamAddress = tx.logs[3].args[0]

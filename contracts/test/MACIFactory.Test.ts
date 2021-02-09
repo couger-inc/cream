@@ -1,7 +1,7 @@
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const { bigInt } = require('libcream')
 const { config } = require('cream-config')
-const { Keypair } = require('maci-domainobjs')
+const { Keypair, PrivKey } = require('maci-domainobjs')
 const truffleAssert = require('truffle-assertions')
 
 const MACIFactory = artifacts.require('MACIFactory')
@@ -13,7 +13,8 @@ const VotingToken = artifacts.require('VotingToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 
-const LEVELS = config.cream.merkleTrees.toString()
+const LEVELS = config.cream.merkleTrees
+const RECIPIENTS = config.cream.recipients
 const ZERO_VALUE = config.cream.zeroValue
 const recipient = config.cream.recipients[0]
 
@@ -22,26 +23,27 @@ contract('MACIFactory', (accounts) => {
     let snapshotId
     let creamVerifier
     let mimc
-    let tokenContract
+    let votingToken
     let cream
-    let coordinatorPubKey
-    const coordinator = accounts[1]
+    const coordinatorAddress = accounts[1]
+    const coordinator = new Keypair(
+        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    )
 
     before(async () => {
         maciFactory = await MACIFactory.deployed()
         batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifier.deployed()
         creamVerifier = await CreamVerifier.deployed()
         mimc = await MiMC.deployed()
-        tokenContract = await VotingToken.deployed()
+        votingToken = await VotingToken.deployed()
         await Cream.link(MiMC, mimc.address)
         cream = await Cream.new(
             creamVerifier.address,
-            tokenContract.address,
+            votingToken.address,
             LEVELS,
-            config.cream.recipients,
-            coordinator
+            RECIPIENTS,
+            coordinatorAddress
         )
-        coordinatorPubKey = new Keypair().pubKey.asContractParam()
         snapshotId = await takeSnapshot()
     })
 
@@ -61,7 +63,7 @@ contract('MACIFactory', (accounts) => {
             const tx = await maciFactory.deployMaci(
                 cream.address,
                 cream.address,
-                coordinatorPubKey
+                coordinator.pubKey.asContractParam()
             )
             truffleAssert.eventEmitted(tx, 'MaciDeployed')
         })
@@ -71,7 +73,7 @@ contract('MACIFactory', (accounts) => {
                 const tx = await maciFactory.deployMaci(
                     cream.address,
                     cream.address,
-                    coordinatorPubKey,
+                    coordinator.pubKey.asContractParam(),
                     { from: accounts[2] }
                 )
             } catch (error) {
@@ -86,7 +88,7 @@ contract('MACIFactory', (accounts) => {
             const tx = await maciFactory.deployMaci(
                 cream.address,
                 cream.address,
-                coordinatorPubKey
+                coordinator.pubKey.asContractParam()
             )
 
             const maciAddress = tx.logs[2].args[0]
@@ -120,7 +122,7 @@ contract('MACIFactory', (accounts) => {
             const tx = await maciFactory.deployMaci(
                 cream.address,
                 cream.address,
-                coordinatorPubKey
+                coordinator.pubKey.asContractParam()
             )
 
             const maciAddress = tx.logs[2].args[0]

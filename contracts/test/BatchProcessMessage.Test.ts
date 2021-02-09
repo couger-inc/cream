@@ -20,13 +20,7 @@ const {
     PubKey,
 } = require('maci-domainobjs')
 const { revertSnapshot, takeSnapshot, timeTravel } = require('./TestUtil')
-const {
-    createDeposit,
-    rbigInt,
-    toHex,
-    pedersenHash,
-    createMessage,
-} = require('libcream')
+const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
 const {
     genProofAndPublicSignals,
     unstringifyBigInts,
@@ -102,7 +96,8 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     let snapshotId
     let stateRootBefore
 
-    const LEVELS = config.cream.merkleTrees.toString()
+    const LEVELS = config.cream.merkleTrees
+    const RECIPIENTS = config.cream.recipients
     const ZERO_VALUE = config.cream.zeroValue
     const batchSize = config.maci.messageBatchSize // 4
     const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
@@ -132,6 +127,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     let totalVoteWeight = BigInt(0)
     let newPerVOSpentVoiceCreditsSalt
     let perVOSpentVoiceCredits = []
+
     const emptyTally = []
     for (let i = 0; i < 5 ** voteOptionTreeDepth; i++) {
         emptyTally[i] = BigInt(0)
@@ -150,7 +146,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             creamVerifier.address,
             votingToken.address,
             LEVELS,
-            config.cream.recipients,
+            RECIPIENTS,
             coordinatorAddress
         )
         maciFactory = await MACIFactory.deployed()

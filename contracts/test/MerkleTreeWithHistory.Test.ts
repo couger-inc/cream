@@ -3,21 +3,21 @@ const { toHex } = require('libcream')
 const { MerkleTree } = require('cream-merkle-tree')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 
-const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock.sol')
-const hasherContract = artifacts.require('MiMC.sol')
+const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock')
+const MiMC = artifacts.require('MiMC')
 
 contract('MerkleTreeWithHistory', (accounts) => {
     let tree
-    let LEVELS = config.cream.merkleTrees.toString()
-    const ZERO_VALUE = config.cream.zeroValue
-    let hasherInstance
+    let mimc
     let merkleTree
     let snapshotId
+    let LEVELS = config.cream.merkleTrees
+    const ZERO_VALUE = config.cream.zeroValue
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        hasherInstance = await hasherContract.deployed()
-        await MerkleTreeContract.link(hasherContract, hasherInstance.address)
+        mimc = await MiMC.deployed()
+        await MerkleTreeContract.link(MiMC, mimc.address)
         merkleTree = await MerkleTreeContract.new(LEVELS)
         snapshotId = await takeSnapshot()
     })
@@ -51,8 +51,7 @@ contract('MerkleTreeWithHistory', (accounts) => {
 
         it('should reject if tree is full', async () => {
             LEVELS = 6
-
-            const merkleTree = await MerkleTreeContract.new(LEVELS)
+            merkleTree = await MerkleTreeContract.new(LEVELS)
 
             for (let i = 0; i < 2 ** LEVELS; i++) {
                 await merkleTree.insert(toHex(i + 42))

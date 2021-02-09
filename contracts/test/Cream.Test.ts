@@ -1,6 +1,6 @@
 const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
-const { Keypair } = require('maci-domainobjs')
+const { Keypair, PrivKey } = require('maci-domainobjs')
 const { MerkleTree } = require('cream-merkle-tree')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const truffleAssert = require('truffle-assertions')
@@ -64,21 +64,22 @@ contract('Cream', (accounts) => {
     let mimc
     let votingToken
     let signUpToken
-    let coordinatorPubKey
     let maci
     let maciFactory
     let maciTx
     let snapshotId
-    let proving_key
-    let groth16
-    let circuit
-    const LEVELS = config.cream.merkleTrees.toString()
+
+    const LEVELS = config.cream.merkleTrees
     const ZERO_VALUE = config.cream.zeroValue
+    const RECIPIENTS = config.cream.recipients
     const contractOwner = accounts[0]
     const voter = accounts[1]
     const badUser = accounts[2]
-    const coordinator = accounts[3]
+    const coordinatorAddress = accounts[3]
     const voter2 = accounts[4]
+    const coordinator = new Keypair(
+        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    )
 
     // recipient index
     let recipient = 0
@@ -93,10 +94,9 @@ contract('Cream', (accounts) => {
             creamVerifier.address,
             votingToken.address,
             LEVELS,
-            config.cream.recipients,
-            coordinator
+            RECIPIENTS,
+            coordinatorAddress
         )
-        coordinatorPubKey = new Keypair().pubKey
         maciFactory = await MACIFactory.deployed()
         signUpToken = await SignUpToken.deployed()
         const signUpGatekeeper = await SignUpTokenGatekeeper.new(
@@ -108,12 +108,12 @@ contract('Cream', (accounts) => {
         maciTx = await maciFactory.deployMaci(
             signUpGatekeeper.address,
             ConstantinitialVoiceCreditProxy.address,
-            coordinatorPubKey.asContractParam()
+            coordinator.pubKey.asContractParam()
         )
         const maciAddress = maciTx.logs[2].args[0]
         await signUpToken.transferOwnership(cream.address)
         await cream.setMaci(maciAddress, signUpToken.address, {
-            from: accounts[0],
+            from: contractOwner,
         })
         maci = await MACI.at(maciAddress)
         snapshotId = await takeSnapshot()
@@ -176,8 +176,8 @@ contract('Cream', (accounts) => {
                 creamVerifier.address,
                 votingToken.address,
                 LEVELS,
-                config.cream.recipients,
-                coordinator
+                RECIPIENTS,
+                coordinatorAddress
             )
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
 
@@ -619,7 +619,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 null,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 recipientIndex,
                 null,
                 nonce
@@ -641,7 +641,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 newUserKeyPair,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 null,
                 null,
                 nonce
@@ -664,7 +664,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 newUserKeyPair,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 null,
                 null,
                 nonce
@@ -678,7 +678,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 null,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 recipientIndex,
                 null,
                 nonce + 1
@@ -701,7 +701,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 null,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 recipientIndex,
                 null,
                 nonce
@@ -731,7 +731,7 @@ contract('Cream', (accounts) => {
                     userStateIndex,
                     userKeypair,
                     null,
-                    coordinatorPubKey,
+                    coordinator.pubKey,
                     recipientIndex,
                     null,
                     nonce
@@ -747,7 +747,9 @@ contract('Cream', (accounts) => {
     describe('publishTallyHash', () => {
         it('should correctly publish tally hash', async () => {
             const hash = 'hash'
-            const tx = await cream.publishTallyHash(hash, { from: coordinator })
+            const tx = await cream.publishTallyHash(hash, {
+                from: coordinatorAddress,
+            })
             truffleAssert.eventEmitted(tx, 'TallyPublished')
         })
 
@@ -764,7 +766,7 @@ contract('Cream', (accounts) => {
 
         it('should revert with an empty string', async () => {
             try {
-                await cream.publishTallyHash('', { from: coordinator })
+                await cream.publishTallyHash('', { from: coordinatorAddress })
             } catch (error) {
                 assert.equal(error.reason, 'Tally hash cannot be empty string')
                 return
@@ -811,7 +813,7 @@ contract('Cream', (accounts) => {
                 userStateIndex,
                 userKeypair,
                 null,
-                coordinatorPubKey,
+                coordinator.pubKey,
                 recipientIndex,
                 null,
                 nonce
@@ -823,7 +825,7 @@ contract('Cream', (accounts) => {
             )
 
             const hash = 'hash'
-            await cream.publishTallyHash(hash, { from: coordinator })
+            await cream.publishTallyHash(hash, { from: coordinatorAddress })
         })
 
         it('should tally be approved', async () => {
@@ -834,7 +836,7 @@ contract('Cream', (accounts) => {
 
         it('should revert before approval', async () => {
             try {
-                await cream.withdraw(1, { from: coordinator })
+                await cream.withdraw(1, { from: coordinatorAddress })
             } catch (error) {
                 assert.equal(error.reason, 'Tally result is not approved yet')
                 return
@@ -855,13 +857,13 @@ contract('Cream', (accounts) => {
 
         it('should correctly work and emit event', async () => {
             await cream.approveTally()
-            const tx = await cream.withdraw(1, { from: coordinator })
+            const tx = await cream.withdraw(1, { from: coordinatorAddress })
             truffleAssert.eventEmitted(tx, 'Withdrawal')
         })
 
         it('should correctly transfer token to recipient', async () => {
             await cream.approveTally()
-            const tx = await cream.withdraw(0, { from: coordinator })
+            const tx = await cream.withdraw(0, { from: coordinatorAddress })
             const newTokenOwner = await votingToken.ownerOf(1)
             assert.equal(config.cream.recipients[0], newTokenOwner)
         })
