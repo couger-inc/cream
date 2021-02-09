@@ -16,7 +16,6 @@ Check out [config/test.yml](./config/test.yml) file how to configure settings:
 ```yml
 cream:
   merkleTrees: 4
-  denomination: 1000000000000000000
   recipients: [
     "0x65A5B0f4eD2170Abe0158865E04C4FF24827c529",
     "0x9cc9C78eDA7c7940f968eF9D8A90653C47CD2a5e",
@@ -31,10 +30,13 @@ Make sure you set the same value of merkleTrees depth on both [config/test.yml](
 After finished setting, you can run:
 
 ```bash
+
 $ npm run bootstrap && \
 $ npm run build
 $ ganache-cli // or cd contracts && npm run ganache
-$ npm run migrate
+
+# In up another terminal
+$ cd contracts && npm run migrate
 ```
 
 ## Test
