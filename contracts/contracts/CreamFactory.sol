@@ -50,7 +50,6 @@ contract CreamFactory is Ownable, MACISharedObjs {
 
 	function createCream(
         VotingToken _votingToken,
-        uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
         string memory _ipfsHash,
@@ -65,7 +64,6 @@ contract CreamFactory is Ownable, MACISharedObjs {
 		Cream cream = new Cream(
             creamVerifier,
             _votingToken,
-            _denomination,
             _merkleTreeHeight,
             _recipients,
 			_coordinator

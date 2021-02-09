@@ -13,10 +13,6 @@ import {
 
 const LEVELS: number = config.cream.merkleTrees.toString()
 const ZERO_VALUE: number = config.cream.zeroValue
-const relayer = config.cream.recipients[0]
-const value = config.cream.denomination.toString()
-const recipient = config.cream.recipients[1]
-const fee = bigInt(value).shr(0)
 
 describe('Vote circuits', () => {
     let tree, circuit

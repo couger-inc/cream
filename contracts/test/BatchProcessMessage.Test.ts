@@ -104,13 +104,12 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
-    const value = config.cream.denomination.toString()
     const batchSize = config.maci.messageBatchSize // 4
     const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
     const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
     const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
     const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
-    const quadVoteTallyBatchSize = config.maci.quadVoteTallyBatchSize //
+    const quadVoteTallyBatchSize = config.maci.quadVoteTallyBatchSize // 4
 
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
@@ -150,7 +149,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
         cream = await Cream.new(
             creamVerifier.address,
             votingToken.address,
-            value,
             LEVELS,
             config.cream.recipients,
             coordinatorAddress

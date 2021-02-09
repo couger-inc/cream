@@ -26,7 +26,6 @@ contract('CreamFactory', (accounts) => {
     let maciAddress
     let maci
     const MERKLE_HEIGHT = 1
-    const DENOMINATION = 1
     const RECIPIENTS = [accounts[1], accounts[2]]
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
     const VOTER = accounts[3]
@@ -42,7 +41,6 @@ contract('CreamFactory', (accounts) => {
         coordinatorPubKey = new Keypair().pubKey.asContractParam()
         tx = await creamFactory.createCream(
             votingToken.address,
-            DENOMINATION,
             MERKLE_HEIGHT,
             RECIPIENTS,
             IPFS_HASH,
@@ -67,7 +65,6 @@ contract('CreamFactory', (accounts) => {
             try {
                 await creamFactory.createCream(
                     votingToken.address,
-                    DENOMINATION,
                     MERKLE_HEIGHT,
                     RECIPIENTS,
                     IPFS_HASH,
@@ -129,7 +126,6 @@ contract('CreamFactory', (accounts) => {
         it('should be able to reveive correct value from cream contract side', async () => {
             assert.equal(await cream.verifier(), creamVerifier.address)
             assert.equal(await cream.votingToken(), votingToken.address)
-            assert.equal(await cream.denomination(), DENOMINATION)
             assert.equal(await cream.recipients(0), RECIPIENTS[0])
             assert.equal(await cream.coordinator(), COORDINATOR)
         })
@@ -146,7 +142,6 @@ contract('CreamFactory', (accounts) => {
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await creamFactory.createCream(
                 votingToken.address,
-                DENOMINATION,
                 MERKLE_HEIGHT,
                 NEW_RECIPIENTS,
                 IPFS_HASH,

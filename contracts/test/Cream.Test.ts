@@ -74,7 +74,6 @@ contract('Cream', (accounts) => {
     let circuit
     const LEVELS = config.cream.merkleTrees.toString()
     const ZERO_VALUE = config.cream.zeroValue
-    const value = config.cream.denomination.toString()
     const contractOwner = accounts[0]
     const voter = accounts[1]
     const badUser = accounts[2]
@@ -93,7 +92,6 @@ contract('Cream', (accounts) => {
         cream = await Cream.new(
             creamVerifier.address,
             votingToken.address,
-            value,
             LEVELS,
             config.cream.recipients,
             coordinator
@@ -129,11 +127,6 @@ contract('Cream', (accounts) => {
     })
 
     describe('initialize', () => {
-        it('should correctly initialize', async () => {
-            const denomination = await cream.denomination()
-            assert.equal(denomination, value)
-        })
-
         it('should return correct votingToken address', async () => {
             const tokenAddress = await cream.votingToken.call()
             assert.equal(tokenAddress, votingToken.address)
@@ -182,7 +175,6 @@ contract('Cream', (accounts) => {
             const newCream = await Cream.new(
                 creamVerifier.address,
                 votingToken.address,
-                value,
                 LEVELS,
                 config.cream.recipients,
                 coordinator

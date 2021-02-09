@@ -15,9 +15,7 @@ const MiMC = artifacts.require('MiMC')
 
 const LEVELS = config.cream.merkleTrees.toString()
 const ZERO_VALUE = config.cream.zeroValue
-const value = config.cream.denomination.toString()
 const recipient = config.cream.recipients[0]
-const fee = bigInt(value).shr(0)
 
 contract('MACIFactory', (accounts) => {
     let maciFactory
@@ -39,7 +37,6 @@ contract('MACIFactory', (accounts) => {
         cream = await Cream.new(
             creamVerifier.address,
             tokenContract.address,
-            value,
             LEVELS,
             config.cream.recipients,
             coordinator

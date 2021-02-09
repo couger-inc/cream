@@ -28,7 +28,7 @@ abstract contract IVerifier {
 contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
-    uint256 public denomination;
+
     address[] public recipients;
     IVerifier public verifier;
     VotingToken public votingToken;
@@ -47,16 +47,13 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     constructor(
         IVerifier _verifier,
 	    VotingToken _votingToken,
-        uint256 _denomination,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
 		address _coordinator
     ) MerkleTreeWithHistory(_merkleTreeHeight) public {
-        require(_denomination > 0, "Denomination should be greater than 0");
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
 	    votingToken = _votingToken;
-        denomination = _denomination;
         recipients = _recipients;
 		coordinator = _coordinator;
 		approved = false;
@@ -140,8 +137,6 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
         nullifierHashes[_nullifierHash] = true;
 
-		/* TODO: with voicecredits */
-		// uint256 voiceCredits = 100;
         uint256 maciTokenId = signUpToken.getCurrentSupply();
         bytes memory signUpGateKeeperData = abi.encode(maciTokenId);
 		bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
