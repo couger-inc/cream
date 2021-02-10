@@ -1,9 +1,18 @@
-const fs = require('fs')
-const path = require('path')
-const circomlib = require('circomlib')
-const crypto = require('crypto')
-
+const { unstringifyBigInts } = require('cream-circuits')
 const { bigInt, pedersenHash, rbigInt } = require('libcream')
+
+const formatProofForVerifierContract = (_proof) => {
+    return [
+        _proof.pi_a[0],
+        _proof.pi_a[1],
+        _proof.pi_b[0][1],
+        _proof.pi_b[0][0],
+        _proof.pi_b[1][1],
+        _proof.pi_b[1][0],
+        _proof.pi_c[0],
+        _proof.pi_c[1],
+    ].map((x) => x.toString())
+}
 
 const send = (method, params = []) => {
     return new Promise((resolve, reject) => {
@@ -36,6 +45,7 @@ const timeTravel = async (seconds) => {
 }
 
 module.exports = {
+    formatProofForVerifierContract,
     takeSnapshot,
     revertSnapshot,
     timeTravel,

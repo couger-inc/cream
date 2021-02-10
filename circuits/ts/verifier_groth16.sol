@@ -44,12 +44,12 @@ contract CreamVerifier {
         <%vk_ic_pts%>
     }
 
-    function _verifyProof(
+    function verifyProof(
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
         uint[<%vk_input_length%>] memory input
-    ) internal view returns (bool r) {
+    ) external view returns (bool r) {
 
         Proof memory proof;
         proof.A = Pairing.G1Point(a[0], a[1]);
@@ -90,14 +90,5 @@ contract CreamVerifier {
             proof.C,
             vk.delta2
         );
-    }
-
-    function verifyProof(
-		bytes calldata proof,
-		uint[<%vk_input_length%>] calldata inputs
-	) external view returns (bool r) {
-        // solidity does not support decoding uint[2][2] yet
-        (uint[2] memory a, uint[2] memory b1, uint[2] memory b2, uint[2] memory c) = abi.decode(proof, (uint[2], uint[2], uint[2], uint[2]));
-        return _verifyProof(a, [b1, b2], c, inputs);
     }
 }

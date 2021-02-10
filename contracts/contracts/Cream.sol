@@ -22,7 +22,12 @@ import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
 import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
 
 abstract contract IVerifier {
-    function verifyProof(bytes memory _proof, uint256[2] memory _input) public virtual returns(bool);
+    function verifyProof(
+        uint256[2] calldata a,
+        uint256[2][2] calldata b,
+        uint256[2] calldata c,
+        uint256[2] memory _input
+    ) public virtual returns (bool);
 }
 
 contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
@@ -128,13 +133,21 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 
 	function signUpMaci(
 		PubKey calldata pubKey,
-		bytes calldata _proof,
+		uint256[8] memory _proof,
         bytes32 _root,
         bytes32 _nullifierHash
     ) external nonReentrant {
 		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
-		require(verifier.verifyProof(_proof, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
+
+		(
+			uint256[2] memory a,
+			uint256[2][2] memory b,
+			uint256[2] memory c
+		) = maci.unpackProof(_proof);
+
+		require(verifier.verifyProof(a, b, c, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
+
         nullifierHashes[_nullifierHash] = true;
 
         uint256 maciTokenId = signUpToken.getCurrentSupply();

@@ -2,13 +2,16 @@ const { toBN, randomHex } = require('web3-utils')
 const { config } = require('cream-config')
 const { Keypair, PrivKey } = require('maci-domainobjs')
 const { MerkleTree } = require('cream-merkle-tree')
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const {
+    formatProofForVerifierContract,
+    revertSnapshot,
+    takeSnapshot,
+} = require('./TestUtil')
 const truffleAssert = require('truffle-assertions')
 const {
     genProofAndPublicSignals,
     snarkVerify,
     stringifyBigInts,
-    unstringifyBigInts,
 } = require('cream-circuits')
 const {
     bigInt,
@@ -30,32 +33,6 @@ const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
 const ConstantInitialVoiceCreditProxy = artifacts.require(
     'ConstantInitialVoiceCreditProxy'
 )
-
-const toHex32 = (number) => {
-    let str = number.toString(16)
-    while (str.length < 64) str = '0' + str
-    return str
-}
-
-// Ported from old websnark library
-// https://github.com/tornadocash/websnark/blob/master/src/utils.js#L74
-const toSolidityInput = (proof) => {
-    return (
-        '0x' +
-        unstringifyBigInts([
-            proof.pi_a[0],
-            proof.pi_a[1],
-            proof.pi_b[0][1],
-            proof.pi_b[0][0],
-            proof.pi_b[1][1],
-            proof.pi_b[1][0],
-            proof.pi_c[0],
-            proof.pi_c[1],
-        ])
-            .map((x) => toHex32(x))
-            .join('')
-    )
-}
 
 contract('Cream', (accounts) => {
     let cream
@@ -379,10 +356,10 @@ contract('Cream', (accounts) => {
             const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
+            const formattedProof = formatProofForVerifierContract(proof)
             const tx = await cream.signUpMaci(
                 userPubKey,
-                proofForSolidityInput,
+                formattedProof,
                 ...args,
                 { from: voter }
             )
@@ -419,15 +396,11 @@ contract('Cream', (accounts) => {
             const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
-            await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args)
+            const formattedProof = formatProofForVerifierContract(proof)
+            await cream.signUpMaci(userPubKey, formattedProof, ...args)
 
             try {
-                await cream.signUpMaci(
-                    userPubKey,
-                    proofForSolidityInput,
-                    ...args
-                )
+                await cream.signUpMaci(userPubKey, formattedProof, ...args)
             } catch (error) {
                 assert.equal(
                     error.reason,
@@ -473,14 +446,10 @@ contract('Cream', (accounts) => {
             ]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
+            const formattedProof = formatProofForVerifierContract(proof)
 
             try {
-                await cream.signUpMaci(
-                    userPubKey,
-                    proofForSolidityInput,
-                    ...args
-                )
+                await cream.signUpMaci(userPubKey, formattedProof, ...args)
             } catch (error) {
                 assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
                 return
@@ -514,14 +483,10 @@ contract('Cream', (accounts) => {
             const args = [toHex(fakeRandomRoot), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
+            const formattedProof = formatProofForVerifierContract(proof)
 
             try {
-                await cream.signUpMaci(
-                    userPubKey,
-                    proofForSolidityInput,
-                    ...args
-                )
+                await cream.signUpMaci(userPubKey, formattedProof, ...args)
             } catch (error) {
                 assert.equal(error.reason, 'Cannot find your merkle root')
                 return
@@ -556,14 +521,10 @@ contract('Cream', (accounts) => {
             const args = [toHex(input.root), toHex(deposit.commitment)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
+            const formattedProof = formatProofForVerifierContract(proof)
 
             try {
-                await cream.signUpMaci(
-                    userPubKey,
-                    proofForSolidityInput,
-                    ...args
-                )
+                await cream.signUpMaci(userPubKey, formattedProof, ...args)
             } catch (error) {
                 assert.equal(error.reason, 'Invalid deposit proof')
                 return
@@ -603,10 +564,11 @@ contract('Cream', (accounts) => {
             const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
+            const formattedProof = formatProofForVerifierContract(proof)
+
             signUpTx = await cream.signUpMaci(
                 userPubKey,
-                proofForSolidityInput,
+                formattedProof,
                 ...args
             )
         })
@@ -803,8 +765,8 @@ contract('Cream', (accounts) => {
             const args = [toHex(input.root), toHex(input.nullifierHash)]
 
             const userPubKey = userKeypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
-            await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args)
+            const formattedProof = formatProofForVerifierContract(proof)
+            await cream.signUpMaci(userPubKey, formattedProof, ...args)
 
             const userStateIndex = 1
             const recipientIndex = 0

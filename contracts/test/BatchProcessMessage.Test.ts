@@ -19,11 +19,15 @@ const {
     PrivKey,
     PubKey,
 } = require('maci-domainobjs')
-const { revertSnapshot, takeSnapshot, timeTravel } = require('./TestUtil')
+const {
+    formatProofForVerifierContract,
+    revertSnapshot,
+    takeSnapshot,
+    timeTravel,
+} = require('./TestUtil')
 const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
 const {
     genProofAndPublicSignals,
-    unstringifyBigInts,
     genBatchUstProofAndPublicSignals,
     genQvtProofAndPublicSignals,
     getSignalByName,
@@ -42,43 +46,6 @@ const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
 const ConstantInitialVoiceCreditProxy = artifacts.require(
     'ConstantInitialVoiceCreditProxy'
 )
-
-const toHex32 = (number) => {
-    let str = number.toString(16)
-    while (str.length < 64) str = '0' + str
-    return str
-}
-
-const toSolidityInput = (proof) => {
-    return (
-        '0x' +
-        unstringifyBigInts([
-            proof.pi_a[0],
-            proof.pi_a[1],
-            proof.pi_b[0][1],
-            proof.pi_b[0][0],
-            proof.pi_b[1][1],
-            proof.pi_b[1][0],
-            proof.pi_c[0],
-            proof.pi_c[1],
-        ])
-            .map((x) => toHex32(x))
-            .join('')
-    )
-}
-
-const formatProofForVerifierContract = (_proof) => {
-    return [
-        _proof.pi_a[0],
-        _proof.pi_a[1],
-        _proof.pi_b[0][1],
-        _proof.pi_b[0][0],
-        _proof.pi_b[1][1],
-        _proof.pi_b[1][0],
-        _proof.pi_c[0],
-        _proof.pi_c[1],
-    ].map((x) => x.toString())
-}
 
 // this test is ported from maci:
 // https://github.com/appliedzkp/maci/blob/master/contracts/ts/__tests__/BatchProcessMessageAndQuadVoteTally.test.ts
@@ -239,8 +206,8 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             )
             const args = [toHex(input.root), toHex(input.nullifierHash)]
             const userPubKey = users[i].keypair.pubKey.asContractParam()
-            const proofForSolidityInput = toSolidityInput(proof)
-            await cream.signUpMaci(userPubKey, proofForSolidityInput, ...args, {
+            const formattedProof = formatProofForVerifierContract(proof)
+            await cream.signUpMaci(userPubKey, formattedProof, ...args, {
                 from: voters[i],
             })
             maciState.signUp(
