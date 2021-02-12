@@ -25,6 +25,7 @@ contract('CreamFactory', (accounts) => {
     let maciAddress
     let maci
 
+    const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
     const RECIPIENTS = config.cream.recipients
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
@@ -44,6 +45,7 @@ contract('CreamFactory', (accounts) => {
         tx = await creamFactory.createCream(
             votingToken.address,
             signUpToken.address,
+            BALANCE,
             LEVELS,
             RECIPIENTS,
             IPFS_HASH,
@@ -67,6 +69,7 @@ contract('CreamFactory', (accounts) => {
                 await creamFactory.createCream(
                     votingToken.address,
                     signUpToken.address,
+                    BALANCE,
                     LEVELS,
                     RECIPIENTS,
                     IPFS_HASH,
@@ -148,6 +151,7 @@ contract('CreamFactory', (accounts) => {
             tx = await creamFactory.createCream(
                 votingToken.address,
                 signUpToken.address,
+                BALANCE,
                 LEVELS,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
