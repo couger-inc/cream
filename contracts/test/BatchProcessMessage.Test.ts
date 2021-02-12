@@ -214,7 +214,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
         })
 
         it('should own a SignUpToken', async () => {
-            let i = 1;
+            let i = 1
             for (const voter of voters) {
                 const ownerOfToken = await signUpToken.ownerOf(i++)
                 assert.equal(ownerOfToken, voter.wallet)
