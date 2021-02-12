@@ -19,10 +19,7 @@ const {
     PrivKey,
     PubKey,
 } = require('maci-domainobjs')
-const {
-    formatProofForVerifierContract,
-    timeTravel,
-} = require('./TestUtil')
+const { formatProofForVerifierContract, timeTravel } = require('./TestUtil')
 const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
 const {
     genProofAndPublicSignals,
@@ -77,7 +74,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     )
 
     const voters = []
-    const users = []
 
     const maciState = new MaciState(
         coordinator,
@@ -98,9 +94,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     }
 
     before(async () => {
-        for (let i = 0; i < batchSize - 2; i++) {
-            voters.push(accounts[i + 2])
-        }
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
         creamVerifier = await CreamVerifier.deployed()
         mimc = await MiMC.deployed()
@@ -133,7 +126,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
         })
         maci = await MACI.at(maciAddress)
 
-        for (let i = 0; i < voters.length; i++) {
+        for (let i = 0; i < batchSize - 2; i++) {
             // deposit
             const userKeypair = new Keypair()
 
@@ -158,8 +151,8 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             )
             const message = command.encrypt(signature, sharedKey)
 
-            users.push({
-                wallet: voters[i],
+            voters.push({
+                wallet: accounts[i + 2],
                 keypair: userKeypair,
                 ephemeralKeypair,
                 command,
@@ -167,25 +160,24 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             })
         }
 
-        for (const user of users) {
-            const voteWeight = user.command.newVoteWeight
+        let i = 0
+        for (const voter of voters) {
+            const voteWeight = voter.command.newVoteWeight
             totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
             totalVotes += voteWeight
-        }
 
-        for (let i = 0; i < voters.length; i++) {
-            await votingToken.giveToken(voters[i])
+            await votingToken.giveToken(voter.wallet)
             await votingToken.setApprovalForAll(cream.address, true, {
-                from: voters[i],
+                from: voter.wallet,
             })
 
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
             await cream.deposit(toHex(deposit.commitment), {
-                from: voters[i],
+                from: voter.wallet,
             })
             const root = tree.root
-            const merkleProof = tree.getPathUpdate(i)
+            const merkleProof = tree.getPathUpdate(i++)
             const input = {
                 root,
                 nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
@@ -202,29 +194,30 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 'circuits/vote.wasm'
             )
             const args = [toHex(input.root), toHex(input.nullifierHash)]
-            const userPubKey = users[i].keypair.pubKey.asContractParam()
+            const userPubKey = voter.keypair.pubKey.asContractParam()
             const formattedProof = formatProofForVerifierContract(proof)
             await cream.signUpMaci(userPubKey, formattedProof, ...args, {
-                from: voters[i],
+                from: voter.wallet,
             })
             maciState.signUp(
-                users[i].keypair.pubKey,
+                voter.keypair.pubKey,
                 BigInt(config.maci.initialVoiceCreditBalance)
             )
         }
     })
 
     describe('signUpMaci', () => {
-        it('should have same state root hash after signing up some users', async () => {
+        it('should have same state root hash after signing up some voters', async () => {
             const onChainStateRoot = (await maci.getStateTreeRoot()).toString()
             const offChainStateRoot = maciState.genStateRoot().toString()
             assert.equal(onChainStateRoot, offChainStateRoot)
         })
 
         it('should own a SignUpToken', async () => {
-            for (let i = 0; i < voters.length; i++) {
-                const ownerOfToken = await signUpToken.ownerOf(i + 1)
-                assert.equal(ownerOfToken, voters[i])
+            let i = 1;
+            for (const voter of voters) {
+                const ownerOfToken = await signUpToken.ownerOf(i++)
+                assert.equal(ownerOfToken, voter.wallet)
             }
         })
     })
@@ -232,14 +225,14 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     describe('Publish messages', () => {
         it('should have same message root after publishing message', async () => {
             stateRootBefore = maciState.genStateRoot()
-            for (const user of users) {
+            for (const voter of voters) {
                 maciState.publishMessage(
-                    user.message,
-                    user.ephemeralKeypair.pubKey
+                    voter.message,
+                    voter.ephemeralKeypair.pubKey
                 )
                 await maci.publishMessage(
-                    user.message.asContractParam(),
-                    user.ephemeralKeypair.pubKey.asContractParam()
+                    voter.message.asContractParam(),
+                    voter.ephemeralKeypair.pubKey.asContractParam()
                 )
             }
 
