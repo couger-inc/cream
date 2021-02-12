@@ -1,7 +1,8 @@
 const { config } = require('cream-config')
 const { createDeposit, rbigInt } = require('libcream')
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
-const { Keypair, PrivKey } = require('maci-domainobjs')
+const { formatProofForVerifierContract, timeTravel } = require('./TestUtil')
+const { Keypair, Command, PrivKey } = require('maci-domainobjs')
+const { genRandomSalt } = require('maci-crypto')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
@@ -11,88 +12,125 @@ const Cream = artifacts.require('Cream')
 const MACI = artifacts.require('MACI')
 const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
 const ConstantInitialVoiceCreditProxy = artifacts.require(
-  'ConstantInitialVoiceCreditProxy'
+    'ConstantInitialVoiceCreditProxy'
 )
 
 contract('E2E', (accounts) => {
-  let maciFactory
-  let creamFactory
-  let coordinator
+    let maciFactory
+    let creamFactory
 
-  let votingToken
-  let signUpToken
-    let tx
+    let votingToken
+    let signUpToken
     let creamAddress
     let cream
-    let snapshotId
-    let coordinatorPubKey
-
     let maciAddress
     let maci
+    let totalVotes = BigInt(0)
+    let totalVoteWeight = BigInt(0)
 
+    const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
     const RECIPIENTS = config.cream.recipients
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
-    const voter = accounts[1]
-    const coordinatorAddress = accounts[2]
-
-  before(async () => {
-    // 1. contract owner deploy maci factory
-    maciFactory = await MACIFactory.deployed()
-
-    // 2. owner deploy cream factory
-    creamFactory = await CreamFactory.deployed()
-
-    // 3. owner transfer ownership from maci factory to cream factory
-    await maciFactory.transferOwnership(creamFactory.address)
-
-    // 4. coordinator provide a pubkey to owner
-    coordinator = new Keypair(
+    const batchSize = config.maci.messageBatchSize // 4
+    const contractOwner = accounts[0]
+    const coordinatorAddress = accounts[1]
+    const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
+    const voters = []
 
-    // 5. owner also deploy both voting and sign up token
-    votingToken = await VotingToken.deployed()
-    signUpToken = await SignUpToken.deployed()
+    before(async () => {
+        // 1. contract owner deploy maci factory
+        maciFactory = await MACIFactory.deployed()
 
-    // 6. owner deploy cream from cream factory
-    tx = await creamFactory.createCream(
-      votingToken.address,
-      LEVELS,
-      RECIPIENTS,
-      IPFS_HASH,
-      coordinator.pubKey.asContractParam(),
-      coordinatorAddress,
-      signUpToken.address
-    )
-    creamAddress = tx.logs[3].args[0]
-    cream = await Cream.at(creamAddress)
-    maciAddress = await cream.maci()
+        // 2. owner deploy cream factory
+        creamFactory = await CreamFactory.deployed()
 
-    maci = await MACI.at(maciAddress)
+        // 3. owner transfer ownership from maci factory to cream factory
+        await maciFactory.transferOwnership(creamFactory.address)
 
+        // 4. coordinator provide a pubkey to owner
 
-      snapshotId = await takeSnapshot()
+        // 5. owner also deploy both voting and sign up token
+        votingToken = await VotingToken.deployed()
+        signUpToken = await SignUpToken.deployed()
+
+        // 6. owner deploy cream from cream factory
+        const tx = await creamFactory.createCream(
+            votingToken.address,
+            signUpToken.address,
+            BALANCE,
+            LEVELS,
+            RECIPIENTS,
+            IPFS_HASH,
+            coordinator.pubKey.asContractParam(),
+            coordinatorAddress
+        )
+        creamAddress = tx.logs[3].args[0]
+        cream = await Cream.at(creamAddress)
+        maciAddress = await cream.maci()
+        maci = await MACI.at(maciAddress)
+
+        // 7. transfer ownership of sign up token
+        await signUpToken.transferOwnership(cream.address)
+
+        // 8. transfer voting token to voters
+        for (let i = 0; i < batchSize - 2; i++) {
+            const voter = accounts[i + 2]
+            const userKeypair = new Keypair()
+
+            const voteOptionIndex = 0
+            const voiceCredits = BigInt(i)
+
+            const command = new Command(
+                BigInt(i + 1),
+                userKeypair.pubKey,
+                BigInt(voteOptionIndex),
+                voiceCredits,
+                BigInt(1),
+                genRandomSalt()
+            )
+
+            const voteWeight = command.newVoteWeight
+            totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
+            totalVotes += voteWeight
+
+            const ephemeralKeypair = new Keypair()
+            const signature = command.sign(userKeypair.privKey)
+            const sharedKey = Keypair.genEcdhSharedKey(
+                ephemeralKeypair.privKey,
+                coordinator.pubKey
+            )
+
+            const message = command.encrypt(signature, sharedKey)
+
+            voters.push({
+                wallet: voter,
+                keypair: userKeypair,
+                ephemeralKeypair,
+                command,
+                message,
+            })
+
+            await votingToken.giveToken(voter)
+            await votingToken.setApprovalForAll(creamAddress, true, {
+                from: voter,
+            })
+        }
     })
-  // before() {
-  //   6. transfer voting token to voters
-  //   7. voters deposit
-  //   8. voters signup
-  //   9. voters publish message
-  //  10. coordinator process messages
-  //  11. coordinator prove vote tally
-  //  12. coordinator create tally.json from tally command
-  //  13. coordinator publish tally hash
-  //  14. owner aprove tally
-  //  15. coordinator withdraw deposits and transfer to recipient
-  // }
+
+    //   9. voters deposit
+    //  10. voters signup
+    //  11. voters publish message
+    //  12. coordinator process messages
+    //  13. coordinator prove vote tally
+    //  14. coordinator create tally.json from tally command
+    //  15. coordinator publish tally hash
+    //  16. owner aprove tally
+    //  17. coordinator withdraw deposits and transfer to recipient
+
     describe('E2E', () => {
         it('should correctly transfer voting token to recipient', () => {})
-    })
-
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
     })
 })
