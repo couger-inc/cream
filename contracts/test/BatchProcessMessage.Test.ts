@@ -21,8 +21,6 @@ const {
 } = require('maci-domainobjs')
 const {
     formatProofForVerifierContract,
-    revertSnapshot,
-    takeSnapshot,
     timeTravel,
 } = require('./TestUtil')
 const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
@@ -60,7 +58,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     let maciFactory
     let maciTx
     let maci
-    let snapshotId
     let stateRootBefore
 
     const LEVELS = config.cream.merkleTrees
@@ -215,8 +212,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 BigInt(config.maci.initialVoiceCreditBalance)
             )
         }
-
-        snapshotId = await takeSnapshot()
     })
 
     describe('signUpMaci', () => {
