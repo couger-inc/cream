@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "./Cream.sol";
 import "./MACIFactory.sol";
+import { SignUpTokenGatekeeper } from "./gatekeepers/SignUpTokenGatekeeper.sol";
 import "maci-contracts/sol/MACISharedObjs.sol";
 import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
 import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
@@ -50,12 +51,12 @@ contract CreamFactory is Ownable, MACISharedObjs {
 
 	function createCream(
         VotingToken _votingToken,
+        SignUpToken _signUpToken,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
         string memory _ipfsHash,
 		PubKey memory _coordinatorPubKey,
-		address _coordinator,
-        SignUpToken _signUpToken
+		address _coordinator
     ) external onlyOwner {
 		require(_coordinator != address(0), "Coordinator cannot be zero address");
 		require(maciFactory.owner() == address(this), "MACI factory is not owned by CreamFactory contract");
@@ -69,11 +70,17 @@ contract CreamFactory is Ownable, MACISharedObjs {
 			_coordinator
         );
 
-        address creamAddress = address(cream);
+		// Deploy new SignUpTokenGatekeeper
+		SignUpTokenGatekeeper sutg = new SignUpTokenGatekeeper (
+			_signUpToken
+		);
+
+		address sutgAddress = address(sutg);
+		address creamAddress = address(cream);
 
 		// Deploy new MACI contract
 		MACI _maci = maciFactory.deployMaci(
-            SignUpGatekeeper(creamAddress),
+            SignUpGatekeeper(sutgAddress),
             InitialVoiceCreditProxy(creamAddress),
             _coordinatorPubKey
         );
@@ -84,6 +91,4 @@ contract CreamFactory is Ownable, MACISharedObjs {
 		electionDetails[creamAddress] = _ipfsHash;
 		emit CreamCreated(creamAddress, _ipfsHash);
 	}
-
-	// TODO: add variable update method
 }

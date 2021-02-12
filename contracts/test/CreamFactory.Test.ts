@@ -1,6 +1,6 @@
 const truffleAssert = require('truffle-assertions')
 const { config } = require('cream-config')
-const { toHex, createDeposit, rbigInt } = require('libcream')
+const { createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const { Keypair, PrivKey } = require('maci-domainobjs')
 
@@ -43,12 +43,12 @@ contract('CreamFactory', (accounts) => {
         await maciFactory.transferOwnership(creamFactory.address)
         tx = await creamFactory.createCream(
             votingToken.address,
+            signUpToken.address,
             LEVELS,
             RECIPIENTS,
             IPFS_HASH,
             coordinator.pubKey.asContractParam(),
-            coordinatorAddress,
-            signUpToken.address
+            coordinatorAddress
         )
         creamAddress = tx.logs[3].args[0]
         cream = await Cream.at(creamAddress)
@@ -66,12 +66,12 @@ contract('CreamFactory', (accounts) => {
             try {
                 await creamFactory.createCream(
                     votingToken.address,
+                    signUpToken.address,
                     LEVELS,
                     RECIPIENTS,
                     IPFS_HASH,
                     coordinator.pubKey.asContractParam(),
                     coordinatorAddress,
-                    signUpToken.address,
                     { from: voter }
                 )
             } catch (error) {
@@ -147,12 +147,12 @@ contract('CreamFactory', (accounts) => {
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await creamFactory.createCream(
                 votingToken.address,
+                signUpToken.address,
                 LEVELS,
                 NEW_RECIPIENTS,
                 IPFS_HASH,
                 coordinator.pubKey.asContractParam(),
-                coordinatorAddress,
-                signUpToken.address
+                coordinatorAddress
             )
             const newCreamAddress = tx.logs[3].args[0]
             const newCream = await Cream.at(newCreamAddress)
