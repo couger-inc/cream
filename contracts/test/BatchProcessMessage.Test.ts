@@ -57,6 +57,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     let maci
     let stateRootBefore
 
+    const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
     const RECIPIENTS = config.cream.recipients
     const ZERO_VALUE = config.cream.zeroValue
@@ -112,7 +113,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             signUpToken.address
         )
         const ConstantinitialVoiceCreditProxy = await ConstantInitialVoiceCreditProxy.new(
-            config.maci.initialVoiceCreditBalance
+            BALANCE
         )
         maciTx = await maciFactory.deployMaci(
             signUpGatekeeper.address,
@@ -199,10 +200,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             await cream.signUpMaci(userPubKey, formattedProof, ...args, {
                 from: voter.wallet,
             })
-            maciState.signUp(
-                voter.keypair.pubKey,
-                BigInt(config.maci.initialVoiceCreditBalance)
-            )
+            maciState.signUp(voter.keypair.pubKey, BigInt(BALANCE))
         }
     })
 

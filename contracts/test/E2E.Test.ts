@@ -1,8 +1,11 @@
 const { config } = require('cream-config')
-const { createDeposit, rbigInt } = require('libcream')
+const { MerkleTree } = require('cream-merkle-tree')
+const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
+const { genProofAndPublicSignals } = require('cream-circuits')
 const { formatProofForVerifierContract, timeTravel } = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
+const { MaciState } = require('maci-core')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
@@ -18,7 +21,6 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
 contract('E2E', (accounts) => {
     let maciFactory
     let creamFactory
-
     let votingToken
     let signUpToken
     let creamAddress
@@ -31,14 +33,27 @@ contract('E2E', (accounts) => {
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
     const RECIPIENTS = config.cream.recipients
+    const ZERO_VALUE = config.cream.zeroValue
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
     const batchSize = config.maci.messageBatchSize // 4
+    const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
+    const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
+    const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
+    const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
     const voters = []
+    const tree = new MerkleTree(LEVELS, ZERO_VALUE)
+    const maciState = new MaciState(
+        coordinator,
+        stateTreeDepth,
+        messageTreeDepth,
+        voteOptionTreeDepth,
+        voteOptionsMaxIndex
+    )
 
     before(async () => {
         // 1. contract owner deploy maci factory
@@ -75,7 +90,6 @@ contract('E2E', (accounts) => {
         // 7. transfer ownership of sign up token
         await signUpToken.transferOwnership(cream.address)
 
-        // 8. transfer voting token to voters
         for (let i = 0; i < batchSize - 2; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
@@ -92,6 +106,7 @@ contract('E2E', (accounts) => {
                 genRandomSalt()
             )
 
+            // count total votes for verifying tally
             const voteWeight = command.newVoteWeight
             totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
             totalVotes += voteWeight
@@ -113,15 +128,46 @@ contract('E2E', (accounts) => {
                 message,
             })
 
+            // 8. transfer voting token to each voter
             await votingToken.giveToken(voter)
             await votingToken.setApprovalForAll(creamAddress, true, {
                 from: voter,
             })
+
+            // 9. voter deposits
+            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+            tree.insert(deposit.commitment)
+            await cream.deposit(toHex(deposit.commitment), { from: voter })
+
+            // 10. voter signup maci
+            const root = tree.root
+            const merkleProof = tree.getPathUpdate(i)
+            const input = {
+                root,
+                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
+                    .babyJubX,
+                nullifier: deposit.nullifier,
+                secret: deposit.secret,
+                path_elements: merkleProof[0],
+                path_index: merkleProof[1],
+            }
+            const { proof } = await genProofAndPublicSignals(
+                input,
+                'prod/vote.circom',
+                'build/vote.zkey',
+                'circuits/vote.wasm'
+            )
+
+            const args = [toHex(input.root), toHex(input.nullifierHash)]
+            const userPubKey = userKeypair.pubKey.asContractParam()
+            const formattedProof = formatProofForVerifierContract(proof)
+            await cream.signUpMaci(userPubKey, formattedProof, ...args, {
+                from: voter,
+            })
+            maciState.signUp(userKeypair.pubKey, BigInt(BALANCE))
         }
     })
 
-    //   9. voters deposit
-    //  10. voters signup
     //  11. voters publish message
     //  12. coordinator process messages
     //  13. coordinator prove vote tally
