@@ -169,6 +169,8 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 	}
 
 	function approveTally() external onlyOwner isMaciReady {
+		require(!approved, "Already approved");
+		require(bytes(tallyHash).length != 0, "Tally hash has not been published");
 		approved = true;
 		emit TallyApproved(block.timestamp);
 	}

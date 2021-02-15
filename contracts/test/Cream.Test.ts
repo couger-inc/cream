@@ -790,6 +790,16 @@ contract('Cream', (accounts) => {
             await cream.publishTallyHash(hash, { from: coordinatorAddress })
         })
 
+        it('should revert if on owner try to aproove', async () => {
+            try {
+                await cream.approveTally({ from: coordinatorAddress })
+            } catch (error) {
+                assert.equal(error.reason, 'Ownable: caller is not the owner')
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
         it('should tally be approved', async () => {
             const tx = await cream.approveTally()
             truffleAssert.eventEmitted(tx, 'TallyApproved')
