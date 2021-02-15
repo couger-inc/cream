@@ -132,13 +132,12 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             const userKeypair = new Keypair()
 
             // create command per user
-            const voteOptionIndex = 0
             const voiceCredits = BigInt(i)
 
             const command = new Command(
                 BigInt(i + 1),
                 userKeypair.pubKey,
-                BigInt(voteOptionIndex),
+                BigInt(i),
                 voiceCredits,
                 BigInt(1),
                 genRandomSalt()
