@@ -24,3 +24,6 @@ maci:
     stateTreeDepth: 4
     messageTreeDepth: 4
     voteOptionTreeDepth: 2
+
+chain:
+  privateKeysPath: './'

@@ -59,7 +59,7 @@ contract CreamFactory is Ownable, MACISharedObjs {
         string memory _ipfsHash,
 		PubKey memory _coordinatorPubKey,
 		address _coordinator
-    ) external onlyOwner {
+    ) external {
 		require(_coordinator != address(0), "Coordinator cannot be zero address");
 		require(maciFactory.owner() == address(this), "MACI factory is not owned by CreamFactory contract");
 
@@ -93,6 +93,9 @@ contract CreamFactory is Ownable, MACISharedObjs {
 
 		// Link Cream and MACI
         cream.setMaci(_maci, _signUpToken);
+
+        // Set cream contract owner
+        cream.transferOwnership(msg.sender);
 
 		electionDetails[creamAddress] = _ipfsHash;
 		emit CreamCreated(creamAddress, _ipfsHash);

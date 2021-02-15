@@ -2,9 +2,14 @@ const { config } = require('cream-config')
 const { MerkleTree } = require('cream-merkle-tree')
 const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
 const { genProofAndPublicSignals } = require('cream-circuits')
-const { formatProofForVerifierContract, timeTravel } = require('./TestUtil')
+const {
+    formatProofForVerifierContract,
+    timeTravel,
+    getIpfsHash,
+} = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
+const { processMessages: processCmd, tally: tallyCmd } = require('maci-cli')
 const { MaciState } = require('maci-core')
 
 const MACIFactory = artifacts.require('MACIFactory')
@@ -42,6 +47,8 @@ contract('E2E', (accounts) => {
     const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
+    const coordinatorEthPrivKey =
+        '0xae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f'
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
@@ -82,7 +89,7 @@ contract('E2E', (accounts) => {
             coordinator.pubKey.asContractParam(),
             coordinatorAddress
         )
-        creamAddress = tx.logs[3].args[0]
+        creamAddress = tx.logs[4].args[0]
         cream = await Cream.at(creamAddress)
         maciAddress = await cream.maci()
         maci = await MACI.at(maciAddress)
@@ -90,17 +97,16 @@ contract('E2E', (accounts) => {
         // 7. transfer ownership of sign up token
         await signUpToken.transferOwnership(cream.address)
 
+        // voter's action sequences
         for (let i = 0; i < batchSize - 2; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
-
-            const voteOptionIndex = 0
             const voiceCredits = BigInt(i)
 
             const command = new Command(
                 BigInt(i + 1),
                 userKeypair.pubKey,
-                BigInt(voteOptionIndex),
+                BigInt(i),
                 voiceCredits,
                 BigInt(1),
                 genRandomSalt()
@@ -139,7 +145,7 @@ contract('E2E', (accounts) => {
             tree.insert(deposit.commitment)
             await cream.deposit(toHex(deposit.commitment), { from: voter })
 
-            // 10. voter signup maci
+            // 10. voter sign up maci
             const root = tree.root
             const merkleProof = tree.getPathUpdate(i)
             const input = {
@@ -165,15 +171,52 @@ contract('E2E', (accounts) => {
                 from: voter,
             })
             maciState.signUp(userKeypair.pubKey, BigInt(BALANCE))
+
+            // 11. voter publish message
+            await maci.publishMessage(
+                message.asContractParam(),
+                ephemeralKeypair.pubKey.asContractParam()
+            )
+
+            maciState.publishMessage(message, ephemeralKeypair.pubKey)
         }
+
+        //  12. coordinator process messages
+        // fast forward in time
+        const duration = config.maci.signUpDurationInSeconds
+        await timeTravel(duration)
+
+        // end voting period
+        await timeTravel(duration)
+
+        const randomStateLeaf = await processCmd({
+            contract: maciAddress,
+            eth_privkey: coordinatorEthPrivKey,
+            privkey: coordinator.privKey.serialize(),
+            repeat: true,
+        })
+
+        //  13. coordinator prove vote tally
+        //  14. coordinator create tally.json from tally command
+        const tally = await tallyCmd({
+            contract: maciAddress,
+            eth_privkey: coordinatorEthPrivKey,
+            privkey: coordinator.privKey.serialize(),
+            repeat: true,
+            current_results_salt: '0x0',
+            current_total_vc_salt: '0x0',
+            current_per_vo_vc_salt: '0x0',
+            leaf_zero: randomStateLeaf,
+        })
+
+        //  15. coordinator publish tally hash
+        const tallyHash = await getIpfsHash(tally)
+        console.log(tallyHash)
+        await cream.publishTallyHash(tallyHash, { from: coordinatorAddress })
+        //  16. owner aprove tally
+        await cream.approveTally({ from: contractOwner })
     })
 
-    //  11. voters publish message
-    //  12. coordinator process messages
-    //  13. coordinator prove vote tally
-    //  14. coordinator create tally.json from tally command
-    //  15. coordinator publish tally hash
-    //  16. owner aprove tally
     //  17. coordinator withdraw deposits and transfer to recipient
 
     describe('E2E', () => {
