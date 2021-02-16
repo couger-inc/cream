@@ -52,7 +52,7 @@ contract('CreamFactory', (accounts) => {
             coordinator.pubKey.asContractParam(),
             coordinatorAddress
         )
-        creamAddress = tx.logs[3].args[0]
+        creamAddress = tx.logs[4].args[0]
         cream = await Cream.at(creamAddress)
         maciAddress = await cream.maci()
         maci = await MACI.at(maciAddress)
@@ -64,25 +64,27 @@ contract('CreamFactory', (accounts) => {
             assert.notEqual(await creamFactory.owner(), accounts[1])
         })
 
-        it('should fail when non owner tried to create Cream contract', async () => {
-            try {
-                await creamFactory.createCream(
-                    votingToken.address,
-                    signUpToken.address,
-                    BALANCE,
-                    LEVELS,
-                    RECIPIENTS,
-                    IPFS_HASH,
-                    coordinator.pubKey.asContractParam(),
-                    coordinatorAddress,
-                    { from: voter }
-                )
-            } catch (error) {
-                assert.equal(error.reason, 'Ownable: caller is not the owner')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
+	  // removed onlyOwner at the moment since anyone should be able to deploy new cream contract
+	  //
+      // it('should fail when non owner tried to create Cream contract', async () => {
+	  //     try {
+	  //         await creamFactory.createCream(
+	  //             votingToken.address,
+	  //             signUpToken.address,
+	  //             BALANCE,
+	  //             LEVELS,
+	  //             RECIPIENTS,
+	  //             IPFS_HASH,
+	  //             coordinator.pubKey.asContractParam(),
+			 //             coordinatorAddress,
+			 //             { from: voter }
+	  //         )
+	  //     } catch (error) {
+	  //         assert.equal(error.reason, 'Ownable: caller is not the owner')
+	  //         return
+	  //     }
+	  //     assert.fail('Expected revert not received')
+	  // })
 
         it('should correctly set maci contract from CreamFactory', async () => {
             const creamCoordinatorPubKey = await maci.coordinatorPubKey()
@@ -158,7 +160,7 @@ contract('CreamFactory', (accounts) => {
                 coordinator.pubKey.asContractParam(),
                 coordinatorAddress
             )
-            const newCreamAddress = tx.logs[3].args[0]
+            const newCreamAddress = tx.logs[4].args[0]
             const newCream = await Cream.at(newCreamAddress)
             assert.equal(
                 await creamFactory.electionDetails(creamAddress),
