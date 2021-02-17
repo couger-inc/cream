@@ -1,6 +1,12 @@
 const { config } = require('cream-config')
 const { MerkleTree } = require('cream-merkle-tree')
-const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
+const {
+    createDeposit,
+    rbigInt,
+    toHex,
+    pedersenHash,
+    createMessage,
+} = require('libcream')
 const { genProofAndPublicSignals } = require('cream-circuits')
 const {
     formatProofForVerifierContract,
@@ -11,6 +17,7 @@ const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
 const { processMessages: processCmd, tally: tallyCmd } = require('maci-cli')
 const { MaciState } = require('maci-core')
+const { BigNumber } = require('@ethersproject/bignumber')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
@@ -34,6 +41,7 @@ contract('E2E', (accounts) => {
     let maci
     let totalVotes = BigInt(0)
     let totalVoteWeight = BigInt(0)
+    let tally
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
@@ -101,36 +109,29 @@ contract('E2E', (accounts) => {
         for (let i = 0; i < batchSize - 2; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
-            const voiceCredits = BigInt(i)
+            const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
+            const nonce = BigInt(1)
 
-            const command = new Command(
+            const [message, encPubKey] = createMessage(
                 BigInt(i + 1),
-                userKeypair.pubKey,
+                userKeypair,
+                null,
+                coordinator.pubKey,
                 BigInt(i),
                 voiceCredits,
-                BigInt(1),
+                nonce,
                 genRandomSalt()
             )
 
             // count total votes for verifying tally
-            const voteWeight = command.newVoteWeight
-            totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
-            totalVotes += voteWeight
-
-            const ephemeralKeypair = new Keypair()
-            const signature = command.sign(userKeypair.privKey)
-            const sharedKey = Keypair.genEcdhSharedKey(
-                ephemeralKeypair.privKey,
-                coordinator.pubKey
-            )
-
-            const message = command.encrypt(signature, sharedKey)
+            // const voteWeight = command.newVoteWeight
+            // totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
+            // totalVotes += voteWeight
 
             voters.push({
                 wallet: voter,
                 keypair: userKeypair,
-                ephemeralKeypair,
-                command,
+                ephemeralKeypair: encPubKey,
                 message,
             })
 
@@ -175,10 +176,10 @@ contract('E2E', (accounts) => {
             // 11. voter publish message
             await maci.publishMessage(
                 message.asContractParam(),
-                ephemeralKeypair.pubKey.asContractParam()
+                encPubKey.asContractParam(),
+                { from: voter }
             )
-
-            maciState.publishMessage(message, ephemeralKeypair.pubKey)
+            maciState.publishMessage(message, encPubKey)
         }
 
         //  12. coordinator process messages
@@ -198,7 +199,7 @@ contract('E2E', (accounts) => {
 
         //  13. coordinator prove vote tally
         //  14. coordinator create tally.json from tally command
-        const tally = await tallyCmd({
+        tally = await tallyCmd({
             contract: maciAddress,
             eth_privkey: coordinatorEthPrivKey,
             privkey: coordinator.privKey.serialize(),
@@ -218,8 +219,9 @@ contract('E2E', (accounts) => {
     })
 
     //  17. coordinator withdraw deposits and transfer to recipient
-
     describe('E2E', () => {
-        it('should correctly transfer voting token to recipient', () => {})
+        it('should correctly transfer voting token to recipient', async () => {
+            console.log(tally)
+        })
     })
 })

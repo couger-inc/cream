@@ -33,6 +33,7 @@
     "typescript": "^3.9.6"
   },
   "devDependencies": {
+    "@ethersproject/bignumber": "^5.0.14",
     "cream-circuits": "^0.2.0",
     "cream-config": "0.0.1",
     "ganache-cli": "^6.12.2",
