@@ -17,6 +17,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://registry.npmjs.org'
+    - name: git config
+      run: |
+        git config --global url."https://github.com".insteadOf ssh://git@github.com
     - name: NPM install and prepare
       run: |
         npm ci
