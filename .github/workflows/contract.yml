@@ -19,6 +19,7 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
     - name: NPM install and prepare
       run: |
+        npm ci
         npm run bootstrap
         npm run build
         ./circuits/scripts/installZkutil.sh
