@@ -28,7 +28,7 @@
     "cream-merkle-tree": "0.0.5",
     "fs-extra": "^9.1.0",
     "maci-contracts": "0.4.11",
-    "truffle": "^5.1.63",
+    "truffle": "5.1.65",
     "typechain": "^4.0.1",
     "typescript": "^3.9.6"
   },
@@ -37,8 +37,7 @@
     "cream-circuits": "^0.2.0",
     "cream-config": "0.0.1",
     "ganache-cli": "^6.12.2",
-    "ipfs-only-hash": "^2.0.1",
-    "libcream": "0.1.0-1",
+    "libcream": "^0.1.0",
     "maci-cli": "file:../circuits/node_modules/maci-cli",
     "maci-core": "0.4.11",
     "maci-crypto": "0.4.11",
