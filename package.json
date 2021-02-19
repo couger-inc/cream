@@ -29,10 +29,7 @@
     }
   },
   "lint-staged": {
-    "./**/**/**/*.{js,ts}": [
-      "prettier --write",
-      "git add"
-    ]
+    "./**/**/**/*.{js|ts}": "prettier --write"
   },
   "homepage": "https://zkcre.am",
   "devDependencies": {
