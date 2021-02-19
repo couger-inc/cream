@@ -25,13 +25,20 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run format"
+      "pre-commit": "lint-staged"
     }
   },
-  "homepage": "https://github.com/couger-inc/cream#readme",
+  "lint-staged": {
+    "./**/**/**/*.{js,ts}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "homepage": "https://zkcre.am",
   "devDependencies": {
     "husky": "^4.3.5",
     "lerna": "^3.22.1",
+    "lint-staged": "^10.5.4",
     "prettier": "^2.2.1",
     "typescript": "^3.9.7"
   }
