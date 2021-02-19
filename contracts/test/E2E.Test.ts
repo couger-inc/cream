@@ -18,6 +18,7 @@ const { genRandomSalt } = require('maci-crypto')
 const { processMessages: processCmd, tally: tallyCmd } = require('maci-cli')
 const { MaciState } = require('maci-core')
 const { BigNumber } = require('@ethersproject/bignumber')
+const truffleAssert = require('truffle-assertions')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
@@ -212,7 +213,6 @@ contract('E2E', (accounts) => {
 
         //  15. coordinator publish tally hash
         const tallyHash = await getIpfsHash(tally)
-        console.log(tallyHash)
         await cream.publishTallyHash(tallyHash, { from: coordinatorAddress })
         //  16. owner aprove tally
         await cream.approveTally({ from: contractOwner })
@@ -221,7 +221,30 @@ contract('E2E', (accounts) => {
     //  17. coordinator withdraw deposits and transfer to recipient
     describe('E2E', () => {
         it('should correctly transfer voting token to recipient', async () => {
-            console.log(tally)
+            const resultsArr = tally.results.tally
+
+            Promise.all(
+                resultsArr.map(async (vote, index) => {
+                    if (index < RECIPIENTS.length && vote != 0) {
+                        while (vote) {
+                            const tx = await cream.withdraw(index, {
+                                from: coordinatorAddress,
+                            })
+                            truffleAssert.eventEmitted(tx, 'Withdrawal')
+                            vote--
+                        }
+                    }
+                })
+            )
+
+            Promise.all(
+                RECIPIENTS.map(async (recipient, index) => {
+                    const numTokens = (
+                        await votingToken.balanceOf(recipient)
+                    ).toString()
+                    assert.equal(resultsArr[index], numTokens)
+                })
+            )
         })
     })
 })

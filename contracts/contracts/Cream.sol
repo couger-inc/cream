@@ -184,4 +184,8 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 			maci.publishMessage(_messages[i], _encPubKeys[i]);
 		}
 	}
+
+	function getRecipients() public view returns(address[] memory) {
+		return recipients;
+	}
 }

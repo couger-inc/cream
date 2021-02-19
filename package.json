@@ -29,7 +29,7 @@
     }
   },
   "lint-staged": {
-    "./**/**/**/*.{js|ts}": "prettier --write"
+    "./**/**/**/*.{js,ts}": "prettier --write"
   },
   "homepage": "https://zkcre.am",
   "devDependencies": {
