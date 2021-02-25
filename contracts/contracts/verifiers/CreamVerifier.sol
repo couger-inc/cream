@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // ported from https://raw.githubusercontent.com/tornadocash/snarkjs/master/templates/verifier_groth.sol
 // and modified for manual verifier contract creation
 // by Kazuaki Ishiguro for C.R.E.A.M
