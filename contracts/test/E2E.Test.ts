@@ -220,31 +220,22 @@ contract('E2E', (accounts) => {
 
     //  17. coordinator withdraw deposits and transfer to recipient
     describe('E2E', () => {
-        it('should correctly transfer voting token to recipient', async () => {
-            const resultsArr = tally.results.tally
+        it('should correctly emit withdraw event', async () => {
+            const resultsArr = tally.results.tally // [1, 1, 0]
 
-            Promise.all(
-                resultsArr.map(async (vote, index) => {
-                    if (index < RECIPIENTS.length && vote != 0) {
-                        while (vote) {
-                            const tx = await cream.withdraw(index, {
-                                from: coordinatorAddress,
-                            })
-                            truffleAssert.eventEmitted(tx, 'Withdrawal')
-                            vote--
-                        }
-                    }
-                })
-            )
+            for (let i = 0; i < RECIPIENTS.length && resultsArr[i] != 0; i++) {
+                const counts = resultsArr[i]
+                for (let j = 0; j < counts; j++) {
+                    const tx = await cream.withdraw(i, {
+                        from: coordinatorAddress,
+                    })
+                    truffleAssert.eventEmitted(tx, 'Withdrawal')
+                }
 
-            Promise.all(
-                RECIPIENTS.map(async (recipient, index) => {
-                    const numTokens = (
-                        await votingToken.balanceOf(recipient)
-                    ).toString()
-                    assert.equal(resultsArr[index], numTokens)
-                })
-            )
+                // check balance
+                const numTokens = await votingToken.balanceOf(RECIPIENTS[i])
+                assert.equal(resultsArr[i], numTokens.toString())
+            }
         })
     })
 })
