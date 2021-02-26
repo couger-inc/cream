@@ -7,6 +7,11 @@
     "target": "ES2018",
     "sourceMap": true,
     "esModuleInterop": true,
-    "noImplicitAny": false
-  }
+    "noImplicitAny": false,
+    "types": ["@types/bn.js", "@types/chai", "@types/mocha"],
+    "typeRoots": ["./types"]
+  },
+  "exclude": [
+    "./node_modules/@types/jest/index.d.ts"
+  ]
 }
