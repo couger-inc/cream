@@ -19,6 +19,7 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
     - name: yarn install and prepare
       run: |
+        npm install -g yarn
         yarn
         yarn build
         ./circuits/scripts/installZkutil.sh
