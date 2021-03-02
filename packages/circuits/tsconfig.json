@@ -1,9 +1,14 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-      "outDir": "./build"
+      "outDir": "./build",
+      "typeRoots": ["../../node_modules/@types/jest"],
+      "types": ["jest", "node"]
   },
   "include": [
       "./ts"
+  ],
+  "exclude": [
+    "./ts/__tests__/*.ts"
   ]
 }

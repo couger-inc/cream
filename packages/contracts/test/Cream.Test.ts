@@ -1,5 +1,5 @@
 const { toBN, randomHex } = require('web3-utils')
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { Keypair, PrivKey } = require('maci-domainobjs')
 const { MerkleTree } = require('cream-merkle-tree')
 const {
@@ -12,7 +12,7 @@ const {
     genProofAndPublicSignals,
     snarkVerify,
     stringifyBigInts,
-} = require('cream-circuits')
+} = require('@cream/circuits')
 const {
     bigInt,
     toHex,

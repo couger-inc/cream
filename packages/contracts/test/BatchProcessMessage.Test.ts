@@ -1,4 +1,4 @@
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { MerkleTree } = require('cream-merkle-tree')
 const {
     MaciState,
@@ -28,7 +28,7 @@ const {
     getSignalByName,
     verifyBatchUstProof,
     verifyQvtProof,
-} = require('cream-circuits')
+} = require('@cream/circuits')
 
 const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')

@@ -1,4 +1,4 @@
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { MerkleTree } = require('cream-merkle-tree')
 const {
     createDeposit,
@@ -7,7 +7,7 @@ const {
     pedersenHash,
     createMessage,
 } = require('libcream')
-const { genProofAndPublicSignals } = require('cream-circuits')
+const { genProofAndPublicSignals } = require('@cream/circuits')
 const {
     formatProofForVerifierContract,
     timeTravel,

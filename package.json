@@ -5,15 +5,15 @@
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "scripts": {
     "bootstrap": "npx lerna bootstrap",
-    "build": "yarn workspace @cream/config build && yarn workspace @cream/circuits build",
+    "build": "yarn workspace @cream/config build && yarn workspace @cream/circuits build && yarn workspace @cream/contracts build",
     "format": "npx prettier './**/**/**/*.{js,ts}' --write",
     "migrate": "npx truffle migrate",
-    "test:circuits": "cd circuits && npm run test",
-    "test:compile": "cd contracts && npm run compile",
-    "test:contracts": "cd contracts && npm run test",
-    "test:ganache": "cd contracts && npm run ganache",
-    "test:migrate": "cd contracts && npm run migrate",
-    "test": "npm run test:ganache > /dev/null & GANACHE_PID=$! && npm run test:compile && npm run test:migrate && npm run test:contracts && kill $GANACHE_PID"
+    "test:circuits": "cd packages/circuits && yarn test",
+    "test:compile": "cd packages/contracts && yarn compile",
+    "test:contracts": "cd packages/contracts && yarn test",
+    "test:ganache": "cd packages/contracts && yarn ganache",
+    "test:migrate": "cd packages/contracts && yarn migrate",
+    "test": "yarn test:ganache > /dev/null & GANACHE_PID=$! && yarn test:compile && yarn test:migrate && yarn test:contracts && kill $GANACHE_PID"
   },
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
 const truffleAssert = require('truffle-assertions')
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { createDeposit, rbigInt } = require('libcream')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const { Keypair, PrivKey } = require('maci-domainobjs')

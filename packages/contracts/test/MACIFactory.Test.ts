@@ -1,6 +1,6 @@
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 const { bigInt } = require('libcream')
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { Keypair, PrivKey } = require('maci-domainobjs')
 const truffleAssert = require('truffle-assertions')
 
