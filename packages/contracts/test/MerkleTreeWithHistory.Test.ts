@@ -1,4 +1,4 @@
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { toHex } = require('libcream')
 const { MerkleTree } = require('cream-merkle-tree')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')

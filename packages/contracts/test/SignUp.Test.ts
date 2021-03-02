@@ -1,5 +1,5 @@
 const { ethers } = require('ethers')
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 const { MaciState } = require('maci-core')
 const { hashLeftRight, IncrementalQuinTree } = require('maci-crypto')
 const { Keypair, PrivKey } = require('maci-domainobjs')

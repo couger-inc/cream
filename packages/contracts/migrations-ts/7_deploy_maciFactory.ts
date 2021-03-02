@@ -18,7 +18,7 @@ const QuadVoteTallyVerifier: QuadVoteTallyVerifierContract = artifacts.require(
     'QuadVoteTallyVerifier'
 )
 
-const { config } = require('cream-config')
+const { config } = require('@cream/config')
 
 const _stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
 const _messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4

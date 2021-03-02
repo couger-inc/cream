@@ -17,14 +17,14 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://registry.npmjs.org'
-    - name: NPM install and prepare
+    - name: yarn install and prepare
       run: |
-        npm ci
-        npm run bootstrap
-        npm run build
-        ./circuits/scripts/installZkutil.sh
+        npm install -g yarn
+        yarn
+        yarn build
+        ./packages/circuits/scripts/installZkutil.sh
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
       run: |
-        npm run test
+        yarn test

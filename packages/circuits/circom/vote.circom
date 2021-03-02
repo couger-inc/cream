@@ -11,7 +11,7 @@ template Vote(levels) {
     signal private input path_index[levels];
 
     // Output: tree root
-    signal output new_root;
+    // signal output new_root;
 
     component hasher = Hasher();
     hasher.nullifier <== nullifier;
@@ -28,5 +28,5 @@ template Vote(levels) {
     }
 
     // output new_root hash
-    new_root <== tree.root;
+    // new_root <== tree.root;
 }

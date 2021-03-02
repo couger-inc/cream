@@ -1,4 +1,4 @@
-const { unstringifyBigInts } = require('cream-circuits')
+const { unstringifyBigInts } = require('@cream/circuits')
 const { bigInt, pedersenHash, rbigInt } = require('libcream')
 // const Hash = require('ipfs-only-hash')
 

@@ -7,6 +7,8 @@
     "target": "ES2018",
     "sourceMap": true,
     "esModuleInterop": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "types": ["node", "truffle-contracts"]
   }
 }
