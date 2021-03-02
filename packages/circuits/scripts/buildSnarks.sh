@@ -4,9 +4,11 @@ set -eu
 
 cd "$(dirname "$0")"
 cd ../
-PROJECT_DIR=$PWD
-BUILD_DIR=$PROJECT_DIR/build/circuits
-REPLACE_TARGET_FILE=$PROJECT_DIR/node_modules/maci-circuits/build/index.js
+PACKAGE_DIR=$PWD
+BUILD_DIR=$PACKAGE_DIR/build/circuits
+cd ../../
+ROOT_DIR=$PWD
+REPLACE_TARGET_FILE=$ROOT_DIR/node_modules/maci-circuits/build/index.js
 
 # Need to overwrite zkutilPath variable due to mocha test
 # check if build file exists
@@ -31,4 +33,4 @@ if [ ! -e $BUILD_DIR ]; then
 fi
 
 # build snarks
-node ./build/buildSnarks.js
+node $PACKAGE_DIR/build/buildSnarks.js

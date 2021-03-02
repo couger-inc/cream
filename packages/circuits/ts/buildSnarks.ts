@@ -3,44 +3,47 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { generateVerifier } from './generateVerifier'
 
-const isFileExists = (filepath: string): boolean => {
-    const currentPath = path.join(__dirname, '..')
-    const inputFilePath = path.join(currentPath, filepath)
-    const isExists = fs.existsSync(inputFilePath)
-    return isExists
-}
+const currentPath = path.join(__dirname, '..')
 
 const main = () => {
-    const voteCircuit = './build/circuits/vote.r1cs'
-    const voteCircuitWasm = './build/circuits/vote.wasm'
+    const voteCircuit = path.join(currentPath, './build/circuits/vote.r1cs')
+    const voteCircuitWasm = path.join(currentPath, './build/circuits/vote.wasm')
     // TEMP ptau file
-    const ptauPath = './build/pot19_final.ptau'
-    const zkey = './build/vote.zkey'
-    const vkOut = './build/circuits/verification_key.json'
-    const creamVerifier = '../contracts/contracts/verifiers/CreamVerifier.sol'
+    const ptauPath = path.join(currentPath, './build/pot19_final.ptau')
+    const zkey = path.join(currentPath, './build/vote.zkey')
+    const vkOut = path.join(
+        currentPath,
+        './build/circuits/verification_key.json'
+    )
+    const creamVerifier = path.join(
+        currentPath,
+        '../contracts/contracts/verifiers/CreamVerifier.sol'
+    )
 
     // 0: TEMP using this local centralised created ptau file
     // Should be replaced by ptau file created by MPC seremony in the future
-    if (!isFileExists(ptauPath)) {
+    if (!fs.existsSync(ptauPath)) {
         console.log(`${ptauPath} not found. Downloading...`)
         const PTAU_URL =
             'https://www.dropbox.com/s/ibc9504n107dlg1/pot19_final.ptau?dl=1'
+
         execSync(`wget -nc -q -O ${ptauPath} ${PTAU_URL}`)
     }
 
     // 1: circuit compile and output file: ex`vote.json`
     // do not overwrite vote.json if it's exists
-    if (isFileExists(voteCircuit) && isFileExists(voteCircuitWasm)) {
+    if (fs.existsSync(voteCircuit) && fs.existsSync(voteCircuitWasm)) {
         console.log(`${voteCircuit} file exists. Skipping...`)
     } else {
+        const circuitPath = path.join(currentPath, './circom/prod/vote.circom')
         execSync(
-            `npx circom ./circom/prod/vote.circom -r ${voteCircuit} -w ${voteCircuitWasm} -v`
+            `npx circom ${circuitPath} -r ${voteCircuit} -w ${voteCircuitWasm} -v`
         )
         console.log(`Compiled circuit: \n${voteCircuit} and ${voteCircuitWasm}`)
     }
 
     // 2: create zkey from r1cs and ptau file
-    if (isFileExists(zkey)) {
+    if (fs.existsSync(zkey)) {
         console.log(`${zkey} filie exists. Skipping...`)
     } else {
         execSync(`npx snarkjs zkn ${voteCircuit} ${ptauPath} ${zkey}`)

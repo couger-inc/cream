@@ -1,10 +1,11 @@
 {
-  "name": "cream-circuits",
+  "private": true,
+  "name": "@cream/circuits",
   "version": "0.2.0",
   "description": "",
   "main": "build/index.js",
   "scripts": {
-    "build": "npx tsc && npm run setup && npm run maci:modules",
+    "build": "npx tsc && npm run setup",
     "watch": "tsc --watch",
     "setup": "./scripts/buildSnarks.sh",
     "maci:modules": "cd node_modules/maci-circuits/ && npm i",
@@ -16,17 +17,16 @@
   "author": "Kazuaki Ishiguro",
   "license": "ISC",
   "devDependencies": {
-    "@types/jest": "^26.0.4",
-    "cream-config": "0.0.1",
+    "@cream/config": "0.0.1",
+    "@types/jest": "^26.0.20",
     "jest": "^26.1.0",
-    "ts-jest": "^26.1.2",
-    "typescript": "^3.9.6"
+    "ts-jest": "^26.5.2"
   },
   "dependencies": {
     "circom": "^0.5.27",
     "circomlib": "^0.2.4",
-    "cream-merkle-tree": "0.0.7",
-    "ffjavascript": "^0.2.22",
+    "cream-merkle-tree": "^0.0.7",
+    "ffjavascript": "^0.2.35",
     "libcream": "^0.1.2",
     "maci-circuits": "0.4.11",
     "maci-cli": "0.4.11",

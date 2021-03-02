@@ -26,8 +26,8 @@ echo "Cleaned migrations"
 find . -name ".cache" -type d -prune -exec rm -rf "{}" \;
 echo "Cleaned cache"
 
-if [ -e $CREAM_DIR/contracts/contracts/verifiers/CreamVerifier.sol ]; then
-  rm $CREAM_DIR/contracts/contracts/verifiers/CreamVerifier.sol
+if [ -e $CREAM_DIR/packages/contracts/contracts/verifiers/CreamVerifier.sol ]; then
+  rm $CREAM_DIR/packages/contracts/contracts/verifiers/CreamVerifier.sol
   echo "Cleaned CreamVerifier.sol"
 fi
 

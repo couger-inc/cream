@@ -1,5 +1,5 @@
 jest.setTimeout(50000)
-import { config } from 'cream-config'
+import { config } from '@cream/config'
 import { MerkleTree } from 'cream-merkle-tree'
 import { bigInt } from 'libcream'
 import {
