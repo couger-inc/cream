@@ -22,7 +22,7 @@ jobs:
         npm install -g yarn
         yarn
         yarn build
-        ./circuits/scripts/installZkutil.sh
+        ./packages/circuits/scripts/installZkutil.sh
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
