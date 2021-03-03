@@ -11,14 +11,10 @@
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "strict": true,
-    "outDir": "./build",
     "typeRoots": ["./node_modules/@types/jest"],
     "types": ["node"]
   },
   "exclude": [
     "node_modules/**"
-  ],
-  "include": [
-    "./ts"
   ]
 }
