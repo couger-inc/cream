@@ -7,6 +7,7 @@
     "build": "yarn workspaces run build",
     "clean": "./scripts/clean.sh",
     "format": "npx prettier './**/**/**/*.{js,ts}' --write",
+    "start:ipfs": "cd docker && docker-compose up",
     "test": "yarn workspace @cream/contracts ganache > /dev/null & GANACHE_PID=$! && yarn workspace @cream/contracts migrate && yarn workspace @cream/contracts test && kill $GANACHE_PID"
   },
   "repository": {

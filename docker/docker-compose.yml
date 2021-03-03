@@ -1,0 +1,10 @@
+version: "3"
+services:
+  cream-ipfs:
+    container_name: cream-ipfs
+    build: ./ipfs
+    ports:
+      # - "4001:4001" # swarm
+      - "5001:5001" # api
+      # - "8080:8080" # gateway
+    restart: always

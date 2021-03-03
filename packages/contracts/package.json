@@ -42,6 +42,7 @@
     "typechain": "^4.0.1"
   },
   "devDependencies": {
-    "ganache-cli": "^6.12.2"
+    "ganache-cli": "^6.12.2",
+    "ipfs-http-client": "^49.0.2"
   }
 }

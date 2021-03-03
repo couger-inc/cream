@@ -1,6 +1,8 @@
 const { unstringifyBigInts } = require('@cream/circuits')
 const { bigInt, pedersenHash, rbigInt } = require('libcream')
-// const Hash = require('ipfs-only-hash')
+
+const ipfsClient = require('ipfs-http-client')
+const ipfs = ipfsClient('http://localhost:5001')
 
 const formatProofForVerifierContract = (_proof) => {
     return [
@@ -46,10 +48,16 @@ const timeTravel = async (seconds) => {
 }
 
 const getIpfsHash = async (obj) => {
-    // TODO: integrate with real ipfs
-    // const data = Buffer.from(JSON.stringify(obj, null, 4))
-    // return await Hash.of(data)
-    return 'hash'
+    return (await ipfs.add(obj)).path.toString()
+}
+
+const getDataFromIpfsHash = async (hash) => {
+    const stream = ipfs.cat(hash)
+    let data = ''
+    for await (const chunk of stream) {
+        data += chunk.toString()
+    }
+    return data
 }
 
 module.exports = {
@@ -58,4 +66,5 @@ module.exports = {
     revertSnapshot,
     timeTravel,
     getIpfsHash,
+    getDataFromIpfsHash,
 }

@@ -12,6 +12,7 @@ const {
     formatProofForVerifierContract,
     timeTravel,
     getIpfsHash,
+    getDataFromIpfsHash,
 } = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
@@ -212,7 +213,7 @@ contract('E2E', (accounts) => {
         })
 
         //  15. coordinator publish tally hash
-        const tallyHash = await getIpfsHash(tally)
+        const tallyHash = await getIpfsHash(JSON.stringify(tally))
         await cream.publishTallyHash(tallyHash, { from: coordinatorAddress })
         //  16. owner aprove tally
         await cream.approveTally({ from: contractOwner })
@@ -221,7 +222,9 @@ contract('E2E', (accounts) => {
     //  17. coordinator withdraw deposits and transfer to recipient
     describe('E2E', () => {
         it('should correctly transfer voting token to recipient', async () => {
-            const resultsArr = tally.results.tally
+            const hash = await cream.tallyHash()
+            const result = await getDataFromIpfsHash(hash)
+            const resultsArr = JSON.parse(result).results.tally
 
             for (let i = 0; i < RECIPIENTS.length && resultsArr[i] != 0; i++) {
                 const counts = resultsArr[i]
