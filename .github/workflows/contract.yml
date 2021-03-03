@@ -11,20 +11,31 @@ jobs:
         node-version: [11.x, 12.x]
 
     steps:
+    - name: Checkout
     - uses: actions/checkout@v1
+    
+    - name: Start container
+      run: docker-compose -f "docker/docker-compose.yml" up -d
+
     - name: Setup node-version ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://registry.npmjs.org'
-    - name: yarn install and prepare
+        
+    - name: Install and prepare
       run: |
         npm install -g yarn
         yarn
         yarn build
         ./packages/circuits/scripts/installZkutil.sh
+        
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
       run: |
         yarn test
+        
+    - name: Stop container
+      if: always()
+      run: docker-compose -f "docker/docker-compose.yml" down
