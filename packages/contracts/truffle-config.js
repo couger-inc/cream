@@ -1,9 +1,9 @@
 module.exports = {
   networks: {
     development: {
-      network_id: '*',
+      network_id: "*",
       gas: 15000000,
-      host: 'localhost',
+      host: "localhost",
       port: 8545
     }
   },
@@ -15,5 +15,8 @@ module.exports = {
         runs: 200
       },
     }
+  },
+  mocha: {
+    reporter: "eth-gas-reporter"
   }
 }
