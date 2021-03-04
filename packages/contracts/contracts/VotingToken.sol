@@ -11,8 +11,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract VotingToken is ERC721, Ownable {
     // keep track of total tokens
-    uint256 curTokenId = 1;
-    constructor() ERC721("VotingToken", "VotingToken") Ownable() public {}
+    uint256 public curTokenId = 1;
+    constructor() public ERC721("VotingToken", "VotingToken") Ownable() {}
 
     // give erc721 token to an address
     function giveToken(address to) public onlyOwner {

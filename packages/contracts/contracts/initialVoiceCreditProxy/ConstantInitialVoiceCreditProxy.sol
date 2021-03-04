@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import { InitialVoiceCreditProxy } from './InitialVoiceCreditProxy.sol';
+import { InitialVoiceCreditProxy } from "./InitialVoiceCreditProxy.sol";
 
 contract ConstantInitialVoiceCreditProxy is InitialVoiceCreditProxy {
 

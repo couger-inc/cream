@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SignUpToken is ERC721, Ownable {
   // Keeps track of total tokens
-  uint256 curTokenId = 1;
+  uint256 public curTokenId = 1;
 
-  constructor() ERC721("SignUpToken", "SignUpToken") Ownable() public { }
+  constructor() public ERC721("SignUpToken", "SignUpToken") Ownable() { }
 
   // Gives an ERC721 token to an address
   function giveToken(address to) public onlyOwner {

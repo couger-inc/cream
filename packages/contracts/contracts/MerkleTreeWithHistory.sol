@@ -8,7 +8,7 @@ library MiMC {
 
 contract MerkleTreeWithHistory {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617; // precompiled prime
-    uint256 public constant ZERO_VALUE = uint256(keccak256(abi.encodePacked('cream'))) % FIELD_SIZE;
+    uint256 public constant ZERO_VALUE = uint256(keccak256(abi.encodePacked("cream"))) % FIELD_SIZE;
 
     uint32 public levels;
 

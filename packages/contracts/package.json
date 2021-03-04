@@ -11,6 +11,7 @@
     "watch": "tsc --watch",
     "build": "yarn compile",
     "compile": "truffle compile && yarn generate-types",
+	"format": "npx solhint 'contracts/**/*.sol' --fix",
     "ganache": "./scripts/runGanache.sh",
     "generate-types": "typechain --target=truffle-v5 'build/contracts/*.json'",
     "migrate": "tsc -p ./tsconfig.migrate.json --outDir ./migrations && truffle migrate",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "ganache-cli": "^6.12.2",
-    "ipfs-http-client": "^49.0.2"
+    "ipfs-http-client": "^49.0.2",
+    "solhint": "^3.3.2"
   }
 }

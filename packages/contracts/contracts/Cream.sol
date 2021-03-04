@@ -55,7 +55,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
 		address _coordinator
-    ) MerkleTreeWithHistory(_merkleTreeHeight) public {
+    ) public MerkleTreeWithHistory(_merkleTreeHeight) {
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
 	    votingToken = _votingToken;
