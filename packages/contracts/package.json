@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@cream/contracts",
-  "version": "0.2.2",
+  "version": "0.3.4",
   "description": "",
   "main": "truffle-config.js",
   "directories": {
@@ -20,8 +20,8 @@
   "author": "Kazuaki Ishiguro",
   "license": "ISC",
   "dependencies": {
-    "@cream/circuits": "^0.2.0",
-    "@cream/config": "^0.0.1",
+    "@cream/circuits": "0.3.4",
+    "@cream/config": "0.3.4",
     "@ethersproject/bignumber": "^5.0.14",
     "@openzeppelin/contracts": "3.2.0",
     "@truffle/artifactor": "^4.0.97",
