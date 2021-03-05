@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
       "outDir": "./build",
-      "typeRoots": ["../../node_modules/@types/jest"],
-      "types": ["jest", "node"]
+    "skipLibCheck": true
   },
   "include": [
       "./ts"

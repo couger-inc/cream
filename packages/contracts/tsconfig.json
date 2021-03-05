@@ -8,7 +8,6 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "noImplicitAny": false,
-    "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["node", "truffle-contracts"]
+    "skipLibCheck": true
   }
 }

@@ -11,8 +11,7 @@
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "strict": true,
-    "typeRoots": ["./node_modules/@types/jest"],
-    "types": ["node"]
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules/**"
