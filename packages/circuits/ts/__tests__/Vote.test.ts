@@ -29,7 +29,7 @@ describe('Vote circuits', () => {
                 const input: CircuitInput = generateVote(tree, i)
                 const witness = await executeCircuit(circuit, input)
                 const circuitRoot: SnarkBigInt =
-                    witness[circuit.symbols['main.new_root'].varIdx]
+                    witness[circuit.symbols['main.root'].varIdx]
                 expect(circuitRoot.toString()).toEqual(input.root.toString())
             }
         })
