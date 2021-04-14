@@ -23,7 +23,6 @@
     "url": "https://github.com/couger-inc/cream/issues"
   },
   "homepage": "https://github.com/couger-inc/cream#readme",
-  "dependencies": {},
   "devDependencies": {
     "lerna": "^3.22.1",
     "typescript": "^3.9.7"
