@@ -11,19 +11,16 @@ import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
 import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
 
 contract CreamFactory is Ownable, MACISharedObjs {
-	// TODO: storeing voting info to ipfs is durable?
 	mapping(address => string) public electionDetails;
 	event CreamCreated(address indexed creamAddress, string ipfsHash);
 
     MACIFactory public maciFactory;
-	IVerifier public creamVerifier;
+	//	IVerifier public creamVerifier;
 
     constructor(
-        MACIFactory _maciFactory,
-        IVerifier _creamVerifier
+        MACIFactory _maciFactory
     ) public {
 		maciFactory = _maciFactory;
-		creamVerifier = _creamVerifier;
     }
 
     function setMaciParameters(
@@ -51,6 +48,7 @@ contract CreamFactory is Ownable, MACISharedObjs {
 	}
 
 	function createCream(
+		IVerifier _creamVerifier,
         VotingToken _votingToken,
         SignUpToken _signUpToken,
         uint256 _balance,
@@ -75,7 +73,7 @@ contract CreamFactory is Ownable, MACISharedObjs {
 
         // Deploy new Cream contract
 		Cream cream = new Cream(
-            creamVerifier,
+            _creamVerifier,
             _votingToken,
             _merkleTreeHeight,
             _recipients,

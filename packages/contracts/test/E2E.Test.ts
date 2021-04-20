@@ -23,6 +23,7 @@ const truffleAssert = require('truffle-assertions')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
+const CreamVerifier = artifacts.require('CreamVerifier')
 const VotingToken = artifacts.require('VotingToken')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
@@ -35,6 +36,7 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
 contract('E2E', (accounts) => {
     let maciFactory
     let creamFactory
+    let creamVerifier
     let votingToken
     let signUpToken
     let creamAddress
@@ -84,12 +86,14 @@ contract('E2E', (accounts) => {
 
         // 4. coordinator provide a pubkey to owner
 
-        // 5. owner also deploy both voting and sign up token
+        // 5. owner also deploy voting, sign up token and creamVerifier
+        creamVerifier = await CreamVerifier.deployed()
         votingToken = await VotingToken.deployed()
         signUpToken = await SignUpToken.deployed()
 
         // 6. owner deploy cream from cream factory
         const tx = await creamFactory.createCream(
+            creamVerifier.address,
             votingToken.address,
             signUpToken.address,
             BALANCE,

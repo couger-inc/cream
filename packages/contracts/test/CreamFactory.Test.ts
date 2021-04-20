@@ -43,6 +43,7 @@ contract('CreamFactory', (accounts) => {
         maciFactory = await MACIFactory.deployed()
         await maciFactory.transferOwnership(creamFactory.address)
         tx = await creamFactory.createCream(
+            creamVerifier.address,
             votingToken.address,
             signUpToken.address,
             BALANCE,
@@ -149,8 +150,10 @@ contract('CreamFactory', (accounts) => {
             })
 
             votingToken = await VotingToken.new()
+            const newVerifier = await CreamVerifier.new()
             const NEW_RECIPIENTS = [accounts[4], accounts[5]]
             tx = await creamFactory.createCream(
+                newVerifier.address,
                 votingToken.address,
                 signUpToken.address,
                 BALANCE,

@@ -27,11 +27,7 @@ module.exports = (deployer: any) => {
         const votingToken: VotingTokenInstance = await VotingToken.deployed()
         const mimc: MiMCInstance = await MiMC.deployed()
         await CreamFactory.link(MiMC, mimc.address)
-        await deployer.deploy(
-            CreamFactory,
-            maciFactory.address,
-            creamVerifier.address
-        )
+        await deployer.deploy(CreamFactory, maciFactory.address)
     })
     // .then(async () => {
     //     const basePath = path.resolve(__dirname, '../app/constants')
