@@ -1547,9 +1547,9 @@ blake2b-wasm@^1.1.0:
   dependencies:
     nanoassert "^1.0.0"
 
-"blake2b-wasm@git+https://github.com/jbaylina/blake2b-wasm.git":
+"blake2b-wasm@https://github.com/jbaylina/blake2b-wasm.git":
   version "2.1.0"
-  resolved "git+https://github.com/jbaylina/blake2b-wasm.git#0d5f024b212429c7f50a7f533aa3a2406b5b42b3"
+  resolved "https://github.com/jbaylina/blake2b-wasm.git#0d5f024b212429c7f50a7f533aa3a2406b5b42b3"
   dependencies:
     nanoassert "^1.0.0"
 
@@ -2072,6 +2072,22 @@ circom@0.5.27:
     tmp-promise "^2.0.2"
     wasmbuilder "0.0.10"
 
+circom@0.5.33:
+  version "0.5.33"
+  resolved "https://registry.yarnpkg.com/circom/-/circom-0.5.33.tgz#6943d5799adf5388989bfbb3ef8f502fb1b4f662"
+  integrity sha512-UdL8fr6GckhQ4VoWjIvuYwCHneJe8z/AyJpDxgKLyuaX51ijd4gBP6jlwHDbQJsha2aU2GR9qgDsxd0jfari1Q==
+  dependencies:
+    chai "^4.2.0"
+    circom_runtime "0.1.8"
+    fastfile "0.0.18"
+    ffiasm "0.1.1"
+    ffjavascript "0.2.22"
+    ffwasm "0.0.7"
+    fnv-plus "^1.3.1"
+    r1csfile "0.0.16"
+    tmp-promise "^2.0.2"
+    wasmbuilder "0.0.10"
+
 circom@^0.5.27:
   version "0.5.45"
   resolved "https://registry.yarnpkg.com/circom/-/circom-0.5.45.tgz#82931882c5d38022ccb8be9c4a6314ea94bc511e"
@@ -2128,6 +2144,14 @@ circom_runtime@0.1.5:
     ffjavascript "0.2.10"
     fnv-plus "^1.3.1"
 
+circom_runtime@0.1.8:
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/circom_runtime/-/circom_runtime-0.1.8.tgz#d967a1618fe5290849f9c0bbffb6b97b95c0f1c8"
+  integrity sha512-5ZmzCyidkNPb1zZsJGRXTuWcJ6kW6+gRBtHgf2tFqTh5dUyWVVPH0Zg7AsU2ijPr1AmYZUlme0yORUZK5HrjOA==
+  dependencies:
+    ffjavascript "0.2.10"
+    fnv-plus "^1.3.1"
+
 circomlib@0.0.21:
   version "0.0.21"
   resolved "https://registry.yarnpkg.com/circomlib/-/circomlib-0.0.21.tgz#f3f880a50a3b669ef2cf411e53de1cd116b88df8"
@@ -2150,9 +2174,20 @@ circomlib@0.2.4, circomlib@^0.2.4:
     circom "0.5.21"
     ffjavascript "0.1.0"
 
-"circomlib@git+https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920":
+circomlib@^0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/circomlib/-/circomlib-0.5.2.tgz#5bfd47466cffcb215d707f36c8b8f76de7c703e0"
+  integrity sha512-xH1XLTQp6i1ifK13ZG4BbtjpaNkrfK8iK5ipqpi490aAxjK/P9nTidZaPTW6OtIODy1LzJSIGcr9TkyEgwK1Ag==
+  dependencies:
+    blake-hash "^1.1.0"
+    blake2b "^2.1.3"
+    circom "0.5.33"
+    ffjavascript "0.1.0"
+    web3-utils "^1.3.0"
+
+"circomlib@https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920":
   version "0.2.3"
-  resolved "git+https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920"
+  resolved "https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920"
   dependencies:
     blake-hash "^1.1.0"
     blake2b "^2.1.3"
@@ -2472,12 +2507,12 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-cream-merkle-tree@^0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/cream-merkle-tree/-/cream-merkle-tree-0.0.8.tgz#e53996494d85fba087b75c11bdbcd6c509d8e0bc"
-  integrity sha512-SZaScQ8J6WSPJl+22zewVG7UuoU91TUToTdUpbrhIa8YvH0IRRCt5oUxPafABapbmPucKEoIWON4c4L8ugohvQ==
+cream-merkle-tree@^0.0.9:
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/cream-merkle-tree/-/cream-merkle-tree-0.0.9.tgz#f1a69efd3943aa52064e42b5b230efbc5af63df4"
+  integrity sha512-qO9Lggl3lYdDGR94SaPlrr5+2si1Y6AeQvpeSDDlXqR7sISbBZ6N68GMYWpQn2HqB3QA/q48DL/GEyh+iwC3qQ==
   dependencies:
-    circomlib "^0.2.4"
+    circomlib "^0.5.2"
     typescript "^3.9.9"
 
 create-ecdh@^4.0.0:
@@ -5742,15 +5777,15 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-libcream@^0.1.3-3:
-  version "0.1.3-3"
-  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.3-3.tgz#906927263c8af50b12389d1f3664a1b3b06a1427"
-  integrity sha512-XeGupKW2fZoNaP0YUPbhQL4GGzXwFhsYjOp8bk7i8AnuCKEQRUHcHaAxLC0/Bmc6jGAlIFmEu9be8R6KoXmdNw==
+libcream@^0.1.3-4:
+  version "0.1.3-4"
+  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.3-4.tgz#1b94a2b0a59145fae699d61174b9ad231d9b480a"
+  integrity sha512-5PAHY4gr0F6d1fqx7nlrqjaSOfEH/6DgQUBhoBES5wUbAkhou7qDS7owxqCmn1n8e6nkyDFVxz82/3wI5kFotA==
   dependencies:
     "@ethersproject/bignumber" "^5.0.14"
     axios "^0.21.1"
-    circomlib "^0.2.4"
-    cream-merkle-tree "^0.0.8"
+    circomlib "^0.5.2"
+    cream-merkle-tree "^0.0.9"
     lint-staged "^10.5.4"
     maci-crypto "^0.4.11"
     maci-domainobjs "^0.4.11"
