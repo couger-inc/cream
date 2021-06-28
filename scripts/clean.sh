@@ -17,12 +17,18 @@ echo "Cleaned build"
 find . -name "dist" -type d -prune -exec rm -rf "{}" \;
 echo "Cleaned dist"
 
+find . -name "types" -type d -prune -exec rm -rf "{}" \;
+echo "Cleaned types"
+
+find . -name "migrations" -type d -prune -exec rm -rf "{}" \;
+echo "Cleaned migrations"
+
 find . -name ".cache" -type d -prune -exec rm -rf "{}" \;
 echo "Cleaned cache"
 
-if [ -e $CREAM_DIR/contracts/contracts/Verifier.sol ]; then
-  rm $CREAM_DIR/contracts/contracts/Verifier.sol
-  echo "Cleaned Verifier.sol"
+if [ -e $CREAM_DIR/packages/contracts/contracts/verifiers/CreamVerifier.sol ]; then
+  rm $CREAM_DIR/packages/contracts/contracts/verifiers/CreamVerifier.sol
+  echo "Cleaned CreamVerifier.sol"
 fi
 
 echo "Cleaning finished!"

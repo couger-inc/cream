@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@cream/config",
+  "version": "0.3.4",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "config": "^3.3.4",
+    "js-yaml": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.31"
+  }
+}

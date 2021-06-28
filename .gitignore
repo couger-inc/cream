@@ -3,6 +3,10 @@ config/default.json
 **/build/
 node_modules
 
+# typechain generated files
+types
+migrations
+
 # exported files
 *ABI.json
 *Networks.json

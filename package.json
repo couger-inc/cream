@@ -1,17 +1,14 @@
 {
+  "private": true,
   "name": "cream",
   "version": "0.3.4",
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "scripts": {
-    "bootstrap": "npx lerna bootstrap",
-    "build": "npx lerna run build",
-    "migrate": "npx truffle migrate",
-    "test:circuits": "cd circuits && npm run test",
-    "test:compile": "cd contracts && npm run compile",
-    "test:contracts": "cd contracts && npm run test",
-    "test:ganache": "cd contracts && npm run ganache",
-    "test:migrate": "cd contracts && npm run migrate",
-    "test": "npm run test:ganache > /dev/null & GANACHE_PID=$! && npm run test:compile && npm run test:migrate && npm run test:contracts && kill $GANACHE_PID"
+    "build": "yarn workspaces run build",
+    "clean": "./scripts/clean.sh",
+    "format": "npx prettier './**/**/**/*.{js,ts}' --write",
+    "start:ipfs": "cd docker && docker-compose up",
+    "test": "yarn workspace @cream/contracts ganache > /dev/null & GANACHE_PID=$! && yarn workspace @cream/contracts migrate && yarn workspace @cream/contracts test && kill $GANACHE_PID"
   },
   "repository": {
     "type": "git",
@@ -22,9 +19,22 @@
   "bugs": {
     "url": "https://github.com/couger-inc/cream/issues"
   },
-  "homepage": "https://github.com/couger-inc/cream#readme",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "./**/**/**/*.{js,ts}": "prettier --write"
+  },
+  "homepage": "https://zkcre.am",
   "devDependencies": {
-    "lerna": "^3.22.1",
+    "husky": "^4.3.5",
+    "lint-staged": "^10.5.4",
+    "prettier": "^2.2.1",
     "typescript": "^3.9.7"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

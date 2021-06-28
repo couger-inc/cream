@@ -11,12 +11,9 @@
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "strict": true,
-    "outDir": "./build"
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules/**"
-  ],
-  "include": [
-    "./ts"
   ]
 }
