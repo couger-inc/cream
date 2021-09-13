@@ -14,7 +14,9 @@
     "format": "npx solhint 'contracts/**/*.sol' --fix",
     "ganache": "./scripts/runGanache.sh",
     "generate-types": "typechain --target=truffle-v5 'build/contracts/*.json'",
-    "migrate": "tsc -p ./tsconfig.migrate.json --outDir ./migrations && truffle migrate",
+    "migrate": "yarn migrate:base && truffle migrate",
+    "migrate:base": "tsc -p ./tsconfig.migrate.json --outDir ./migrations", 
+    "migrate:docker": "yarn migrate:base && truffle migrate --network dockerGanache",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 truffle test"
   },
   "author": "Kazuaki Ishiguro",
