@@ -1,4 +1,4 @@
-# C.R.E.A.M
+# zkC.R.E.A.M
 
 [![Actions Status](https://github.com/couger-inc/cream/workflows/cream%20contract%20test/badge.svg)](https://github.com/couger-inc/cream/actions)
 
@@ -6,7 +6,7 @@ Confidential Reliable Ethereum Anonymous Mixer
 
 ## Requirement
 
-* `node` >=v11.x <=v12.x
+* `node` >=v11.x
 
 ## Setup
 
@@ -32,14 +32,14 @@ maci:
   messageBatchSize: 4
   quadVoteTallyBatchSize: 4
   voteOptionsMaxLeafIndex: 3
-				
+
   merkleTrees:
     stateTreeDepth: 4
     messageTreeDepth: 4
     voteOptionTreeDepth: 2
-						  
+
   chain:
-	privateKeysPath: './'
+    privateKeysPath: './'
 ```
 
 ### Circuit
@@ -63,4 +63,3 @@ $ cd packages/contracts && yarn migrate
 # after finished setting:
 $ yarn test
 ```
-
