@@ -1,8 +1,8 @@
 ---
-env: 'test'
+env: 'prod'
 
 cream:
-  merkleTrees: 4
+  merkleTrees: 16
   zeroValue: "2558267815324835836571784235309882327407732303445109280607932348234378166811"
 
 maci:

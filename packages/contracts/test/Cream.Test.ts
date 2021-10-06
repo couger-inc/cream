@@ -6,6 +6,7 @@ const {
     formatProofForVerifierContract,
     revertSnapshot,
     takeSnapshot,
+    RECIPIENTS,
 } = require('./TestUtil')
 const truffleAssert = require('truffle-assertions')
 const {
@@ -48,7 +49,6 @@ contract('Cream', (accounts) => {
 
     const LEVELS = config.cream.merkleTrees
     const ZERO_VALUE = config.cream.zeroValue
-    const RECIPIENTS = config.cream.recipients
     const contractOwner = accounts[0]
     const voter = accounts[1]
     const badUser = accounts[2]
@@ -120,7 +120,7 @@ contract('Cream', (accounts) => {
         })
 
         it('should return correct recipient address', async () => {
-            const expected = config.cream.recipients[0]
+            const expected = RECIPIENTS[0]
             const returned = await cream.recipients(0)
             assert.equal(expected, returned)
         })
@@ -837,7 +837,7 @@ contract('Cream', (accounts) => {
             await cream.approveTally()
             const tx = await cream.withdraw(0, { from: coordinatorAddress })
             const newTokenOwner = await votingToken.ownerOf(1)
-            assert.equal(config.cream.recipients[0], newTokenOwner)
+            assert.equal(RECIPIENTS[0], newTokenOwner)
         })
     })
 

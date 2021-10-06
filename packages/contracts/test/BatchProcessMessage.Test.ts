@@ -19,7 +19,11 @@ const {
     PrivKey,
     PubKey,
 } = require('maci-domainobjs')
-const { formatProofForVerifierContract, timeTravel } = require('./TestUtil')
+const {
+    formatProofForVerifierContract,
+    timeTravel,
+    RECIPIENTS,
+} = require('./TestUtil')
 const { createDeposit, rbigInt, toHex, pedersenHash } = require('libcream')
 const {
     genProofAndPublicSignals,
@@ -59,7 +63,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
-    const RECIPIENTS = config.cream.recipients
     const ZERO_VALUE = config.cream.zeroValue
     const batchSize = config.maci.messageBatchSize // 4
     const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4

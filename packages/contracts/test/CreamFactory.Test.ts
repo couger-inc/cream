@@ -1,7 +1,7 @@
 const truffleAssert = require('truffle-assertions')
 const { config } = require('@cream/config')
 const { createDeposit, rbigInt } = require('libcream')
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { revertSnapshot, takeSnapshot, RECIPIENTS } = require('./TestUtil')
 const { Keypair, PrivKey } = require('maci-domainobjs')
 
 const CreamFactory = artifacts.require('CreamFactory')
@@ -27,7 +27,6 @@ contract('CreamFactory', (accounts) => {
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
-    const RECIPIENTS = config.cream.recipients
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
     const voter = accounts[1]
     const coordinatorAddress = accounts[2]

@@ -13,6 +13,7 @@ const {
     timeTravel,
     getIpfsHash,
     getDataFromIpfsHash,
+    RECIPIENTS,
 } = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
@@ -49,7 +50,6 @@ contract('E2E', (accounts) => {
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
-    const RECIPIENTS = config.cream.recipients
     const ZERO_VALUE = config.cream.zeroValue
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
     const batchSize = config.maci.messageBatchSize // 4

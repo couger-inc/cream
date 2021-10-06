@@ -1,4 +1,4 @@
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { revertSnapshot, takeSnapshot, RECIPIENTS } = require('./TestUtil')
 const { bigInt } = require('libcream')
 const { config } = require('@cream/config')
 const { Keypair, PrivKey } = require('maci-domainobjs')
@@ -14,9 +14,8 @@ const CreamVerifier = artifacts.require('CreamVerifier')
 const MiMC = artifacts.require('MiMC')
 
 const LEVELS = config.cream.merkleTrees
-const RECIPIENTS = config.cream.recipients
 const ZERO_VALUE = config.cream.zeroValue
-const recipient = config.cream.recipients[0]
+const recipient = RECIPIENTS[0]
 
 contract('MACIFactory', (accounts) => {
     let maciFactory

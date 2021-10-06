@@ -4,6 +4,12 @@ const { bigInt, pedersenHash, rbigInt } = require('libcream')
 const ipfsClient = require('ipfs-http-client')
 const ipfs = ipfsClient('http://localhost:5001')
 
+const RECIPIENTS = [
+    '0x65A5B0f4eD2170Abe0158865E04C4FF24827c529',
+    '0x9cc9C78eDA7c7940f968eF9D8A90653C47CD2a5e',
+    '0xb97796F8497bb84C63e650E9527Be587F18c09f8',
+]
+
 const formatProofForVerifierContract = (_proof) => {
     return [
         _proof.pi_a[0],
@@ -61,6 +67,7 @@ const getDataFromIpfsHash = async (hash) => {
 }
 
 module.exports = {
+    RECIPIENTS,
     formatProofForVerifierContract,
     takeSnapshot,
     revertSnapshot,
