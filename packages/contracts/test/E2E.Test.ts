@@ -166,7 +166,7 @@ contract('E2E', (accounts) => {
             }
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )

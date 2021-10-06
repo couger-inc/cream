@@ -5,6 +5,10 @@ import { generateVerifier } from './generateVerifier'
 
 const currentPath = path.join(__dirname, '..')
 
+if (!process.env.hasOwnProperty('NODE_ENV')) {
+    process.env.NODE_ENV = 'test'
+}
+
 const main = () => {
     const voteCircuit = path.join(currentPath, './build/circuits/vote.r1cs')
     const voteCircuitWasm = path.join(currentPath, './build/circuits/vote.wasm')
@@ -35,7 +39,10 @@ const main = () => {
     if (fs.existsSync(voteCircuit) && fs.existsSync(voteCircuitWasm)) {
         console.log(`${voteCircuit} file exists. Skipping...`)
     } else {
-        const circuitPath = path.join(currentPath, './circom/prod/vote.circom')
+        const circuitPath = path.join(
+            currentPath,
+            `./circom/${process.env.NODE_ENV}/vote.circom`
+        )
         execSync(
             `npx circom ${circuitPath} -r ${voteCircuit} -w ${voteCircuitWasm} -v`
         )

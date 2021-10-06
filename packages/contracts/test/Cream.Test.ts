@@ -312,7 +312,7 @@ contract('Cream', (accounts) => {
 
             const { proof, publicSignals } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -348,7 +348,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -388,7 +388,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -429,7 +429,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -475,7 +475,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -512,7 +512,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -556,7 +556,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -757,7 +757,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                'prod/vote.circom',
+                `${process.env.NODE_ENV}/vote.circom`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
