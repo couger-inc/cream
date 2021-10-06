@@ -20,8 +20,8 @@ cream:
 
 maci:
   initialVoiceCreditBalance: 100
-  signUpDurationInSeconds: 3600 # 1 hour
-  votingDurationInSeconds: 3600 # 1 hour
+  signUpDurationInSeconds: 180 # 3 min
+  votingDurationInSeconds: 120 # 2 min
   coordinatorPrivKey: "2222222222263902553431241761119057960280734584214105336279476766401963593688"
   tallyBatchsize: 4
   messageBatchSize: 4
@@ -56,5 +56,9 @@ $ cd packages/contracts && yarn migrate
 
 ```bash
 # after finished setting:
+$ docker-compose -f docker/docker-compose.yml up -d # run ipfs container
 $ yarn test
+
+# after finished test:
+$ docker-compose -f docker/docker-compose.yml down
 ```
