@@ -5,6 +5,7 @@
   "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
   "scripts": {
     "build": "yarn workspaces run build",
+    "build:prod": "NODE_ENV=prod yarn workspaces run build",
     "clean": "./scripts/clean.sh",
     "format": "npx prettier './**/**/**/*.{js,ts}' --write",
     "start:ipfs": "cd docker && docker-compose up",

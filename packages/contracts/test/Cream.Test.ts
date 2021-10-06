@@ -790,7 +790,7 @@ contract('Cream', (accounts) => {
             await cream.publishTallyHash(hash, { from: coordinatorAddress })
         })
 
-        it('should revert if on owner try to aproove', async () => {
+        it('should revert if non-owner try to aproove', async () => {
             try {
                 await cream.approveTally({ from: coordinatorAddress })
             } catch (error) {
