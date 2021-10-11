@@ -32,12 +32,12 @@ template MerkleTree(levels) {
     levelHashes[0] <== leaf;
 
     for (var i = 0; i < levels; i++) {
-    	path_index[i] * (1 - path_index[i]) === 0;
-    	
+        path_index[i] * (1 - path_index[i]) === 0;
+        
         hashers[i] = HashLeftRight(2);
-	mux[i] = MultiMux1(2);
+        mux[i] = MultiMux1(2);
 
-	mux[i].c[0][0] <== levelHashes[i];
+        mux[i].c[0][0] <== levelHashes[i];
         mux[i].c[0][1] <== path_elements[i];
 
         mux[i].c[1][0] <== path_elements[i];
@@ -56,7 +56,7 @@ template MerkleTree(levels) {
 // LeafExists and CheckRoot template referenced from MACI's merkletree circuit
 // https://github.com/barryWhiteHat/maci/blob/master/circuits/circom/merkletree.circom
 
-template LeafExists(levels){
+template LeafExists(levels) {
   // Ensures that a leaf exists within a merkletree with given `root`
 
   // levels is depth of tree
@@ -121,7 +121,7 @@ template CheckRoot(levels) {
     }
 
     // Wire the leaf values into the leaf hashers
-    for (i=0; i < numLeafHashers; i++){
+    for (i=0; i < numLeafHashers; i++) {
         hashers[i].left <== leaves[i*2];
         hashers[i].right <== leaves[i*2+1];
     }

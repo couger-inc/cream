@@ -39,46 +39,46 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     VotingToken public votingToken;
     MACI public maci;
     SignUpToken public signUpToken;
-	address public coordinator;
-	string public tallyHash;
-	bool public approved;
+    address public coordinator;
+    string public tallyHash;
+    bool public approved;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
     event Withdrawal(address recipient);
-	event TallyPublished(string tallyHash);
-	event TallyApproved(uint256 timestamp);
+    event TallyPublished(string tallyHash);
+    event TallyApproved(uint256 timestamp);
 
 
     constructor(
         IVerifier _verifier,
-	    VotingToken _votingToken,
+        VotingToken _votingToken,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
-		address _coordinator
+        address _coordinator
     ) public MerkleTreeWithHistory(_merkleTreeHeight) {
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
-	    votingToken = _votingToken;
+        votingToken = _votingToken;
         recipients = _recipients;
-		coordinator = _coordinator;
-		approved = false;
+        coordinator = _coordinator;
+        approved = false;
     }
 
-	modifier isMaciReady() {
-		require(address(maci) != address(0), "MACI contract have not set yet");
-		_;
-	}
+    modifier isMaciReady() {
+        require(address(maci) != address(0), "MACI contract have not set yet");
+        _;
+    }
 
-	modifier isBeforeVotingDeadline(){
-		require(block.timestamp < maci.calcVotingDeadline(), "the voting period has passed");
-		_;
-	}
+    modifier isBeforeVotingDeadline() {
+        require(block.timestamp < maci.calcVotingDeadline(), "the voting period has passed");
+        _;
+    }
 
-	/*
-	 * Token transfer is executed as LIFO
-	 */
+    /*
+     * Token transfer is executed as LIFO
+     */
     function _processDeposit() internal {
-	    require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
+        require(msg.value == 0, "ETH value is suppoed to be 0 for deposit");
         uint256 _tokenId = votingToken.tokenOfOwnerByIndex(msg.sender, 0);
         votingToken.safeTransferFrom(msg.sender, address(this), _tokenId);
     }
@@ -91,11 +91,11 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     }
 
     function deposit(
-		bytes32 _commitment
-	) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
-		require(block.timestamp < maci.calcSignUpDeadline(), "the sign-up period has passed");
+        bytes32 _commitment
+    ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
+        require(block.timestamp < maci.calcSignUpDeadline(), "the sign-up period has passed");
         require(!commitments[_commitment], "Already submitted");
-	    require(votingToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
+        require(votingToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
         _processDeposit();
@@ -105,9 +105,9 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     function withdraw(
         uint256 _index
     ) external payable nonReentrant isMaciReady {
-		require(approved, "Tally result is not approved yet");
-		require(msg.sender == coordinator, "Sender is not the coordinator");
-		_processWithdraw(payable(recipients[_index]));
+        require(approved, "Tally result is not approved yet");
+        require(msg.sender == coordinator, "Sender is not the coordinator");
+        _processWithdraw(payable(recipients[_index]));
         emit Withdrawal(recipients[_index]);
     }
 
@@ -125,67 +125,67 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         require(address(signUpToken) == address(0), "Already linked to SignUpToken instance");
         require(
             _maci.calcSignUpDeadline() > block.timestamp,
-			"Signup deadline must be in the future"
+            "Signup deadline must be in the future"
         );
         maci = _maci;
         signUpToken = _signUpToken;
     }
 
-	function signUpMaci(
-		PubKey calldata pubKey,
-		uint256[8] memory _proof,
+    function signUpMaci(
+        PubKey calldata pubKey,
+        uint256[8] memory _proof,
         bytes32 _root,
         bytes32 _nullifierHash
     ) external nonReentrant {
-		require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
+        require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
 
-		(
-			uint256[2] memory a,
-			uint256[2][2] memory b,
-			uint256[2] memory c
-		) = maci.unpackProof(_proof);
+        (
+            uint256[2] memory a,
+            uint256[2][2] memory b,
+            uint256[2] memory c
+        ) = maci.unpackProof(_proof);
 
-		require(verifier.verifyProof(a, b, c, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
+        require(verifier.verifyProof(a, b, c, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
 
         nullifierHashes[_nullifierHash] = true;
 
         uint256 maciTokenId = signUpToken.getCurrentSupply();
         bytes memory signUpGateKeeperData = abi.encode(maciTokenId);
-		bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
+        bytes memory initialVoiceCreditProxyData = abi.encode(msg.sender);
 
         signUpToken.giveToken(address(this));
-		maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
+        maci.signUp(pubKey, signUpGateKeeperData, initialVoiceCreditProxyData);
         signUpToken.safeTransferFrom(address(this), msg.sender, maciTokenId);
-	}
+    }
 
-	function publishTallyHash(
-	    string calldata _tallyHash
+    function publishTallyHash(
+        string calldata _tallyHash
     ) external isMaciReady {
-		require(msg.sender == coordinator, "Sender is not the coordinator");
-		require(bytes(_tallyHash).length != 0, "Tally hash cannot be empty string");
-		tallyHash = _tallyHash;
-		emit TallyPublished(_tallyHash);
-	}
+        require(msg.sender == coordinator, "Sender is not the coordinator");
+        require(bytes(_tallyHash).length != 0, "Tally hash cannot be empty string");
+        tallyHash = _tallyHash;
+        emit TallyPublished(_tallyHash);
+    }
 
-	function approveTally() external onlyOwner isMaciReady {
-		require(!approved, "Already approved");
-		require(bytes(tallyHash).length != 0, "Tally hash has not been published");
-		approved = true;
-		emit TallyApproved(block.timestamp);
-	}
+    function approveTally() external onlyOwner isMaciReady {
+        require(!approved, "Already approved");
+        require(bytes(tallyHash).length != 0, "Tally hash has not been published");
+        approved = true;
+        emit TallyApproved(block.timestamp);
+    }
 
-	function submitMessageBatch(
-		Message[] calldata _messages,
-		PubKey[] calldata _encPubKeys
+    function submitMessageBatch(
+        Message[] calldata _messages,
+        PubKey[] calldata _encPubKeys
     ) external isMaciReady {
-		uint256 _batchSize = _messages.length;
-		for (uint8 i = 0; i < _batchSize; i++) {
-			maci.publishMessage(_messages[i], _encPubKeys[i]);
-		}
-	}
+        uint256 _batchSize = _messages.length;
+        for (uint8 i = 0; i < _batchSize; i++) {
+            maci.publishMessage(_messages[i], _encPubKeys[i]);
+        }
+    }
 
-	function getRecipients() public view returns(address[] memory) {
-		return recipients;
-	}
+    function getRecipients() public view returns(address[] memory) {
+        return recipients;
+    }
 }
