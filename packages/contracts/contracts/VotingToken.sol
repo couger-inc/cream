@@ -22,6 +22,6 @@ contract VotingToken is ERC721, Ownable {
 
     // how many tokens are allocated
     function getCurrentSupply() public view returns (uint256) {
-	    return curTokenId;
+        return curTokenId;
     }
 }
