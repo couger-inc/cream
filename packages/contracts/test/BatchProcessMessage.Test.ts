@@ -60,6 +60,13 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     let maciTx
     let maci
     let stateRootBefore
+    let circomFile
+
+    if (process.env.NODE_ENV === 'test') {
+        circomFile = 'vote_test.circom'
+    } else {
+        circomFile = 'vote.circom'
+    }
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
@@ -192,7 +199,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             }
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )

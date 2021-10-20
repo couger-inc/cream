@@ -9,6 +9,13 @@ if (!process.env.hasOwnProperty('NODE_ENV')) {
     process.env.NODE_ENV = 'test'
 }
 
+let circomFile: string
+if (process.env.NODE_ENV === 'test') {
+    circomFile = 'vote_test.circom'
+} else {
+    circomFile = 'vote.circom'
+}
+
 const main = () => {
     const voteCircuit = path.join(currentPath, './build/circuits/vote.r1cs')
     const voteCircuitWasm = path.join(currentPath, './build/circuits/vote.wasm')
@@ -41,7 +48,7 @@ const main = () => {
     } else {
         const circuitPath = path.join(
             currentPath,
-            `./circom/${process.env.NODE_ENV}/vote.circom`
+            `./circom/${process.env.NODE_ENV}/${circomFile}`
         )
         execSync(
             `npx circom ${circuitPath} -r ${voteCircuit} -w ${voteCircuitWasm} -v`

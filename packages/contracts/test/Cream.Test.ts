@@ -46,6 +46,13 @@ contract('Cream', (accounts) => {
     let maciFactory
     let maciTx
     let snapshotId
+    let circomFile
+
+    if (process.env.NODE_ENV === 'test') {
+        circomFile = 'vote_test.circom'
+    } else {
+        circomFile = 'vote.circom'
+    }
 
     const LEVELS = config.cream.merkleTrees
     const ZERO_VALUE = config.cream.zeroValue
@@ -312,7 +319,7 @@ contract('Cream', (accounts) => {
 
             const { proof, publicSignals } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -348,7 +355,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -388,7 +395,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -429,7 +436,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -475,7 +482,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -512,7 +519,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -556,7 +563,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
@@ -757,7 +764,7 @@ contract('Cream', (accounts) => {
 
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )

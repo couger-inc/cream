@@ -1,5 +1,5 @@
 ---
-env: 'prod'
+env: 'prod-small'
 
 cream:
   merkleTrees: 16
@@ -13,12 +13,12 @@ maci:
   tallyBatchsize: 4
   messageBatchSize: 4
   quadVoteTallyBatchSize: 4
-  voteOptionsMaxLeafIndex: 3
+  voteOptionsMaxLeafIndex: 124
 
   merkleTrees:
-    stateTreeDepth: 4
-    messageTreeDepth: 4
-    voteOptionTreeDepth: 2
+    stateTreeDepth: 8
+    messageTreeDepth: 11
+    voteOptionTreeDepth: 3
 
 chain:
   privateKeysPath: './'

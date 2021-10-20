@@ -21,7 +21,7 @@ describe('Vote circuits', () => {
 
     describe('Vote(4)', () => {
         it('should return correct root', async () => {
-            circuit = await compileAndLoadCircuit('test/vote.circom')
+            circuit = await compileAndLoadCircuit('test/vote_test.circom')
 
             for (let i = 0; i < 2 ** LEVELS; i++) {
                 const input: CircuitInput = generateVote(tree, i)

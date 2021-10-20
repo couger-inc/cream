@@ -47,6 +47,13 @@ contract('E2E', (accounts) => {
     let totalVotes = BigInt(0)
     let totalVoteWeight = BigInt(0)
     let tally
+    let circomFile
+
+    if (process.env.NODE_ENV === 'test') {
+        circomFile = 'vote_test.circom'
+    } else {
+        circomFile = 'vote.circom'
+    }
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
@@ -166,7 +173,7 @@ contract('E2E', (accounts) => {
             }
             const { proof } = await genProofAndPublicSignals(
                 input,
-                `${process.env.NODE_ENV}/vote.circom`,
+                `${process.env.NODE_ENV}/${circomFile}`,
                 'build/vote.zkey',
                 'circuits/vote.wasm'
             )
