@@ -22,3 +22,5 @@ maci:
 
 chain:
   privateKeysPath: './'
+
+snarkParamsPath: '../params'

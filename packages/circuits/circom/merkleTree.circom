@@ -1,5 +1,5 @@
 include "../../../node_modules/circomlib/circuits/mux1.circom";
-include "../../../node_modules/circomlib/circuits/mimcsponge.circom";
+include "../../../node_modules/circomlib/circuits/poseidon.circom";
 
 // TODO: remove param
 // Computes MiMC([left, right])
@@ -8,11 +8,11 @@ template HashLeftRight(length) {
     signal input right;
     signal output hash;
 
-    component hasher = MiMCSponge(length, 220, 1);
-    hasher.ins[0] <== left;
-    hasher.ins[1] <== right;
-    hasher.k <== 0;
-    hash <== hasher.outs[0];
+    component hasher = Poseidon(2);
+    hasher.inputs[0] <== left;
+    hasher.inputs[1] <== right;
+    //hasher.k <== 0;
+    hash <== hasher.out;
 }
 
 // Updated this circuit due to updating circom library v0.5.*
@@ -33,7 +33,7 @@ template MerkleTree(levels) {
 
     for (var i = 0; i < levels; i++) {
         path_index[i] * (1 - path_index[i]) === 0;
-        
+
         hashers[i] = HashLeftRight(2);
         mux[i] = MultiMux1(2);
 

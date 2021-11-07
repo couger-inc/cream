@@ -11,6 +11,7 @@ import {
     getSignalByName,
     verifyBatchUstProof,
     verifyQvtProof,
+    compileAndLoadCircuit as compileAndLoadCircuitMACI,
 } from 'maci-circuits'
 
 const snarkjs = require('snarkjs')
@@ -66,9 +67,12 @@ const generateVote = (
 }
 
 const compileAndLoadCircuit = async (circuitFilename: string) => {
-    const circuit = await tester(
-        path.join(__dirname, 'circuits', `../../circom/${circuitFilename}`)
+    const testerPath = path.join(
+        __dirname,
+        'circuits',
+        `../../circom/${circuitFilename}`
     )
+    const circuit = await tester(testerPath)
     await circuit.loadSymbols()
     return circuit
 }
@@ -181,4 +185,5 @@ export {
     getSignalByName,
     verifyBatchUstProof,
     verifyQvtProof,
+    compileAndLoadCircuitMACI,
 }

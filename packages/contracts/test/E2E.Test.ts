@@ -17,10 +17,11 @@ const {
 } = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
-const { processMessages: processCmd, tally: tallyCmd } = require('maci-cli')
+const { processAndTallyWithoutProofs } = require('maci-cli')
 const { MaciState } = require('maci-core')
 const { BigNumber } = require('@ethersproject/bignumber')
 const truffleAssert = require('truffle-assertions')
+const fs = require('fs')
 
 const MACIFactory = artifacts.require('MACIFactory')
 const CreamFactory = artifacts.require('CreamFactory')
@@ -112,7 +113,7 @@ contract('E2E', (accounts) => {
         await signUpToken.transferOwnership(cream.address)
 
         // voter's action sequences
-        for (let i = 0; i < batchSize - 2; i++) {
+        for (let i = 0; i < batchSize; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
             const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
@@ -189,6 +190,8 @@ contract('E2E', (accounts) => {
         }
 
         //  12. coordinator process messages
+        //  13. coordinator prove vote tally
+        //  14. coordinator create tally.json from tally command
         // fast forward in time
         const duration = config.maci.signUpDurationInSeconds
         await timeTravel(duration)
@@ -196,25 +199,20 @@ contract('E2E', (accounts) => {
         // end voting period
         await timeTravel(duration)
 
-        const randomStateLeaf = await processCmd({
-            contract: maciAddress,
-            eth_privkey: coordinatorEthPrivKey,
-            privkey: coordinator.privKey.serialize(),
-            repeat: true,
-        })
-
-        //  13. coordinator prove vote tally
-        //  14. coordinator create tally.json from tally command
-        tally = await tallyCmd({
-            contract: maciAddress,
-            eth_privkey: coordinatorEthPrivKey,
-            privkey: coordinator.privKey.serialize(),
-            repeat: true,
-            current_results_salt: '0x0',
-            current_total_vc_salt: '0x0',
-            current_per_vo_vc_salt: '0x0',
-            leaf_zero: randomStateLeaf,
-        })
+        const tally_file = 'build/tally.json'
+        let tally
+        try {
+            tally = await processAndTallyWithoutProofs({
+                contract: maciAddress,
+                eth_privkey: coordinatorEthPrivKey,
+                privkey: coordinator.privKey.serialize(),
+                tally_file,
+            })
+        } finally {
+            if (fs.existsSync(tally_file)) {
+                fs.unlinkSync(tally_file)
+            }
+        }
 
         //  15. coordinator publish tally hash
         const tallyHash = await getIpfsHash(JSON.stringify(tally))

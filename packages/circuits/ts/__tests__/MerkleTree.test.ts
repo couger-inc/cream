@@ -1,5 +1,5 @@
 jest.setTimeout(90000)
-import { mimcsponge } from 'circomlib'
+import { poseidon } from 'circomlib'
 import { MerkleTree } from 'cream-merkle-tree'
 import { bigInt, toHex } from 'libcream'
 import { SnarkBigInt, compileAndLoadCircuit, executeCircuit } from '../'
@@ -8,11 +8,11 @@ const LEVELS = 4
 const ZERO_VALUE = 0
 
 const hashOne = (preImage: SnarkBigInt): SnarkBigInt => {
-    return mimcsponge.multiHash([preImage], 0, 1)
+    return poseidon([preImage])
 }
 
 const multiHash = (d: SnarkBigInt[]): SnarkBigInt => {
-    return mimcsponge.multiHash(d)
+    return poseidon(d)
 }
 
 describe('MerkleTree circuit', () => {

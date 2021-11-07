@@ -123,7 +123,8 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
     function deployMaci(
         SignUpGatekeeper _signUpGatekeeper,
         InitialVoiceCreditProxy _initialVoiceCreditProxy,
-        PubKey calldata _coordinatorPubKey
+        PubKey calldata _coordinatorPubKey,
+        address _coordinatorAddress
     )
         external
         onlyOwner
@@ -139,7 +140,8 @@ contract MACIFactory is Ownable, MACIParameters, MACISharedObjs {
             signUpDuration,
             votingDuration,
             _initialVoiceCreditProxy,
-            _coordinatorPubKey
+            _coordinatorPubKey,
+            _coordinatorAddress
         );
         emit MaciDeployed(address(_maci));
     }

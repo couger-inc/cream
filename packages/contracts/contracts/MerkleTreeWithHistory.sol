@@ -2,8 +2,8 @@
 // heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
 pragma solidity ^0.6.12;
 
-library MiMC {
-    function MiMCSponge(uint256 in_xL, uint256 in_xR, uint256 in_k) public pure returns (uint256 xL, uint256 xR) {}
+library Poseidon {
+  function poseidon(uint256[2] memory inputs) public pure returns (uint256 output) {}
 }
 
 contract MerkleTreeWithHistory {
@@ -39,12 +39,9 @@ contract MerkleTreeWithHistory {
     function hashLeftRight(bytes32 _left, bytes32 _right) public pure returns(bytes32) {
         require(uint256(_left) < FIELD_SIZE, "_left should be inside the field");
         require(uint256(_right) < FIELD_SIZE, "_right should be inside the field");
-        uint256 R = uint256(_left);
-        uint256 C = 0;
-        (R, C) = MiMC.MiMCSponge(R, C, 0);
-        R = addmod(R, uint256(_right), FIELD_SIZE);
-        (R, C) = MiMC.MiMCSponge(R, C, 0);
-        return bytes32(R);
+        uint256[2] memory inputs = [uint256(_left), uint256(_right)];
+        uint256 output = Poseidon.poseidon(inputs);
+        return bytes32(output);
     }
 
     function _insert(bytes32 _leaf) internal returns(uint32 index) {

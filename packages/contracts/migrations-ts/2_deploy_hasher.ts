@@ -1,21 +1,24 @@
 import * as path from 'path'
-import genContract from 'circomlib/src/mimcsponge_gencontract.js'
+import genContract from 'circomlib/src/poseidon_gencontract.js'
 import Artifactor from '@truffle/artifactor'
-import { MiMCContract } from '../types/truffle-contracts'
+import { PoseidonContract } from '../types/truffle-contracts'
 
 module.exports = (deployer: any) => {
     return deployer.then(async () => {
         const contractsDir = path.join(__dirname, '..', 'build/contracts')
         let artifactor = new Artifactor(contractsDir)
-        let contractName = 'MiMC'
+        let contractName = 'Poseidon'
         await artifactor
             .save({
                 contractName,
-                abi: genContract.abi,
-                unlinked_binary: genContract.createCode('mimcsponge', 220),
+                abi: genContract.generateABI(2),
+                unlinked_binary: genContract.createCode(2),
             })
             .then(async () => {
-                const hasherContract: MiMCContract = artifacts.require('MiMC')
+                //const hasherContract: MiMCContract = artifacts.require('MiMC')
+                const hasherContract: PoseidonContract = artifacts.require(
+                    'Poseidon'
+                )
                 await deployer.deploy(hasherContract)
             })
     })
