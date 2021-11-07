@@ -11,7 +11,6 @@ const BatchUpdateStateTreeVerifier = artifacts.require(
 const Cream = artifacts.require('Cream')
 const VotingToken = artifacts.require('VotingToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
-//const MiMC = artifacts.require('MiMC')
 const Poseidon = artifacts.require('Poseidon')
 
 const LEVELS = config.cream.merkleTrees
