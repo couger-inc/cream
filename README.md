@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/couger-inc/cream/workflows/cream%20contract%20test/badge.svg)](https://github.com/couger-inc/cream/actions)
 
-Confidential Reliable Ethereum Anonymous Mixer
+Zero-Knowledge Confidential Reliable Ethereum Anonymous Mixer
 
 ## Requirement
 
@@ -33,8 +33,10 @@ maci:
     messageTreeDepth: 4
     voteOptionTreeDepth: 2
 
-  chain:
-    privateKeysPath: './'
+chain:
+  privateKeysPath: './'
+
+snarkParamsPath: '../params'
 ```
 
 ### Circuit

@@ -2,7 +2,7 @@
   "private": true,
   "name": "cream",
   "version": "0.3.7",
-  "description": "C.R.E.A.M. - Confidential Reliable Ethereum Anonymous Mixer",
+  "description": "zkC.R.E.A.M. - Zero Knowledge Confidential Reliable Ethereum Anonymous Mixer",
   "scripts": {
     "build": "yarn workspaces run build",
     "build:prod": "NODE_ENV=prod yarn workspaces run build",
