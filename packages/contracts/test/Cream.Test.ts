@@ -27,7 +27,7 @@ const Cream = artifacts.require('Cream')
 const VotingToken = artifacts.require('VotingToken')
 const SignUpToken = artifacts.require('SignUpToken')
 const CreamVerifier = artifacts.require('CreamVerifier')
-const MiMC = artifacts.require('MiMC')
+const Poseidon = artifacts.require('Poseidon')
 const MACIFactory = artifacts.require('MACIFactory')
 const MACI = artifacts.require('MACI')
 const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
@@ -39,7 +39,7 @@ contract('Cream', (accounts) => {
     let cream
     let tree
     let creamVerifier
-    let mimc
+    let poseidon
     let votingToken
     let signUpToken
     let maci
@@ -64,9 +64,9 @@ contract('Cream', (accounts) => {
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
         creamVerifier = await CreamVerifier.deployed()
-        mimc = await MiMC.deployed()
+        poseidon = await Poseidon.deployed()
         votingToken = await VotingToken.deployed()
-        await Cream.link(MiMC, mimc.address)
+        await Cream.link(Poseidon.contractName, poseidon.address)
         cream = await Cream.new(
             creamVerifier.address,
             votingToken.address,
@@ -85,7 +85,8 @@ contract('Cream', (accounts) => {
         maciTx = await maciFactory.deployMaci(
             signUpGatekeeper.address,
             ConstantinitialVoiceCreditProxy.address,
-            coordinator.pubKey.asContractParam()
+            coordinator.pubKey.asContractParam(),
+            coordinatorAddress
         )
         const maciAddress = maciTx.logs[2].args[0]
         await signUpToken.transferOwnership(cream.address)

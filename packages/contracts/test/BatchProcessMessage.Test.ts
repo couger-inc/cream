@@ -32,10 +32,16 @@ const {
     getSignalByName,
     verifyBatchUstProof,
     verifyQvtProof,
+    compileAndLoadCircuitMACI,
 } = require('@cream/circuits')
+const fs = require('fs')
+const util = require('util')
+const childProcess = require('child_process')
+const exec = util.promisify(childProcess.exec)
 
 const CreamVerifier = artifacts.require('CreamVerifier')
-const MiMC = artifacts.require('MiMC')
+//const MiMC = artifacts.require('MiMC')
+const Poseidon = artifacts.require('Poseidon')
 const VotingToekn = artifacts.require('VotingToken')
 const SignUpToken = artifacts.require('SignUpToken')
 const Cream = artifacts.require('Cream')
@@ -51,7 +57,7 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
 contract('Maci(BatchProcessMessage)', (accounts) => {
     let tree
     let creamVerifier
-    let mimc
+    let poseidon
     let votingToken
     let signUpToken
     let cream
@@ -100,9 +106,9 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
         creamVerifier = await CreamVerifier.deployed()
-        mimc = await MiMC.deployed()
+        poseidon = await Poseidon.deployed()
         votingToken = await VotingToekn.deployed()
-        await Cream.link(MiMC, mimc.address)
+        await Cream.link(Poseidon.contractName, poseidon.address)
         cream = await Cream.new(
             creamVerifier.address,
             votingToken.address,
@@ -121,7 +127,8 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
         maciTx = await maciFactory.deployMaci(
             signUpGatekeeper.address,
             ConstantinitialVoiceCreditProxy.address,
-            coordinator.pubKey.asContractParam()
+            coordinator.pubKey.asContractParam(),
+            coordinatorAddress
         )
         const maciAddress = maciTx.logs[2].args[0]
         await signUpToken.transferOwnership(cream.address)
@@ -204,6 +211,27 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             })
             maciState.signUp(voter.keypair.pubKey, BigInt(BALANCE))
         }
+
+        // deploy files MACI requires for testing
+        const paramsDir = `params`
+        const srcDir = `${__dirname}/resource/${paramsDir}`
+        const destDir = `${__dirname}/../../../node_modules/maci-circuits/${paramsDir}`
+        if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir)
+        }
+        for (const x of ['batchUst', 'qvt']) {
+            fs.copyFileSync(`${srcDir}/${x}.params`, `${destDir}/${x}.params`)
+            fs.copyFileSync(`${srcDir}/${x}.wasm`, `${destDir}/${x}.wasm`)
+            fs.copyFileSync(
+                `${srcDir}/${x}Circuit.r1cs`,
+                `${destDir}/${x}Circuit.r1cs`
+            )
+        }
+
+        // install zkUtil that MACI requires for testing as well if not installed yet
+        await exec(
+            `${__dirname}/../../../packages/circuits/scripts/installZkutil.sh`
+        )
     })
 
     describe('signUpMaci', () => {
@@ -288,17 +316,18 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             }
             const contractPublicSignals = await maci.genBatchUstPublicSignals(
                 '0x' + stateRootAfter.toString(16),
-                circuitInputs['state_tree_root'].map((x) => x.toString()),
                 ecdhPubKeys.map((x) => x.asContractParam())
             )
             const {
-                circuit,
                 witness,
                 proof,
                 publicSignals,
             } = await genBatchUstProofAndPublicSignals(
                 circuitInputs,
                 config.env
+            )
+            const circuit = await compileAndLoadCircuitMACI(
+                'test/batchUpdateStateTree_test.circom'
             )
             const circuitNewStateRoot = getSignalByName(
                 circuit,
@@ -319,7 +348,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
                 config.env
             )
             assert.isTrue(isValid)
-            assert.lengthOf(publicSignals, 20)
+            assert.lengthOf(publicSignals, 16)
 
             for (let i = 0; i < publicSignals.length; i++) {
                 assert.equal(
@@ -331,7 +360,6 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
 
             await maci.batchProcessMessage(
                 '0x' + stateRootAfter.toString(16),
-                circuitInputs['state_tree_root'].map((x) => x.toString()),
                 ecdhPubKeys.map((x) => x.asContractParam()),
                 formattedProof,
                 { from: coordinatorAddress }
@@ -375,12 +403,14 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             )
             console.log('Generating proof...')
             const {
-                circuit,
                 witness,
                 proof,
                 publicSignals,
             } = await genQvtProofAndPublicSignals(circuitInputs, config.env)
 
+            const circuit = await compileAndLoadCircuitMACI(
+                'test/quadVoteTally_test.circom'
+            )
             const newResultsCommitmentOutput = getSignalByName(
                 circuit,
                 witness,

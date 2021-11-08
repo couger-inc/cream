@@ -4,11 +4,11 @@ const { MerkleTree } = require('cream-merkle-tree')
 const { revertSnapshot, takeSnapshot } = require('./TestUtil')
 
 const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock')
-const MiMC = artifacts.require('MiMC')
+const Poseidon = artifacts.require('Poseidon')
 
 contract('MerkleTreeWithHistory', (accounts) => {
     let tree
-    let mimc
+    let poseidon
     let merkleTree
     let snapshotId
     let LEVELS = config.cream.merkleTrees
@@ -16,8 +16,8 @@ contract('MerkleTreeWithHistory', (accounts) => {
 
     before(async () => {
         tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        mimc = await MiMC.deployed()
-        await MerkleTreeContract.link(MiMC, mimc.address)
+        poseidon = await Poseidon.deployed()
+        await MerkleTreeContract.link(Poseidon.contractName, poseidon.address)
         merkleTree = await MerkleTreeContract.new(LEVELS)
         snapshotId = await takeSnapshot()
     })

@@ -11,14 +11,14 @@ import {
     VotingTokenInstance,
     MACIFactoryContract,
     MACIFactoryInstance,
-    MiMCInstance,
+    PoseidonInstance,
 } from '../types/truffle-contracts'
 
 const CreamFactory: CreamFactoryContract = artifacts.require('CreamFactory')
 const CreamVerifier: CreamVerifierContract = artifacts.require('CreamVerifier')
 const VotingToken: VotingTokenContract = artifacts.require('VotingToken')
 const MACIFactory: MACIFactoryContract = artifacts.require('MACIFactory')
-const MiMC: any = artifacts.require('MiMC')
+const Poseidon: any = artifacts.require('Poseidon')
 
 module.exports = (deployer: any) => {
     deployer
@@ -26,8 +26,8 @@ module.exports = (deployer: any) => {
             const creamVerifier: CreamVerifierInstance = await CreamVerifier.deployed()
             const maciFactory: MACIFactoryInstance = await MACIFactory.deployed()
             const votingToken: VotingTokenInstance = await VotingToken.deployed()
-            const mimc: MiMCInstance = await MiMC.deployed()
-            await CreamFactory.link(MiMC, mimc.address)
+            const poseidon: PoseidonInstance = await Poseidon.deployed()
+            await CreamFactory.link(Poseidon.contractName, poseidon.address)
             await deployer.deploy(CreamFactory, maciFactory.address)
         })
         .then(async () => {

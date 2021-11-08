@@ -17,7 +17,7 @@ module.exports = (deployer: any) => {
             await artifactor
                 .save({
                     contractName,
-                    abi: genContract.abi,
+                    abi: genContract.generateABI(arg),
                     unlinked_binary: genContract.createCode(arg),
                 })
                 .then(async () => {

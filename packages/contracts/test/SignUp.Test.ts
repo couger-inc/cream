@@ -66,7 +66,8 @@ contract('Maci(SignUp)', (accounts) => {
         maciTx = await maciFactory.deployMaci(
             signUpGatekeeper.address,
             ConstantinitialVoiceCreditProxy.address,
-            coordinator.pubKey.asContractParam()
+            coordinator.pubKey.asContractParam(),
+            coordinatorAddress
         )
         const maciAddress = maciTx.logs[2].args[0]
         maci = await MACI.at(maciAddress)

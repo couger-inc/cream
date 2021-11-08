@@ -86,7 +86,8 @@ contract CreamFactory is Ownable, MACISharedObjs {
         MACI _maci = maciFactory.deployMaci(
             SignUpGatekeeper(address(sutg)),
             InitialVoiceCreditProxy(address(civcp)),
-            _coordinatorPubKey
+            _coordinatorPubKey,
+            _coordinator
         );
 
         // Link Cream and MACI

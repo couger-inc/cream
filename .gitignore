@@ -11,3 +11,6 @@ migrations
 *ABI.json
 *Networks.json
 Verifier.sol
+
+# macos generated files
+._*
