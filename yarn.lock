@@ -2406,10 +2406,10 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-cream-merkle-tree@^0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/cream-merkle-tree/-/cream-merkle-tree-0.0.9.tgz#f1a69efd3943aa52064e42b5b230efbc5af63df4"
-  integrity sha512-qO9Lggl3lYdDGR94SaPlrr5+2si1Y6AeQvpeSDDlXqR7sISbBZ6N68GMYWpQn2HqB3QA/q48DL/GEyh+iwC3qQ==
+cream-merkle-tree@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/cream-merkle-tree/-/cream-merkle-tree-0.1.1.tgz#f62032b4a3c10ce4ddfa3b13b43ae6eef6261003"
+  integrity sha512-NxOK7exfAJL0zcPIb95XprgoYezH49XA2LceutyIavgbGrPl7RR3v/VWBP7IjmZVRbdSbD03XqSX1Y1lxpU/7A==
   dependencies:
     circomlib "^0.5.2"
     typescript "^3.9.9"
@@ -5604,15 +5604,15 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-libcream@^0.1.3-4:
-  version "0.1.3-4"
-  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.3-4.tgz#1b94a2b0a59145fae699d61174b9ad231d9b480a"
-  integrity sha512-5PAHY4gr0F6d1fqx7nlrqjaSOfEH/6DgQUBhoBES5wUbAkhou7qDS7owxqCmn1n8e6nkyDFVxz82/3wI5kFotA==
+libcream@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.4.tgz#5054bf1b84a40e8030f6220924561b2309e197d2"
+  integrity sha512-MaGiL/iJjF5qZnjSfjo/hebgRJNpjxOyc6XoqsjI/WEzrUG77tjpAo4rN6hQJUeSd3JsrvFmesKZxxdDRyelcQ==
   dependencies:
     "@ethersproject/bignumber" "^5.0.14"
     axios "^0.21.1"
     circomlib "^0.5.2"
-    cream-merkle-tree "^0.0.9"
+    cream-merkle-tree "^0.1.1"
     lint-staged "^10.5.4"
     maci-crypto "^0.4.11"
     maci-domainobjs "^0.4.11"
