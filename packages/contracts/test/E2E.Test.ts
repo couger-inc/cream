@@ -6,6 +6,7 @@ const {
     toHex,
     pedersenHash,
     createMessage,
+    bnSqrt,
 } = require('libcream')
 const { genProofAndPublicSignals } = require('@cream/circuits')
 const {
@@ -48,6 +49,7 @@ contract('E2E', (accounts) => {
     let totalVotes = BigInt(0)
     let totalVoteWeight = BigInt(0)
     let tally
+    let voteRecord = new Array(RECIPIENTS.length)
 
     const BALANCE = config.maci.initialVoiceCreditBalance
     const LEVELS = config.cream.merkleTrees
@@ -112,11 +114,17 @@ contract('E2E', (accounts) => {
         // 7. transfer ownership of sign up token
         await signUpToken.transferOwnership(cream.address)
 
+        // initialize vote record
+        for (let i = 0; i < voteRecord.length; ++i) {
+            voteRecord[i] = 0
+        }
+
         // voter's action sequences
         for (let i = 0; i < batchSize; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
             const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
+            const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
             const nonce = 1
 
             const voteRecipient = i % RECIPIENTS.length // need adjustment since batch size differs from RECIPIENT size
@@ -130,6 +138,7 @@ contract('E2E', (accounts) => {
                 nonce,
                 genRandomSalt()
             )
+            voteRecord[voteRecipient] += voiceCreditsSqrtNum
 
             voters.push({
                 wallet: voter,
@@ -219,12 +228,26 @@ contract('E2E', (accounts) => {
 
     //  17. coordinator withdraw deposits and transfer to recipient
     describe('E2E', () => {
-        it('should correctly transfer voting token to recipient', async () => {
+        async function getResultsArr() {
             const hash = await cream.tallyHash()
             const result = await getDataFromIpfsHash(hash)
             const resultsArr = JSON.parse(result).results.tally.map((x) =>
                 Number(x)
             )
+            return resultsArr
+        }
+
+        it('should have processed all messages as valid messages', async () => {
+            const resultsArr = await getResultsArr()
+
+            const expected = voteRecord
+            const actual = resultsArr.slice(0, RECIPIENTS.length)
+            assert.deepEqual(actual, expected)
+        })
+
+        //  17. coordinator withdraw deposits and transfer to recipient
+        it('should correctly transfer voting token to recipient', async () => {
+            const resultsArr = await getResultsArr()
 
             for (let i = 0; i < RECIPIENTS.length; i++) {
                 // transfer tokens voted to recipient to recipient
