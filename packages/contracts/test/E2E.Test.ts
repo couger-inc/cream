@@ -117,23 +117,19 @@ contract('E2E', (accounts) => {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
             const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
-            const nonce = BigInt(1)
+            const nonce = 1
 
+            const voteRecipient = i % RECIPIENTS.length // need adjustment since batch size differs from RECIPIENT size
             const [message, encPubKey] = createMessage(
-                BigInt(i + 1),
+                i + 1,
                 userKeypair,
                 null,
                 coordinator.pubKey,
-                BigInt(i),
+                voteRecipient,
                 voiceCredits,
                 nonce,
                 genRandomSalt()
             )
-
-            // count total votes for verifying tally
-            // const voteWeight = command.newVoteWeight
-            // totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
-            // totalVotes += voteWeight
 
             voters.push({
                 wallet: voter,
@@ -226,9 +222,12 @@ contract('E2E', (accounts) => {
         it('should correctly transfer voting token to recipient', async () => {
             const hash = await cream.tallyHash()
             const result = await getDataFromIpfsHash(hash)
-            const resultsArr = JSON.parse(result).results.tally
+            const resultsArr = JSON.parse(result).results.tally.map((x) =>
+                Number(x)
+            )
 
-            for (let i = 0; i < RECIPIENTS.length && resultsArr[i] != 0; i++) {
+            for (let i = 0; i < RECIPIENTS.length; i++) {
+                // transfer tokens voted to recipient to recipient
                 const counts = resultsArr[i]
                 for (let j = 0; j < counts; j++) {
                     const tx = await cream.withdraw(i, {
@@ -237,7 +236,7 @@ contract('E2E', (accounts) => {
                     truffleAssert.eventEmitted(tx, 'Withdrawal')
                 }
 
-                // check balance
+                // check if number of token voted matches w/ recipient token balance
                 const numTokens = await votingToken.balanceOf(RECIPIENTS[i])
                 assert.equal(resultsArr[i], numTokens.toString())
             }
