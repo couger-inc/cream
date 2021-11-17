@@ -1985,22 +1985,6 @@ cipher-base@^1.0.0, cipher-base@^1.0.1, cipher-base@^1.0.3:
     inherits "^2.0.1"
     safe-buffer "^5.0.1"
 
-circom@0.5.21:
-  version "0.5.21"
-  resolved "https://registry.yarnpkg.com/circom/-/circom-0.5.21.tgz#296785665ddd43a6f369d4ee947e83ff3a9fe7e3"
-  integrity sha512-Om90wztN6Y4Gg5ks4n+iTKU/5bR1gkPyRPzEi5gtu0brbSqnKfAnYWp8d/U28h2353rj476I1KNArg/QVNzBaw==
-  dependencies:
-    chai "^4.2.0"
-    circom_runtime "0.1.4"
-    fastfile "0.0.12"
-    ffiasm "0.1.1"
-    ffjavascript "0.2.10"
-    ffwasm "0.0.7"
-    fnv-plus "^1.3.1"
-    r1csfile "0.0.14"
-    tmp-promise "^2.0.2"
-    wasmbuilder "0.0.10"
-
 circom@0.5.33:
   version "0.5.33"
   resolved "https://registry.yarnpkg.com/circom/-/circom-0.5.33.tgz#6943d5799adf5388989bfbb3ef8f502fb1b4f662"
@@ -2065,14 +2049,6 @@ circom_runtime@0.1.13:
     ffjavascript "0.2.35"
     fnv-plus "^1.3.1"
 
-circom_runtime@0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/circom_runtime/-/circom_runtime-0.1.4.tgz#eb8802f8743224ee603f70894b6f107d225463e4"
-  integrity sha512-sQWeEBD3o2jIdrKPf3VDu7DNfP+NfscYO/pxi73FE0qQW8TXTfwno8Grdl++h6OKWbzvWJdG5jQvS+WGKjpMOg==
-  dependencies:
-    ffjavascript "0.2.10"
-    fnv-plus "^1.3.1"
-
 circom_runtime@0.1.8:
   version "0.1.8"
   resolved "https://registry.yarnpkg.com/circom_runtime/-/circom_runtime-0.1.8.tgz#d967a1618fe5290849f9c0bbffb6b97b95c0f1c8"
@@ -2102,16 +2078,6 @@ circomlib@^0.5.2:
     circom "0.5.33"
     ffjavascript "0.1.0"
     web3-utils "^1.3.0"
-
-"circomlib@https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920":
-  version "0.2.3"
-  resolved "https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920"
-  dependencies:
-    blake-hash "^1.1.0"
-    blake2b "^2.1.3"
-    circom "0.5.21"
-    ffjavascript "0.1.0"
-    web3 "^1.2.6"
 
 cjs-module-lexer@^0.6.0:
   version "0.6.0"
@@ -3442,11 +3408,6 @@ fast-levenshtein@~2.0.6:
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha1-PYpcZog6FqMMqGQ+hR8Zuqd5eRc=
 
-fastfile@0.0.12:
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/fastfile/-/fastfile-0.0.12.tgz#302597fe2d0d19e1405851685a5ddce03e1dd6e8"
-  integrity sha512-0EZo2y5eW8X0oiDDRvcnufjVxlM96CQL5hvmRQtbRABWlCkH73IHwkzl0qOSdxtchaMr+0TSB7GVqaVEixRr1Q==
-
 fastfile@0.0.18:
   version "0.0.18"
   resolved "https://registry.yarnpkg.com/fastfile/-/fastfile-0.0.18.tgz#2b69bbbfd2fcccc9bc8099c27de1379b89756a4b"
@@ -3456,11 +3417,6 @@ fastfile@0.0.19:
   version "0.0.19"
   resolved "https://registry.yarnpkg.com/fastfile/-/fastfile-0.0.19.tgz#02cef9ade123b0a74adb794f4a1abcfa5719fd46"
   integrity sha512-tz9nWR5KYb6eR2odFQ7oxqEkx8F3YQZ6NBJoJR92YEG3DqYOqyxMck8PKvTVNKx3uwvOqGnLXNScnqpdHRdHGQ==
-
-fastfile@0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/fastfile/-/fastfile-0.0.7.tgz#07699d90c9bd4d6f4e24226b49029a4a72f4b739"
-  integrity sha512-Zk7sdqsV6DsN/rhjULDfCCowPiMDsziTMFicdkrKN80yybr/6YFf9H91ELXN85dVEf6EYkVR5EHkZNc0dMqZKA==
 
 fb-watchman@^2.0.0:
   version "2.0.1"
@@ -3521,15 +3477,6 @@ ffjavascript@0.2.35, ffjavascript@^0.2.30, ffjavascript@^0.2.35:
     big-integer "^1.6.48"
     wasmcurves "0.0.14"
     web-worker "^1.0.0"
-
-ffjavascript@0.2.4:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/ffjavascript/-/ffjavascript-0.2.4.tgz#97675a592517aefc1d418d491fcb3ac9447597c7"
-  integrity sha512-XFeWcjUDFPavN+DDOxhE8p5MOhZQJc9oO1Sj4ml1pyjqNhS1ujEamcjFyK0cctdnat61i7lvpTYzdtS3RYDC8w==
-  dependencies:
-    big-integer "^1.6.48"
-    wasmcurves "0.0.4"
-    worker-threads "^1.0.0"
 
 ffwasm@0.0.7:
   version "0.0.7"
@@ -5604,18 +5551,18 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-libcream@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.4.tgz#5054bf1b84a40e8030f6220924561b2309e197d2"
-  integrity sha512-MaGiL/iJjF5qZnjSfjo/hebgRJNpjxOyc6XoqsjI/WEzrUG77tjpAo4rN6hQJUeSd3JsrvFmesKZxxdDRyelcQ==
+libcream@^0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.5.tgz#f2f93de02a1acc4c5e1141503dff06284640c6e4"
+  integrity sha512-ItRIZb4NObGNrT7Ifoh/SEpdZ1D02Qx1xAUcJrBxy6IzCCphNWbsZSE8IunJzVTbCFHR/6No1GFyK0/IjMAt+A==
   dependencies:
     "@ethersproject/bignumber" "^5.0.14"
     axios "^0.21.1"
     circomlib "^0.5.2"
     cream-merkle-tree "^0.1.1"
     lint-staged "^10.5.4"
-    maci-crypto "^0.4.11"
-    maci-domainobjs "^0.4.11"
+    maci-crypto "^0.6.6"
+    maci-domainobjs "^0.6.6"
     typescript "^3.9.9"
 
 libp2p-crypto@^0.19.0:
@@ -5881,15 +5828,6 @@ maci-crypto@0.6.6:
     ethers "^4.0.45"
     ffjavascript "0.2.35"
 
-maci-crypto@^0.4.11:
-  version "0.4.11"
-  resolved "https://registry.yarnpkg.com/maci-crypto/-/maci-crypto-0.4.11.tgz#4556e0ae66ba46876a75ca998acbe6aaefafbff6"
-  integrity sha512-clmUu4OJJgm/5owZjRUqymtl3xv1hE0wCjxFSALCHw9U+BE+dBP/JZhG6M0uoyNNBV+ixY6Wfkysep0LQw8FcQ==
-  dependencies:
-    circomlib "https://github.com/iden3/circomlib.git#01da5f90dbbefeed5d78cec3b87303244338b920"
-    ethers "^4.0.45"
-    ffjavascript "0.1.0"
-
 maci-crypto@^0.6.6, maci-crypto@^0.6.7:
   version "0.6.7"
   resolved "https://registry.yarnpkg.com/maci-crypto/-/maci-crypto-0.6.7.tgz#b58bb745a0e05086c165574aa86c3a0cf196df60"
@@ -5903,11 +5841,6 @@ maci-domainobjs@0.6.6:
   version "0.6.6"
   resolved "https://registry.yarnpkg.com/maci-domainobjs/-/maci-domainobjs-0.6.6.tgz#b93d06d7223a6a9103210ccb0ed1804b6300ed7a"
   integrity sha512-hdP9cOHUXwa+kHeDKCGED5HoFSC788TlJN/g+RkNFJIhquulijxFK2BI5np/PCWCJgvFLYRO71Apij4nJyU8Pg==
-
-maci-domainobjs@^0.4.11:
-  version "0.4.11"
-  resolved "https://registry.yarnpkg.com/maci-domainobjs/-/maci-domainobjs-0.4.11.tgz#0d9a2e477ccb9c06569e426cc98ddc69e6b5542e"
-  integrity sha512-INlm1FaI/CuiQ4e9XuweRnb3Du/oLLtG+3+RcP7CO0U8Ij5KK9lx1lC5uuUoEBo/AWDPDpILyXcEunMJrgejRQ==
 
 maci-domainobjs@^0.6.6, maci-domainobjs@^0.6.7:
   version "0.6.7"
@@ -7194,14 +7127,6 @@ query-string@^5.0.1:
     decode-uri-component "^0.2.0"
     object-assign "^4.1.0"
     strict-uri-encode "^1.0.0"
-
-r1csfile@0.0.14:
-  version "0.0.14"
-  resolved "https://registry.yarnpkg.com/r1csfile/-/r1csfile-0.0.14.tgz#145d79cfb15c18ddfb0ee76f8df721eacce7b27f"
-  integrity sha512-7m4eWpnbjkwGGUaRmIAJc4w+HvaeBPJXUKHIqLkHeD9Yyjem6/EHmlgDVl+4hWNWGZqdhXuMqWSH9+O6QOXBdw==
-  dependencies:
-    fastfile "0.0.7"
-    ffjavascript "0.2.4"
 
 r1csfile@0.0.16:
   version "0.0.16"
@@ -8925,14 +8850,6 @@ wasmcurves@0.0.14:
     big-integer "^1.6.42"
     blakejs "^1.1.0"
 
-wasmcurves@0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/wasmcurves/-/wasmcurves-0.0.4.tgz#e5a21b1c8bd6dca4c35262110c9a49d4cdc9ceb2"
-  integrity sha512-c/Tob+F/7jJhep1b2qtj54r4nkGaRifNbQ1OJx8cBBFH1RlHbWIbISHWONClOxiVwy/JZOpbN4SgvSX/4lF80A==
-  dependencies:
-    big-integer "^1.6.42"
-    blakejs "^1.1.0"
-
 wasmcurves@0.0.5:
   version "0.0.5"
   resolved "https://registry.yarnpkg.com/wasmcurves/-/wasmcurves-0.0.5.tgz#d0b58e803c0b1c09c966b7dc0fad6dd405d18547"
@@ -9182,7 +9099,7 @@ web3-utils@1.3.5, web3-utils@^1.3.0:
     underscore "1.9.1"
     utf8 "3.0.0"
 
-web3@*, web3@^1.2.6:
+web3@*:
   version "1.3.5"
   resolved "https://registry.yarnpkg.com/web3/-/web3-1.3.5.tgz#ef4c3a2241fdd74f2f7794e839f30bc6f9814e46"
   integrity sha512-UyQW/MT5EIGBrXPCh/FDIaD7RtJTn5/rJUNw2FOglp0qoXnCQHNKvntiR1ylztk05fYxIF6UgsC76IrazlKJjw==
