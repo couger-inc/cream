@@ -46,9 +46,6 @@ contract('E2E', (accounts) => {
     let cream
     let maciAddress
     let maci
-    let totalVotes = BigInt(0)
-    let totalVoteWeight = BigInt(0)
-    let tally
     let voteRecord = new Array(RECIPIENTS.length)
 
     const BALANCE = config.maci.initialVoiceCreditBalance
@@ -56,10 +53,6 @@ contract('E2E', (accounts) => {
     const ZERO_VALUE = config.cream.zeroValue
     const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
     const batchSize = config.maci.messageBatchSize // 4
-    const stateTreeDepth = config.maci.merkleTrees.stateTreeDepth // 4
-    const messageTreeDepth = config.maci.merkleTrees.messageTreeDepth // 4
-    const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
-    const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
     const coordinatorEthPrivKey =
@@ -67,17 +60,9 @@ contract('E2E', (accounts) => {
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
-    const voters = []
     const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-    const maciState = new MaciState(
-        coordinator,
-        stateTreeDepth,
-        messageTreeDepth,
-        voteOptionTreeDepth,
-        voteOptionsMaxIndex
-    )
 
-    before(async () => {
+    const setupEnvironment = async () => {
         // 1. contract owner deploy maci factory
         maciFactory = await MACIFactory.deployed()
 
@@ -118,8 +103,9 @@ contract('E2E', (accounts) => {
         for (let i = 0; i < voteRecord.length; ++i) {
             voteRecord[i] = 0
         }
+    }
 
-        // voter's action sequences
+    const letAllVotersVote = async () => {
         for (let i = 0; i < batchSize; i++) {
             const voter = accounts[i + 2]
             const userKeypair = new Keypair()
@@ -139,13 +125,6 @@ contract('E2E', (accounts) => {
                 genRandomSalt()
             )
             voteRecord[voteRecipient] += voiceCreditsSqrtNum
-
-            voters.push({
-                wallet: voter,
-                keypair: userKeypair,
-                ephemeralKeypair: encPubKey,
-                message,
-            })
 
             // 8. transfer voting token to each voter
             await votingToken.giveToken(voter)
@@ -183,7 +162,6 @@ contract('E2E', (accounts) => {
             await cream.signUpMaci(userPubKey, formattedProof, ...args, {
                 from: voter,
             })
-            maciState.signUp(userKeypair.pubKey, BigInt(BALANCE))
 
             // 11. voter publish message
             await maci.publishMessage(
@@ -191,9 +169,11 @@ contract('E2E', (accounts) => {
                 encPubKey.asContractParam(),
                 { from: voter }
             )
-            maciState.publishMessage(message, encPubKey)
         }
+    }
 
+    const timeTravel2EndOfVotingPeriod = async () => {
+        // voter's action sequences
         //  12. coordinator process messages
         //  13. coordinator prove vote tally
         //  14. coordinator create tally.json from tally command
@@ -203,7 +183,9 @@ contract('E2E', (accounts) => {
 
         // end voting period
         await timeTravel(duration)
+    }
 
+    const tally = async () => {
         const tally_file = 'build/tally.json'
         let tally
         try {
@@ -224,34 +206,47 @@ contract('E2E', (accounts) => {
         await cream.publishTallyHash(tallyHash, { from: coordinatorAddress })
         //  16. owner aprove tally
         await cream.approveTally({ from: contractOwner })
+    }
+
+    before(async () => {
+        await setupEnvironment()
+        await letAllVotersVote()
+        await timeTravel2EndOfVotingPeriod()
+        await tally()
     })
 
     //  17. coordinator withdraw deposits and transfer to recipient
     describe('E2E', () => {
-        async function getResultsArr() {
+        async function getTallyResult() {
             const hash = await cream.tallyHash()
             const result = await getDataFromIpfsHash(hash)
-            const resultsArr = JSON.parse(result).results.tally.map((x) =>
+            const tallyResult = JSON.parse(result).results.tally.map((x) =>
                 Number(x)
             )
-            return resultsArr
+            return tallyResult
         }
 
+        describe('key pair change', () => {
+            it('should invalidate previous votes after key pair change', () => {})
+            it('should reject votes w/ old key after key pair change', () => {})
+            it('should accept votes w/ new key after key pair change', () => {})
+        })
+
         it('should have processed all messages as valid messages', async () => {
-            const resultsArr = await getResultsArr()
+            const tallyResult = await getTallyResult()
 
             const expected = voteRecord
-            const actual = resultsArr.slice(0, RECIPIENTS.length)
+            const actual = tallyResult.slice(0, RECIPIENTS.length)
             assert.deepEqual(actual, expected)
         })
 
         //  17. coordinator withdraw deposits and transfer to recipient
         it('should correctly transfer voting token to recipient', async () => {
-            const resultsArr = await getResultsArr()
+            const tallyResult = await getTallyResult()
 
             for (let i = 0; i < RECIPIENTS.length; i++) {
                 // transfer tokens voted to recipient to recipient
-                const counts = resultsArr[i]
+                const counts = tallyResult[i]
                 for (let j = 0; j < counts; j++) {
                     const tx = await cream.withdraw(i, {
                         from: coordinatorAddress,
@@ -261,7 +256,7 @@ contract('E2E', (accounts) => {
 
                 // check if number of token voted matches w/ recipient token balance
                 const numTokens = await votingToken.balanceOf(RECIPIENTS[i])
-                assert.equal(resultsArr[i], numTokens.toString())
+                assert.equal(tallyResult[i], numTokens.toString())
             }
         })
     })
