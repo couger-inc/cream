@@ -67,21 +67,21 @@ contract('E2E', (accounts) => {
         )
 
         const setupEnvironment = async () => {
-            // owner deploys maci factory
+            // contract owner deploys maci factory
             maciFactory = await MACIFactory.deployed()
 
-            // owner deploys cream factory
+            // contract owner deploys cream factory
             creamFactory = await CreamFactory.deployed()
 
-            // owner transfers ownership from maci factory to cream factory
+            // contract owner transfers ownership from maci factory to cream factory
             await maciFactory.transferOwnership(creamFactory.address)
 
-            // owner also deploys voting, sign up token and creamVerifier
+            // contract owner also deploys voting, sign up token and creamVerifier
             creamVerifier = await CreamVerifier.deployed()
             votingToken = await VotingToken.deployed()
             signUpToken = await SignUpToken.deployed()
 
-            // owner deploys cream from cream factory
+            // contract owner deploys cream from cream factory
             const tx = await creamFactory.createCream(
                 creamVerifier.address,
                 votingToken.address,
@@ -145,12 +145,15 @@ contract('E2E', (accounts) => {
             )
 
             // ask cream to sign up the public key to maci w/ the deposit proof
-            const args = [toHex(input.root), toHex(input.nullifierHash)]
             const voterPubKey = keypair.pubKey.asContractParam()
             const formattedProof = formatProofForVerifierContract(proof)
-            await cream.signUpMaci(voterPubKey, formattedProof, ...args, {
-                from: voter,
-            })
+            await cream.signUpMaci(
+                voterPubKey,
+                formattedProof,
+                toHex(input.root),
+                toHex(input.nullifierHash),
+                { from: voter }
+            )
         }
 
         const getVoter = (voterIndex) => {
@@ -171,7 +174,8 @@ contract('E2E', (accounts) => {
                 const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
                 const voterKeypair = voterKeypairs[i]
 
-                const voteRecipient = i % RECIPIENTS.length // need adjustment since batch size differs from RECIPIENT size
+                // need this adjustment since batch size differs from RECIPIENT size
+                const voteRecipient = i % RECIPIENTS.length
 
                 // create maci vote to voteRecipient
                 const [message, encPubKey] = createMessage(
@@ -230,7 +234,7 @@ contract('E2E', (accounts) => {
             await cream.publishTallyHash(tallyHash, {
                 from: coordinatorAddress,
             })
-            // owner approves tally
+            // contract owner approves tally
             await cream.approveTally({ from: contractOwner })
         }
 
@@ -290,7 +294,6 @@ contract('E2E', (accounts) => {
             assert.deepEqual(actual, expected)
         })
 
-        //  17. coordinator withdraw deposits and transfer to recipient
         it('should correctly transfer voting token to recipient', async () => {
             const voterKeypairs = [...Array(batchSize)].map(
                 (_) => new Keypair()
@@ -302,8 +305,9 @@ contract('E2E', (accounts) => {
 
             const tallyResult = await getTallyResult()
 
+            // coordinator withdraws deposits and transfer them to each recipient
             for (let i = 0; i < RECIPIENTS.length; i++) {
-                // transfer tokens voted to recipient currently owned by cream to recipient
+                // coordintor transfer tokens voted to recipient currently owned by cream to recipient
                 const counts = tallyResult[i]
                 for (let j = 0; j < counts; j++) {
                     const tx = await cream.withdraw(i, {
