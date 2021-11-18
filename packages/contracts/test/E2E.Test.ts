@@ -380,7 +380,7 @@ contract('E2E', (accounts) => {
 
             // coordinator withdraws deposits and transfer them to each recipient
             for (let i = 0; i < RECIPIENTS.length; i++) {
-                // coordintor transfer tokens voted to recipient currently owned by cream to recipient
+                // coordinator transfer tokens voted to recipient currently owned by cream to recipient
                 const counts = tallyResult[i]
                 for (let j = 0; j < counts; j++) {
                     const tx = await cream.withdraw(i, {
