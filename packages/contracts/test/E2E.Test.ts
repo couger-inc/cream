@@ -15,6 +15,8 @@ const {
     getIpfsHash,
     getDataFromIpfsHash,
     RECIPIENTS,
+    takeSnapshot,
+    revertSnapshot,
 } = require('./TestUtil')
 const { Keypair, Command, PrivKey } = require('maci-domainobjs')
 const { genRandomSalt } = require('maci-crypto')
@@ -37,109 +39,95 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
 )
 
 contract('E2E', (accounts) => {
-    let maciFactory
-    let creamFactory
-    let creamVerifier
-    let votingToken
-    let signUpToken
-    let creamAddress
-    let cream
-    let maciAddress
-    let maci
-    let voteRecord = new Array(RECIPIENTS.length)
+    describe('E2E', () => {
+        let maciFactory
+        let creamFactory
+        let creamVerifier
+        let votingToken
+        let signUpToken
+        let creamAddress
+        let cream
+        let maciAddress
+        let maci
+        let voteRecord = new Array(RECIPIENTS.length)
+        let afterSetupSnapshot
+        let tree
 
-    const BALANCE = config.maci.initialVoiceCreditBalance
-    const LEVELS = config.cream.merkleTrees
-    const ZERO_VALUE = config.cream.zeroValue
-    const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
-    const batchSize = config.maci.messageBatchSize // 4
-    const contractOwner = accounts[0]
-    const coordinatorAddress = accounts[1]
-    const coordinatorEthPrivKey =
-        '0xae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f'
-    const coordinator = new Keypair(
-        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
-    )
-    const tree = new MerkleTree(LEVELS, ZERO_VALUE)
-
-    const setupEnvironment = async () => {
-        // 1. contract owner deploy maci factory
-        maciFactory = await MACIFactory.deployed()
-
-        // 2. owner deploy cream factory
-        creamFactory = await CreamFactory.deployed()
-
-        // 3. owner transfer ownership from maci factory to cream factory
-        await maciFactory.transferOwnership(creamFactory.address)
-
-        // 4. coordinator provide a pubkey to owner
-
-        // 5. owner also deploy voting, sign up token and creamVerifier
-        creamVerifier = await CreamVerifier.deployed()
-        votingToken = await VotingToken.deployed()
-        signUpToken = await SignUpToken.deployed()
-
-        // 6. owner deploy cream from cream factory
-        const tx = await creamFactory.createCream(
-            creamVerifier.address,
-            votingToken.address,
-            signUpToken.address,
-            BALANCE,
-            LEVELS,
-            RECIPIENTS,
-            IPFS_HASH,
-            coordinator.pubKey.asContractParam(),
-            coordinatorAddress
+        const BALANCE = config.maci.initialVoiceCreditBalance
+        const LEVELS = config.cream.merkleTrees
+        const ZERO_VALUE = config.cream.zeroValue
+        const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
+        const batchSize = config.maci.messageBatchSize // 4
+        const contractOwner = accounts[0]
+        const coordinatorAddress = accounts[1]
+        const coordinatorEthPrivKey =
+            '0xae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f'
+        const coordinator = new Keypair(
+            new PrivKey(BigInt(config.maci.coordinatorPrivKey))
         )
-        creamAddress = tx.logs[4].args[0]
-        cream = await Cream.at(creamAddress)
-        maciAddress = await cream.maci()
-        maci = await MACI.at(maciAddress)
 
-        // 7. transfer ownership of sign up token
-        await signUpToken.transferOwnership(cream.address)
+        const setupEnvironment = async () => {
+            // owner deploys maci factory
+            maciFactory = await MACIFactory.deployed()
 
-        // initialize vote record
-        for (let i = 0; i < voteRecord.length; ++i) {
-            voteRecord[i] = 0
-        }
-    }
+            // owner deploys cream factory
+            creamFactory = await CreamFactory.deployed()
 
-    const letAllVotersVote = async () => {
-        for (let i = 0; i < batchSize; i++) {
-            const voter = accounts[i + 2]
-            const userKeypair = new Keypair()
-            const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
-            const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
-            const nonce = 1
+            // owner transfers ownership from maci factory to cream factory
+            await maciFactory.transferOwnership(creamFactory.address)
 
-            const voteRecipient = i % RECIPIENTS.length // need adjustment since batch size differs from RECIPIENT size
-            const [message, encPubKey] = createMessage(
-                i + 1,
-                userKeypair,
-                null,
-                coordinator.pubKey,
-                voteRecipient,
-                voiceCredits,
-                nonce,
-                genRandomSalt()
+            // owner also deploys voting, sign up token and creamVerifier
+            creamVerifier = await CreamVerifier.deployed()
+            votingToken = await VotingToken.deployed()
+            signUpToken = await SignUpToken.deployed()
+
+            // owner deploys cream from cream factory
+            const tx = await creamFactory.createCream(
+                creamVerifier.address,
+                votingToken.address,
+                signUpToken.address,
+                BALANCE,
+                LEVELS,
+                RECIPIENTS,
+                IPFS_HASH,
+                coordinator.pubKey.asContractParam(),
+                coordinatorAddress
             )
-            voteRecord[voteRecipient] += voiceCreditsSqrtNum
+            creamAddress = tx.logs[4].args[0]
+            cream = await Cream.at(creamAddress)
+            maciAddress = await cream.maci()
+            maci = await MACI.at(maciAddress)
 
-            // 8. transfer voting token to each voter
+            // transfer ownership of sign up token to cream
+            await signUpToken.transferOwnership(cream.address)
+        }
+
+        const resetVotes = () => {
+            tree = new MerkleTree(LEVELS, ZERO_VALUE)
+            for (let i = 0; i < voteRecord.length; ++i) {
+                voteRecord[i] = 0
+            }
+        }
+
+        const signUp2Maci = async (
+            voter, // account
+            voterIndex,
+            keypair
+        ) => {
+            // give 1 voting token to voter
             await votingToken.giveToken(voter)
             await votingToken.setApprovalForAll(creamAddress, true, {
                 from: voter,
             })
 
-            // 9. voter deposits
+            // voter send deposit the voting token to cream
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
             await cream.deposit(toHex(deposit.commitment), { from: voter })
 
-            // 10. voter sign up maci
+            // build proof that voter deposited voting token
             const root = tree.root
-            const merkleProof = tree.getPathUpdate(i)
+            const merkleProof = tree.getPathUpdate(voterIndex)
             const input = {
                 root,
                 nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
@@ -156,68 +144,87 @@ contract('E2E', (accounts) => {
                 'circuits/vote.wasm'
             )
 
+            // ask cream to sign up the public key to maci w/ the deposit proof
             const args = [toHex(input.root), toHex(input.nullifierHash)]
-            const userPubKey = userKeypair.pubKey.asContractParam()
+            const voterPubKey = keypair.pubKey.asContractParam()
             const formattedProof = formatProofForVerifierContract(proof)
-            await cream.signUpMaci(userPubKey, formattedProof, ...args, {
+            await cream.signUpMaci(voterPubKey, formattedProof, ...args, {
                 from: voter,
             })
-
-            // 11. voter publish message
-            await maci.publishMessage(
-                message.asContractParam(),
-                encPubKey.asContractParam(),
-                { from: voter }
-            )
         }
-    }
 
-    const timeTravel2EndOfVotingPeriod = async () => {
-        // voter's action sequences
-        //  12. coordinator process messages
-        //  13. coordinator prove vote tally
-        //  14. coordinator create tally.json from tally command
-        // fast forward in time
-        const duration = config.maci.signUpDurationInSeconds
-        await timeTravel(duration)
+        const letAllVotersVote = async (voterKeypairs, nonce) => {
+            for (let i = 0; i < batchSize; i++) {
+                const voter = accounts[i + 2]
+                const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
+                const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
+                const voterKeypair = voterKeypairs[i]
 
-        // end voting period
-        await timeTravel(duration)
-    }
+                const voteRecipient = i % RECIPIENTS.length // need adjustment since batch size differs from RECIPIENT size
 
-    const tally = async () => {
-        const tally_file = 'build/tally.json'
-        let tally
-        try {
-            tally = await processAndTallyWithoutProofs({
-                contract: maciAddress,
-                eth_privkey: coordinatorEthPrivKey,
-                privkey: coordinator.privKey.serialize(),
-                tally_file,
-            })
-        } finally {
-            if (fs.existsSync(tally_file)) {
-                fs.unlinkSync(tally_file)
+                // create maci vote to voteRecipient
+                const [message, encPubKey] = createMessage(
+                    i + 1,
+                    voterKeypair,
+                    null,
+                    coordinator.pubKey,
+                    voteRecipient,
+                    voiceCredits,
+                    nonce,
+                    genRandomSalt()
+                )
+                voteRecord[voteRecipient] += voiceCreditsSqrtNum
+
+                await signUp2Maci(voter, i, voterKeypair)
+
+                // voter publishes vote message to maci
+                await maci.publishMessage(
+                    message.asContractParam(),
+                    encPubKey.asContractParam(),
+                    { from: voter }
+                )
             }
         }
 
-        //  15. coordinator publish tally hash
-        const tallyHash = await getIpfsHash(JSON.stringify(tally))
-        await cream.publishTallyHash(tallyHash, { from: coordinatorAddress })
-        //  16. owner aprove tally
-        await cream.approveTally({ from: contractOwner })
-    }
+        const timeTravel2EndOfVotingPeriod = async () => {
+            const duration = config.maci.signUpDurationInSeconds
 
-    before(async () => {
-        await setupEnvironment()
-        await letAllVotersVote()
-        await timeTravel2EndOfVotingPeriod()
-        await tally()
-    })
+            // time travel to the end of sign-up period
+            await timeTravel(duration)
 
-    //  17. coordinator withdraw deposits and transfer to recipient
-    describe('E2E', () => {
-        async function getTallyResult() {
+            // time travel to the end of voting period
+            await timeTravel(duration)
+        }
+
+        const tally = async () => {
+            const tally_file = 'build/tally.json'
+            let tally
+            try {
+                //  12. coordinator process messages
+                //  13. coordinator prove vote tally
+                //  14. coordinator create tally.json from tally command
+                tally = await processAndTallyWithoutProofs({
+                    contract: maciAddress,
+                    eth_privkey: coordinatorEthPrivKey,
+                    privkey: coordinator.privKey.serialize(),
+                    tally_file,
+                })
+            } finally {
+                if (fs.existsSync(tally_file)) {
+                    fs.unlinkSync(tally_file)
+                }
+            }
+
+            // coordinator publishes tally hash
+            const tallyHash = await getIpfsHash(JSON.stringify(tally))
+            await cream.publishTallyHash(tallyHash, {
+                from: coordinatorAddress,
+            })
+            // owner approves tally
+            await cream.approveTally({ from: contractOwner })
+        }
+
+        const getTallyResult = async () => {
             const hash = await cream.tallyHash()
             const result = await getDataFromIpfsHash(hash)
             const tallyResult = JSON.parse(result).results.tally.map((x) =>
@@ -226,13 +233,46 @@ contract('E2E', (accounts) => {
             return tallyResult
         }
 
-        describe('key pair change', () => {
-            it('should invalidate previous votes after key pair change', () => {})
-            it('should reject votes w/ old key after key pair change', () => {})
-            it('should accept votes w/ new key after key pair change', () => {})
+        before(async () => {
+            await setupEnvironment()
+            afterSetupSnapshot = await takeSnapshot()
         })
 
+        beforeEach(async () => {
+            resetVotes()
+        })
+
+        afterEach(async () => {
+            await revertSnapshot(afterSetupSnapshot.result)
+            //afterSetupSnapshot = await takeSnapshot()
+        })
+
+        // describe('key pair change', () => {
+        //     beforeEach(async () => {
+        //         resetVotes()
+        //     })
+
+        //     afterEach(async () => {
+        //         await revertSnapshot(afterSetupSnapshot.result)
+        //         //afterSetupSnapshot = await takeSnapshot()
+        //     })
+        //     it('should invalidate previous votes after key pair change', () => {
+
+        //     })
+
+        //     it('should reject votes w/ old key after key pair change', () => {})
+        //     it('should accept votes w/ new key after key pair change', () => {})
+        // })
+
         it('should have processed all messages as valid messages', async () => {
+            const voterKeypairs = [...Array(batchSize)].map(
+                (_) => new Keypair()
+            )
+            const nonce = 1
+            await letAllVotersVote(voterKeypairs, nonce)
+            await timeTravel2EndOfVotingPeriod()
+            await tally()
+
             const tallyResult = await getTallyResult()
 
             const expected = voteRecord
@@ -242,10 +282,18 @@ contract('E2E', (accounts) => {
 
         //  17. coordinator withdraw deposits and transfer to recipient
         it('should correctly transfer voting token to recipient', async () => {
+            const voterKeypairs = [...Array(batchSize)].map(
+                (_) => new Keypair()
+            )
+            const nonce = 1
+            await letAllVotersVote(voterKeypairs, nonce)
+            await timeTravel2EndOfVotingPeriod()
+            await tally()
+
             const tallyResult = await getTallyResult()
 
             for (let i = 0; i < RECIPIENTS.length; i++) {
-                // transfer tokens voted to recipient to recipient
+                // transfer tokens voted to recipient currently owned by cream to recipient
                 const counts = tallyResult[i]
                 for (let j = 0; j < counts; j++) {
                     const tx = await cream.withdraw(i, {
