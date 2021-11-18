@@ -153,9 +153,20 @@ contract('E2E', (accounts) => {
             })
         }
 
+        const getVoter = (voterIndex) => {
+            return accounts[voterIndex + 2]
+        }
+
+        const letAllVoterSignUp2Maci = async (voterKeypairs) => {
+            for (let i = 0; i < batchSize; ++i) {
+                const voter = getVoter(i)
+                await signUp2Maci(voter, i, voterKeypairs[i])
+            }
+        }
+
         const letAllVotersVote = async (voterKeypairs, nonce) => {
             for (let i = 0; i < batchSize; i++) {
-                const voter = accounts[i + 2]
+                const voter = getVoter(i)
                 const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
                 const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
                 const voterKeypair = voterKeypairs[i]
@@ -174,8 +185,6 @@ contract('E2E', (accounts) => {
                     genRandomSalt()
                 )
                 voteRecord[voteRecipient] += voiceCreditsSqrtNum
-
-                await signUp2Maci(voter, i, voterKeypair)
 
                 // voter publishes vote message to maci
                 await maci.publishMessage(
@@ -200,9 +209,10 @@ contract('E2E', (accounts) => {
             const tally_file = 'build/tally.json'
             let tally
             try {
-                //  12. coordinator process messages
-                //  13. coordinator prove vote tally
-                //  14. coordinator create tally.json from tally command
+                // coordinator
+                // - processes messages
+                // - proves vote tally
+                // - create tally result
                 tally = await processAndTallyWithoutProofs({
                     contract: maciAddress,
                     eth_privkey: coordinatorEthPrivKey,
@@ -268,8 +278,8 @@ contract('E2E', (accounts) => {
             const voterKeypairs = [...Array(batchSize)].map(
                 (_) => new Keypair()
             )
-            const nonce = 1
-            await letAllVotersVote(voterKeypairs, nonce)
+            await letAllVoterSignUp2Maci(voterKeypairs)
+            await letAllVotersVote(voterKeypairs, 1)
             await timeTravel2EndOfVotingPeriod()
             await tally()
 
@@ -285,8 +295,8 @@ contract('E2E', (accounts) => {
             const voterKeypairs = [...Array(batchSize)].map(
                 (_) => new Keypair()
             )
-            const nonce = 1
-            await letAllVotersVote(voterKeypairs, nonce)
+            await letAllVoterSignUp2Maci(voterKeypairs)
+            await letAllVotersVote(voterKeypairs, 1)
             await timeTravel2EndOfVotingPeriod()
             await tally()
 
