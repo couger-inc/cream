@@ -39,7 +39,7 @@ const ConstantInitialVoiceCreditProxy = artifacts.require(
 )
 
 contract('E2E', (accounts) => {
-    describe('E2E', () => {
+    describe('End-to-end tests', () => {
         let maciFactory
         let creamFactory
         let creamVerifier
@@ -65,6 +65,8 @@ contract('E2E', (accounts) => {
         const coordinator = new Keypair(
             new PrivKey(BigInt(config.maci.coordinatorPrivKey))
         )
+        const voiceCredit_1 = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
+        const voiceCredit_2 = 4 // bnSqrt(BigNumber.from(4)) = 0x02, BigNumber
 
         const setupEnvironment = async () => {
             // contract owner deploys maci factory
@@ -76,7 +78,7 @@ contract('E2E', (accounts) => {
             // contract owner transfers ownership from maci factory to cream factory
             await maciFactory.transferOwnership(creamFactory.address)
 
-            // contract owner also deploys voting, sign up token and creamVerifier
+            // contract owner deploys voting, sign-up token and creamVerifier
             creamVerifier = await CreamVerifier.deployed()
             votingToken = await VotingToken.deployed()
             signUpToken = await SignUpToken.deployed()
@@ -109,23 +111,19 @@ contract('E2E', (accounts) => {
             }
         }
 
-        const signUp2Maci = async (
-            voter, // account
-            voterIndex,
-            keypair
-        ) => {
+        const signUp2Maci = async (voter, voterIndex, keypair) => {
             // give 1 voting token to voter
             await votingToken.giveToken(voter)
             await votingToken.setApprovalForAll(creamAddress, true, {
                 from: voter,
             })
 
-            // voter send deposit the voting token to cream
+            // voter sends deposit the voting token to cream
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             tree.insert(deposit.commitment)
             await cream.deposit(toHex(deposit.commitment), { from: voter })
 
-            // build proof that voter deposited voting token
+            // build proof that voter deposited the voting token
             const root = tree.root
             const merkleProof = tree.getPathUpdate(voterIndex)
             const input = {
@@ -144,7 +142,7 @@ contract('E2E', (accounts) => {
                 'circuits/vote.wasm'
             )
 
-            // ask cream to sign up the public key to maci w/ the deposit proof
+            // ask cream to sign up to maci w/ the public key if the deposit proof is valid
             const voterPubKey = keypair.pubKey.asContractParam()
             const formattedProof = formatProofForVerifierContract(proof)
             await cream.signUpMaci(
@@ -167,24 +165,32 @@ contract('E2E', (accounts) => {
             }
         }
 
-        const letAllVotersVote = async (voterKeypairs, nonce) => {
+        const letAllVotersVote = async (
+            voterKeypairs,
+            voiceCredits,
+            nonce,
+            newVoterKeypairs
+        ) => {
             for (let i = 0; i < batchSize; i++) {
                 const voter = getVoter(i)
-                const voiceCredits = BigNumber.from(2) // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
-                const voiceCreditsSqrtNum = bnSqrt(voiceCredits).toNumber()
+                const voiceCreditsBN = BigNumber.from(voiceCredits)
+                const voiceCreditsSqrtNum = bnSqrt(voiceCreditsBN).toNumber()
                 const voterKeypair = voterKeypairs[i]
+                const newVoterKeypair = newVoterKeypairs
+                    ? newVoterKeypairs[i]
+                    : undefined
 
-                // need this adjustment since batch size differs from RECIPIENT size
+                // need this adjustment since batch size is bigger than the RECIPIENT size
                 const voteRecipient = i % RECIPIENTS.length
 
-                // create maci vote to voteRecipient
+                // create maci message to vote to voteRecipient
                 const [message, encPubKey] = createMessage(
                     i + 1,
                     voterKeypair,
-                    null,
+                    newVoterKeypair,
                     coordinator.pubKey,
                     voteRecipient,
-                    voiceCredits,
+                    voiceCreditsBN,
                     nonce,
                     genRandomSalt()
                 )
@@ -258,35 +264,103 @@ contract('E2E', (accounts) => {
 
         afterEach(async () => {
             await revertSnapshot(afterSetupSnapshot.result)
-            //afterSetupSnapshot = await takeSnapshot()
+            afterSetupSnapshot = await takeSnapshot()
         })
 
-        // describe('key pair change', () => {
-        //     beforeEach(async () => {
-        //         resetVotes()
-        //     })
+        describe('Chainging key pair', () => {
+            it('should ignore overriding message w/ old key pair', async () => {
+                const voterKeypairs = [...Array(batchSize)].map(
+                    (_) => new Keypair()
+                )
+                await letAllVoterSignUp2Maci(voterKeypairs)
 
-        //     afterEach(async () => {
-        //         await revertSnapshot(afterSetupSnapshot.result)
-        //         //afterSetupSnapshot = await takeSnapshot()
-        //     })
-        //     it('should invalidate previous votes after key pair change', () => {
+                // 1. vote 1 voice credit w/ original key pair
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_1,
+                    3,
+                    undefined
+                )
 
-        //     })
+                const newVoterKeypairs = [...Array(batchSize)].map(
+                    (_) => new Keypair()
+                )
+                // 2. vote 1 voice credit w/ new key pair
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_1,
+                    2,
+                    newVoterKeypairs
+                )
 
-        //     it('should reject votes w/ old key after key pair change', () => {})
-        //     it('should accept votes w/ new key after key pair change', () => {})
-        // })
+                // 3. vote 2 voice credits w/ original currently invalid key pair
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_2,
+                    1,
+                    undefined
+                )
+
+                await timeTravel2EndOfVotingPeriod()
+                await tally()
+                const tallyResult = await getTallyResult()
+
+                const expected = [2, 1, 1] //  3rd vote should have been rejected
+                const actual = tallyResult.slice(0, RECIPIENTS.length)
+                assert.deepEqual(actual, expected)
+            })
+
+            it('should accept overriding message w/ current key pair', async () => {
+                const voterKeypairs = [...Array(batchSize)].map(
+                    (_) => new Keypair()
+                )
+                await letAllVoterSignUp2Maci(voterKeypairs)
+
+                // 1. vote 1 voice credit w/ original key pair
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_1,
+                    3,
+                    undefined
+                )
+
+                const newVoterKeypairs = [...Array(batchSize)].map(
+                    (_) => new Keypair()
+                )
+                // 2. vote 1 voice credit w/ new key pair
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_1,
+                    2,
+                    newVoterKeypairs
+                )
+
+                // 3. vote 2 voice credit w/ current-valid key pair to override the previous vote
+                await letAllVotersVote(
+                    voterKeypairs,
+                    voiceCredit_2,
+                    1,
+                    newVoterKeypairs
+                )
+
+                await timeTravel2EndOfVotingPeriod()
+                await tally()
+                const tallyResult = await getTallyResult()
+
+                const expected = [4, 2, 2] // 3rd vote should have been accepted
+                const actual = tallyResult.slice(0, RECIPIENTS.length)
+                assert.deepEqual(actual, expected)
+            })
+        })
 
         it('should have processed all messages as valid messages', async () => {
             const voterKeypairs = [...Array(batchSize)].map(
                 (_) => new Keypair()
             )
             await letAllVoterSignUp2Maci(voterKeypairs)
-            await letAllVotersVote(voterKeypairs, 1)
+            await letAllVotersVote(voterKeypairs, voiceCredit_1, 1, undefined)
             await timeTravel2EndOfVotingPeriod()
             await tally()
-
             const tallyResult = await getTallyResult()
 
             const expected = voteRecord
@@ -299,10 +373,9 @@ contract('E2E', (accounts) => {
                 (_) => new Keypair()
             )
             await letAllVoterSignUp2Maci(voterKeypairs)
-            await letAllVotersVote(voterKeypairs, 1)
+            await letAllVotersVote(voterKeypairs, voiceCredit_1, 1, undefined)
             await timeTravel2EndOfVotingPeriod()
             await tally()
-
             const tallyResult = await getTallyResult()
 
             // coordinator withdraws deposits and transfer them to each recipient
