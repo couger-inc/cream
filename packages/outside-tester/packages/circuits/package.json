@@ -1,0 +1,49 @@
+{
+  "private": true,
+  "name": "@cream/circuits",
+  "version": "0.3.4",
+  "description": "",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc && yarn setup",
+    "clean": "rm -rf build",
+    "watch": "tsc --watch",
+    "setup": "./scripts/buildSnarks.sh",
+    "lint-staged": "lint-staged",
+    "test": "jest",
+    "test:merkleTree": "jest MerkleTree.test.ts",
+    "test:hasher": "jest Hasher.test.ts",
+    "test:vote": "jest Vote.test.ts"
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "semi": false,
+    "singleQuote": true
+  },
+  "lint-staged": {
+    "*.{js,ts,json}": "prettier --write ."
+  },
+  "author": "Kazuaki Ishiguro",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^26.0.20",
+    "jest": "^26.1.0",
+    "lint-staged": "^12.1.4",
+    "prettier": "^2.5.1",
+    "ts-jest": "^26.5.2",
+    "typescript": "^4.5.4"
+  },
+  "dependencies": {
+    "@cream/config": "^0.3.4",
+    "circom": "^0.5.27",
+    "circomlib": "^0.5.2",
+    "cream-merkle-tree": "^0.1.1",
+    "ffjavascript": "^0.2.35",
+    "libcream": "^0.1.5",
+    "maci-circuits": "1.0.2",
+    "maci-cli": "1.0.2",
+    "snarkjs": "^0.3.34",
+    "web3-utils": "^1.3.0"
+  }
+}

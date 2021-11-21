@@ -1,0 +1,9 @@
+{
+	"npmClient": "yarn",
+  "packages": [
+    "packages/circuits",
+    "packages/config",
+    "packages/contracts"
+  ],
+  "version": "0.0.0"
+}

@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
-    "lib": ["ES2018", "DOM"],
-    "module": "CommonJs",
-    "moduleResolution": "node",
+    "target": "es2018",
+    "module": "commonjs",
     "strict": true,
-    "target": "ES2018",
-    "sourceMap": true,
     "esModuleInterop": true,
-    "noImplicitAny": false,
-    "skipLibCheck": true
-  }
+    "outDir": "dist",
+    "noImplicitAny": true
+  },
+  "include": ["./scripts", "./deploy", "./test", "./typechain"],
+  "files": ["./hardhat.config.ts"]
 }

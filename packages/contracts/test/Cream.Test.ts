@@ -1,851 +1,960 @@
-const { toBN, randomHex } = require('web3-utils')
-const { config } = require('@cream/config')
-const { Keypair, PrivKey } = require('maci-domainobjs')
-const { MerkleTree } = require('cream-merkle-tree')
+import 'hardhat-deploy' // need this for ambient module declarations
+import { config } from '@cream/config'
+import hre from 'hardhat'
+import { expect } from 'chai'
+import { Keypair, PrivKey } from 'maci-domainobjs'
+import {
+  buildMaciProof,
+  getUnnamedAccounts,
+  extractEvents,
+  extractSingleEventArg1,
+  expectSingleEvent,
+  coordinatorEdDSAKeypair,
+  LEVELS,
+  getNextBlockTimestamp,
+  setNextBlockTimestamp,
+  buildLevel3LocalMerkleTree,
+  buildProofWithLevel3VoteCircuit,
+} from './TestUtil'
+import { Contract, ContractFactory } from '@ethersproject/contracts'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers'
+import { toBN, randomHex } from 'web3-utils'
+
 const {
-    formatProofForVerifierContract,
-    revertSnapshot,
-    takeSnapshot,
-    RECIPIENTS,
-} = require('./TestUtil')
-const truffleAssert = require('truffle-assertions')
-const {
-    genProofAndPublicSignals,
-    snarkVerify,
-    stringifyBigInts,
+  snarkVerify,
+  stringifyBigInts,
 } = require('@cream/circuits')
 const {
-    bigInt,
-    toHex,
-    createDeposit,
-    createMessage,
-    pedersenHash,
-    rbigInt,
+  bigInt,
+  toHex,
+  createDeposit,
+  createMessage,
+  pedersenHash,
+  rbigInt,
 } = require('libcream')
 
-const Cream = artifacts.require('Cream')
-const VotingToken = artifacts.require('VotingToken')
-const SignUpToken = artifacts.require('SignUpToken')
-const CreamVerifier = artifacts.require('CreamVerifier')
-const Poseidon = artifacts.require('Poseidon')
-const MACIFactory = artifacts.require('MACIFactory')
-const MACI = artifacts.require('MACI')
-const SignUpTokenGatekeeper = artifacts.require('SignUpTokenGatekeeper')
-const ConstantInitialVoiceCreditProxy = artifacts.require(
-    'ConstantInitialVoiceCreditProxy'
-)
+describe('Cream', () => {
+  const signUpDuration = config.maci.signUpDurationInSeconds
+  const votingDuration = config.maci.votingDurationInSeconds
 
-contract('Cream', (accounts) => {
-    let cream
-    let tree
-    let creamVerifier
-    let poseidon
-    let votingToken
-    let signUpToken
-    let maci
-    let maciFactory
-    let maciTx
-    let snapshotId
+  const ethers = hre.ethers
+  const deployments = hre.deployments
 
-    const LEVELS = config.cream.merkleTrees
-    const ZERO_VALUE = config.cream.zeroValue
-    const contractOwner = accounts[0]
-    const voter = accounts[1]
-    const badUser = accounts[2]
-    const coordinatorAddress = accounts[3]
-    const voter2 = accounts[4]
-    const coordinator = new Keypair(
-        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+  const setupTest = deployments.createFixture(async () => {
+    await deployments.fixture()
+
+    const poseidon = await ethers.getContract('Poseidon')
+    const poseidonT3 = await ethers.getContract('PoseidonT3')
+    const poseidonT4 = await ethers.getContract('PoseidonT4')
+    const poseidonT5 = await ethers.getContract('PoseidonT5')
+    const poseidonT6 = await ethers.getContract('PoseidonT6')
+    const creamVerifier = await ethers.getContract('CreamVerifier')
+    const votingToken = await ethers.getContract('VotingToken')
+    const maciFactory = await ethers.getContract('MACIFactory')
+
+    const [
+      contractOwner,
+      coordinator,
+      voter,
+      voter2,
+      badUser,
+      recipient1,
+      recipient2,
+      recipient3,
+    ] = await getUnnamedAccounts(hre)
+    const recipients = [
+      recipient1.address,
+      recipient2.address,
+      recipient3.address,
+    ]
+
+    const Cream = await hre.ethers.getContractFactory('Cream', {
+      libraries: {
+        Poseidon: poseidon.address,
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+      signer: contractOwner,
+    })
+
+    const cream = await Cream.deploy(
+      creamVerifier.address,
+      votingToken.address,
+      3,  // LEVELS
+      recipients,
+      coordinator.address,
+      config.maci.signUpDurationInSeconds,
+      config.maci.votingDurationInSeconds
     )
 
-    // recipient index
-    let recipient = 0
+    const SignUpTokenGatekeeper = await ethers.getContractFactory(
+      'SignUpTokenGatekeeper'
+    )
+    const signUpToken = await ethers.getContract('SignUpToken')
+    const signUpTokenGatekeeper = await SignUpTokenGatekeeper.deploy(
+      signUpToken.address
+    )
+
+    const ConstantInitialVoiceCreditProxy = await ethers.getContractFactory(
+      'ConstantInitialVoiceCreditProxy'
+    )
+    const constantInitialVoiceCreditProxy =
+      await ConstantInitialVoiceCreditProxy.deploy(
+        config.maci.initialVoiceCreditBalance
+      )
+
+    const deployMaciTx = await maciFactory.deployMaci(
+      signUpTokenGatekeeper.address,
+      constantInitialVoiceCreditProxy.address,
+      coordinatorEdDSAKeypair.pubKey.asContractParam()
+    )
+    const maciAddr = await extractSingleEventArg1(deployMaciTx, 'MaciDeployed')
+    const MACI = await ethers.getContractFactory('MACI', {
+      libraries: {
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+    const maci = await MACI.attach(maciAddr)
+
+    await signUpToken.transferOwnership(cream.address)
+    await cream.setMaci(maci.address, signUpToken.address)
+
+    const CreamVerifier = await ethers.getContractFactory('CreamVerifier')
+
+    return {
+      signers: {
+        contractOwner,
+        coordinator,
+        voter,
+        voter2,
+        badUser,
+      },
+      recipients,
+      cream,
+      Cream,
+      maci,
+      votingToken,
+      creamVerifier,
+      CreamVerifier,
+      signUpToken,
+    }
+  })
+
+  beforeEach(async () => {
+    const { cream, votingToken, signers } = await setupTest()
+    await votingToken.giveToken(signers.voter.address)
+    await votingToken
+      .connect(signers.voter)
+      .setApprovalForAll(cream.address, true)
+  })
+
+  describe('initialize', () => {
+    let cream: Contract
+    let votingToken: Contract
+    let CreamVerifier: ContractFactory
+    let signers: { [name: string]: SignerWithAddress }
+    let recipients: string[]
 
     before(async () => {
-        tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        creamVerifier = await CreamVerifier.deployed()
-        poseidon = await Poseidon.deployed()
-        votingToken = await VotingToken.deployed()
-        await Cream.link(Poseidon.contractName, poseidon.address)
-        cream = await Cream.new(
-            creamVerifier.address,
-            votingToken.address,
-            LEVELS,
-            RECIPIENTS,
-            coordinatorAddress
-        )
-        maciFactory = await MACIFactory.deployed()
-        signUpToken = await SignUpToken.deployed()
-        const signUpGatekeeper = await SignUpTokenGatekeeper.new(
-            signUpToken.address
-        )
-        const ConstantinitialVoiceCreditProxy = await ConstantInitialVoiceCreditProxy.new(
-            config.maci.initialVoiceCreditBalance
-        )
-        maciTx = await maciFactory.deployMaci(
-            signUpGatekeeper.address,
-            ConstantinitialVoiceCreditProxy.address,
-            coordinator.pubKey.asContractParam(),
-            coordinatorAddress
-        )
-        const maciAddress = maciTx.logs[2].args[0]
-        await signUpToken.transferOwnership(cream.address)
-        await cream.setMaci(maciAddress, signUpToken.address, {
-            from: contractOwner,
-        })
-        maci = await MACI.at(maciAddress)
-        snapshotId = await takeSnapshot()
+      const {
+        votingToken: _votingToken,
+        cream: _cream,
+        creamVerifier: _creamVerifier,
+        CreamVerifier: _CreamVerifier,
+        signers: _signers,
+        recipients: _recipients,
+      } = await setupTest()
+
+      votingToken = _votingToken
+      cream = _cream
+      CreamVerifier = _CreamVerifier
+      signers = _signers
+      recipients = _recipients
     })
+
+    it('should return correct votingToken address', async () => {
+      const tokenAddress = await cream.votingToken.call()
+      expect(tokenAddress).to.equal(votingToken.address)
+    })
+
+    it('should return correct current token supply amount', async () => {
+      const crrSupply = await votingToken.getCurrentSupply()
+      expect(crrSupply).to.equal(2)
+    })
+
+    it('should return corret token owner address', async () => {
+      const ownerOfToken1 = await votingToken.ownerOf(1)
+      expect(ownerOfToken1).to.equal(signers.voter.address)
+    })
+
+    it('should return correct recipient address', async () => {
+      for (let i = 0; i < recipients.length; ++i) {
+        expect(await cream.recipients(i)).to.equal(recipients[i])
+      }
+    })
+
+    it('should be able to update verifier contract by owner', async () => {
+      const oldVerifier = await cream.verifier()
+      const newVerifier = await CreamVerifier.deploy()
+
+      await cream.updateVerifier(newVerifier.address)
+      const currVerifier = await cream.verifier()
+
+      expect(oldVerifier).to.not.equal(currVerifier)
+    })
+
+    it('should prevent update verifier contract by non-owner', async () => {
+      const newVerifier = await CreamVerifier.deploy()
+      await expect(
+        cream.connect(signers.voter).updateVerifier(newVerifier.address)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+    })
+  })
+
+  describe('deposit', () => {
+    let cream: Contract
+    let Cream: ContractFactory
+    let votingToken: Contract
+    let creamVerifier: Contract
+    let signers: { [name: string]: SignerWithAddress }
+    let recipients: string[]
+
+    before(async () => {
+      const {
+        votingToken: _votingToken,
+        cream: _cream,
+        Cream: _Cream,
+        creamVerifier: _creamVerifier,
+        signers: _signers,
+        recipients: _recipients,
+      } = await setupTest()
+
+      votingToken = _votingToken
+      cream = _cream
+      Cream = _Cream
+      creamVerifier = _creamVerifier
+      signers = _signers
+      recipients = _recipients
+    })
+
+    it('should Fail deposit before calling setMaci()', async () => {
+      const newCream = await Cream.deploy(
+        creamVerifier.address,
+        votingToken.address,
+        LEVELS,
+        recipients,
+        signers.coordinator.address,
+        signUpDuration,
+        votingDuration
+      )
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+
+      await expect(
+        newCream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      ).to.be.revertedWith('MACI contract have not set yet')
+    })
+
+    it('should correctly emit event', async () => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await expect(
+        cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      ).to.emit(cream, 'Deposit')
+    })
+
+    it('should return correct index', async () => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      const tx = await cream
+        .connect(signers.voter)
+        .deposit(toHex(deposit.commitment))
+      const events = await extractEvents(tx)
+      expect(events.length).to.equal(1)
+      expect(events[0].name).to.equal('Deposit')
+      expect(events[0].args.length).to.equal(3)
+      expect(events[0].args[1]).to.equal(0)
+    })
+
+    it('should be able to find deposit event from commitment', async () => {
+      const deposit1 = createDeposit(rbigInt(31), rbigInt(31))
+      const tx1 = await cream
+        .connect(signers.voter)
+        .deposit(toHex(deposit1.commitment))
+
+      // voter 2 deposit
+      await votingToken.giveToken(signers.voter2.address)
+      await votingToken
+        .connect(signers.voter2)
+        .setApprovalForAll(cream.address, true)
+      const deposit2 = createDeposit(rbigInt(31), rbigInt(31))
+      const tx2 = await cream
+        .connect(signers.voter2)
+        .deposit(toHex(deposit2.commitment))
+
+      // TODO : load `gemerateMerkleProof` function from cream-lib
+      const eventsTx1 = await extractEvents(tx1)
+      const eventsTx2 = await extractEvents(tx2)
+      const events = eventsTx1.concat(eventsTx2)
+
+      const eventWithDeposit1Commitment = events.find(
+        (x) => bigInt(x.args[0]) === deposit1.commitment
+      )
+      expect(eventWithDeposit1Commitment).to.be.not.undefined
+      // leaf index should be 0
+      expect(eventWithDeposit1Commitment!.args[1]).to.equal(0)
+
+      const eventWithDeposit2Commitment = events.find(
+        (x) => bigInt(x.args[0]) === deposit2.commitment
+      )
+      expect(eventWithDeposit2Commitment).to.be.not.undefined
+      // leaf index should be 1
+      expect(eventWithDeposit2Commitment!.args[1]).to.equal(1)
+    })
+
+    it('should throw an error for non-token holder', async () => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await expect(
+        cream.connect(signers.badUser).deposit(toHex(deposit.commitment))
+      ).to.be.revertedWith('Sender does not own appropreate amount of token')
+    })
+
+    // voter and bad user collude pattern
+    it('should throw an error for more than two tokens holder', async () => {
+      const badUser = signers.badUser
+      const voter = signers.voter
+      await votingToken.giveToken(badUser.address)
+      await votingToken.connect(badUser).setApprovalForAll(cream.address, true)
+      await votingToken.connect(voter).setApprovalForAll(badUser.address, true)
+      await votingToken
+        .connect(voter)
+      ['safeTransferFrom(address,address,uint256)'](
+        voter.address,
+        badUser.address,
+        1
+      )
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await expect(
+        cream.connect(badUser).deposit(toHex(deposit.commitment))
+      ).to.be.revertedWith('Sender does not own appropreate amount of token')
+
+      const balance = await votingToken.balanceOf(badUser.address)
+      expect(balance).to.equal(2)
+    })
+
+    it('should throw an error for same commitment submittion', async () => {
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      await expect(
+        cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      ).to.be.revertedWith('Already submitted')
+    })
+
+    // TODO: add isBeforeVotingDeadline test
+  })
+
+  describe('snark proof verification on js side', () => {
+
+    it('should detect tampering', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: deposit.nullifierHash,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof, publicSignals } = await buildProofWithLevel3VoteCircuit(input)
+
+      let result = await snarkVerify(proof, publicSignals)
+      expect(result).to.equal(true)
+
+      /* fake public signal */
+      publicSignals[0] =
+        '133792158246920651341275668520530514036799294649489851421007411546007850802'
+      result = await snarkVerify(proof, publicSignals)
+      expect(result).to.equal(false)
+    })
+  })
+
+  describe('signUpMaci', () => {
+    let cream: Contract
+    let signUpToken: Contract
+    let signers: { [name: string]: SignerWithAddress }
+
+    before(async () => {
+      const {
+        cream: _cream,
+        signers: _signers,
+        signUpToken: _signUpToken,
+      } = await setupTest()
+
+      cream = _cream
+      signUpToken = _signUpToken
+      signers = _signers
+    })
+
+    const userKeypair = new Keypair()
+
+    it('should correctly sign up to maci with SignUpToken', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      const tx = await cream
+        .connect(signers.voter)
+        .signUpMaci(
+          userPubKey,
+          formattedProof,
+          toHex(input.root),
+          toHex(input.nullifierHash),
+        )
+      const receipt = await tx.wait()
+      expect(receipt.status).to.equal(1) // 1 means true
+
+      const tokenOwnerAddress = await signUpToken.ownerOf(1)
+      expect(tokenOwnerAddress).to.equal(signers.voter.address)
+    })
+
+    it('should fail signUp with same proof', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      await cream.signUpMaci(
+        userPubKey,
+        formattedProof,
+        toHex(input.root),
+        toHex(input.nullifierHash),
+      )
+      await expect(
+        cream.signUpMaci(
+          userPubKey,
+          formattedProof,
+          toHex(input.root),
+          toHex(input.nullifierHash),
+        )
+      ).to.be.revertedWith('The nullifier Has Been Already Spent')
+    })
+
+    it('should prevent double spent with overflow', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const args = [
+        toHex(input.root),
+        toHex(
+          toBN(stringifyBigInts(input.nullifierHash)).add(
+            toBN(
+              '21888242871839275222246405745257275088548364400416034343698204186575808495617'
+            )
+          )
+        ),
+      ]
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      await expect(
+        cream.signUpMaci(userPubKey, formattedProof, ...args)
+      ).to.be.revertedWith('verifier-gte-snark-scalar-field')
+    })
+
+    it('should throw for corrupted merkle tree root', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const fakeRandomRoot = randomHex(32)
+      const args = [toHex(fakeRandomRoot), toHex(input.nullifierHash)]
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      await expect(
+        cream.signUpMaci(userPubKey, formattedProof, ...args)
+      ).to.be.revertedWith('Cannot find your merkle root')
+    })
+
+    it('should reject tampered public input on contract side', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      // Use commitment as nullifierHash
+      const args = [toHex(input.root), toHex(deposit.commitment)]
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      await expect(
+        cream.signUpMaci(userPubKey, formattedProof, ...args)
+      ).to.be.revertedWith('Invalid deposit proof')
+    })
+
+    it('should reject after sign-up period is passed', async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const args = [toHex(input.root), toHex(input.nullifierHash)]
+
+      const userPubKey = userKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      const duration = config.maci.signUpDurationInSeconds + 1
+      const timestamp = (await getNextBlockTimestamp()) + duration
+      await setNextBlockTimestamp(timestamp)
+
+      await expect(
+        cream.signUpMaci(userPubKey, formattedProof, ...args)
+      ).to.be.revertedWith('the sign-up period has passed')
+    })
+  })
+
+  describe('publishMessage', () => {
+    let cream: Contract
+    let maci: Contract
+    let signers: { [name: string]: SignerWithAddress }
+
+    before(async () => {
+      const {
+        cream: _cream,
+        maci: _maci,
+        signers: _signers,
+      } = await setupTest()
+
+      cream = _cream
+      maci = _maci
+      signers = _signers
+    })
+
+    let localMerkleTree
+    let signUpTx
+    let userEdDSAKeypair: any
 
     beforeEach(async () => {
-        await votingToken.giveToken(voter)
-        await votingToken.setApprovalForAll(cream.address, true, {
-            from: voter,
-        })
+      userEdDSAKeypair = new Keypair()
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      // Do signUpMaci process
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const userPubKey = userEdDSAKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+
+      signUpTx = await cream.signUpMaci(
+        userPubKey,
+        formattedProof,
+        toHex(input.root),
+        toHex(input.nullifierHash),
+      )
     })
 
-    describe('initialize', () => {
-        it('should return correct votingToken address', async () => {
-            const tokenAddress = await cream.votingToken.call()
-            assert.equal(tokenAddress, votingToken.address)
-        })
+    it('should correctly publishMessage', async () => {
+      const userStateIndex = 1
+      const recipientIndex = 0
+      const nonce = 1
+      const [message, encPubKey] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        null,
+        coordinatorEdDSAKeypair.pubKey,
+        recipientIndex,
+        null,
+        0,
+        nonce
+      )
 
-        it('should return correct current token supply amount', async () => {
-            const crrSupply = await votingToken.getCurrentSupply()
-            assert.equal(crrSupply.toString(), 2)
-        })
-
-        it('should return corret token owner address', async () => {
-            const ownerOfToken1 = await votingToken.ownerOf(1)
-            assert.equal(ownerOfToken1, voter)
-        })
-
-        it('should return correct recipient address', async () => {
-            const expected = RECIPIENTS[0]
-            const returned = await cream.recipients(0)
-            assert.equal(expected, returned)
-        })
-
-        it('should be able to update verifier contract by owner', async () => {
-            const oldVerifier = await cream.verifier()
-            const newVerifier = await CreamVerifier.new()
-            await cream.updateVerifier(newVerifier.address)
-            const result = await cream.verifier()
-            assert.notEqual(oldVerifier, result)
-        })
-
-        it('should prevent update verifier contract by non-owner', async () => {
-            const newVerifier = await CreamVerifier.new()
-            try {
-                await cream.updateVerifier(newVerifier.address, {
-                    from: voter,
-                })
-            } catch (error) {
-                assert.equal(error.reason, 'Ownable: caller is not the owner')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
+      const pollAddress = await maci.getPoll(0)
+      const poll = await ethers.getContractAt('Poll', pollAddress)
+      const tx = await poll.publishMessage(
+        message.asContractParam(),
+        encPubKey.asContractParam()
+      )
+      await expectSingleEvent(tx, 'PublishMessage')
     })
 
-    describe('deposit', () => {
-        it('should Fail deposit before calling setMaci()', async () => {
-            const newCream = await Cream.new(
-                creamVerifier.address,
-                votingToken.address,
-                LEVELS,
-                RECIPIENTS,
-                coordinatorAddress
-            )
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
+    it('should correctly publish key change message', async () => {
+      const newUserEdDSAKeyPair = new Keypair()
+      const userStateIndex = 1
+      const nonce = 1
+      const [message, encPubKey] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        newUserEdDSAKeyPair,
+        coordinatorEdDSAKeypair.pubKey,
+        null,
+        null,
+        0,
+        nonce
+      )
 
-            try {
-                await newCream.deposit(toHex(deposit.commitment), {
-                    from: voter,
-                })
-            } catch (error) {
-                assert.equal(error.reason, 'MACI contract have not set yet')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should correctly emit event', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            const tx = await cream.deposit(toHex(deposit.commitment), {
-                from: voter,
-            })
-            truffleAssert.eventEmitted(tx, 'Deposit')
-        })
-
-        it('should return correct index', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            const tx = await cream.deposit(toHex(deposit.commitment), {
-                from: voter,
-            })
-            assert.equal(bigInt(tx.logs[0].args.leafIndex), 0)
-        })
-
-        it('should be able to find deposit event from commitment', async () => {
-            const deposit1 = createDeposit(rbigInt(31), rbigInt(31))
-            const tx1 = await cream.deposit(toHex(deposit1.commitment), {
-                from: voter,
-            })
-
-            // voter 2 deposit
-            await votingToken.giveToken(voter2)
-            await votingToken.setApprovalForAll(cream.address, true, {
-                from: voter2,
-            })
-            const deposit2 = createDeposit(rbigInt(31), rbigInt(31))
-            const tx2 = await cream.deposit(toHex(deposit2.commitment), {
-                from: voter2,
-            })
-
-            // TODO : load `gemerateMerkleProof` function from cream-lib
-            const events = await cream.getPastEvents('Deposit', {
-                fromBlock: 0,
-            })
-            const leaves = events
-                .sort(
-                    (a, b) =>
-                        a.returnValues.leafIndex - b.returnValues.leafIndex
-                )
-                .map((e) => e.returnValues.commitment)
-
-            for (let i = 0; i < leaves.length; i++) {
-                tree.insert(leaves[i])
-            }
-
-            let depositEvent = events.find(
-                (e) => e.returnValues.commitment === toHex(deposit1.commitment)
-            )
-            let leafIndex = depositEvent.returnValues.leafIndex
-
-            assert.equal(leafIndex, bigInt(tx1.logs[0].args.leafIndex))
-
-            depositEvent = events.find(
-                (e) => e.returnValues.commitment === toHex(deposit2.commitment)
-            )
-            leafIndex = depositEvent.returnValues.leafIndex
-
-            assert.equal(leafIndex, bigInt(tx2.logs[0].args.leafIndex))
-        })
-
-        it('should throw an error for non-token holder', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            try {
-                await cream.deposit(toHex(deposit.commitment), {
-                    from: badUser,
-                })
-            } catch (error) {
-                assert.equal(
-                    error.reason,
-                    'Sender does not own appropreate amount of token'
-                )
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        // voter and bad user collude pattern
-        it('should throw an error for more than two tokens holder', async () => {
-            await votingToken.giveToken(badUser)
-            await votingToken.setApprovalForAll(cream.address, true, {
-                from: badUser,
-            })
-            await votingToken.setApprovalForAll(badUser, true, {
-                from: voter,
-            })
-            await votingToken.safeTransferFrom(voter, badUser, 1, {
-                from: voter,
-            })
-
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            try {
-                await cream.deposit(toHex(deposit.commitment), {
-                    from: badUser,
-                })
-            } catch (error) {
-                assert.equal(
-                    error.reason,
-                    'Sender does not own appropreate amount of token'
-                )
-                return
-            }
-            assert.fail('Expected revert not received')
-
-            const balance = await votingToken.balanceOf(badUser)
-            assert.equal(2, balance)
-        })
-
-        it('should throw an error for same commitment submittion', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            try {
-                await cream.deposit(toHex(deposit.commitment), {
-                    from: voter,
-                })
-            } catch (error) {
-                assert.equal(error.reason, 'Already submitted')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        // TODO: add isBeforeVotingDeadline test
+      const pollAddress = await maci.getPoll(0)
+      const poll = await ethers.getContractAt('Poll', pollAddress)
+      const tx = await poll.publishMessage(
+        message.asContractParam(),
+        encPubKey.asContractParam()
+      )
+      await expectSingleEvent(tx, 'PublishMessage')
     })
 
-    describe('snark proof verification on js side', () => {
-        it('should detect tampering', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: deposit.nullifierHash,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
+    it('should be able to submit an invalid message', async () => {
+      const newUserEdDSAKeyPair = new Keypair()
+      const userStateIndex = 1
+      const recipientIndex = 0
+      const nonce = 1
+      const [message1, encPubKey1] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        newUserEdDSAKeyPair,
+        coordinatorEdDSAKeypair.pubKey,
+        null,
+        null,
+        0,
+        nonce
+      )
+      const pollAddress = await maci.getPoll(0)
+      const poll = await ethers.getContractAt('Poll', pollAddress)
 
-            const { proof, publicSignals } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
+      const tx1 = await poll.publishMessage(
+        message1.asContractParam(),
+        encPubKey1.asContractParam()
+      )
 
-            let result = await snarkVerify(proof, publicSignals)
-            assert.equal(result, true)
+      const [message2, encPubKey2] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        null,
+        coordinatorEdDSAKeypair.pubKey,
+        recipientIndex,
+        null,
+        0,
+        nonce + 1
+      )
+      const tx2 = await poll.publishMessage(
+        message2.asContractParam(),
+        encPubKey2.asContractParam()
+      )
 
-            /* fake public signal */
-            publicSignals[0] =
-                '133792158246920651341275668520530514036799294649489851421007411546007850802'
-            result = await snarkVerify(proof, publicSignals)
-            assert.equal(result, false)
-        })
+      await expectSingleEvent(tx1, 'PublishMessage')
+      await expectSingleEvent(tx2, 'PublishMessage')
     })
 
-    describe('signUpMaci', () => {
-        const userKeypair = new Keypair()
-        it('should correctly sign up to maci with SignUpToken', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
+    it('should be able to submit an invalid recipient index', async () => {
+      const userStateIndex = 1
+      const recipientIndex = 99
+      const nonce = 1
+      const [message, encPubKey] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        null,
+        coordinatorEdDSAKeypair.pubKey,
+        recipientIndex,
+        null,
+        0,
+        nonce
+      )
 
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
+      const pollAddress = await maci.getPoll(0)
+      const poll = await ethers.getContractAt('Poll', pollAddress)
+      const tx = await poll.publishMessage(
+        message.asContractParam(),
+        encPubKey.asContractParam()
+      )
 
-            const args = [toHex(input.root), toHex(input.nullifierHash)]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-            const tx = await cream.signUpMaci(
-                userPubKey,
-                formattedProof,
-                ...args,
-                { from: voter }
-            )
-
-            assert.equal(tx.receipt.status, true)
-
-            const tokenOwnerAddress = await signUpToken.ownerOf(1)
-            assert.equal(tokenOwnerAddress, voter)
-        })
-
-        it('should fail signUp with same proof', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-
-            const args = [toHex(input.root), toHex(input.nullifierHash)]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-            await cream.signUpMaci(userPubKey, formattedProof, ...args)
-
-            try {
-                await cream.signUpMaci(userPubKey, formattedProof, ...args)
-            } catch (error) {
-                assert.equal(
-                    error.reason,
-                    'The nullifier Has Been Already Spent'
-                )
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should prevent double spent with overflow', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-
-            const args = [
-                toHex(input.root),
-                toHex(
-                    toBN(stringifyBigInts(input.nullifierHash)).add(
-                        toBN(
-                            '21888242871839275222246405745257275088548364400416034343698204186575808495617'
-                        )
-                    )
-                ),
-            ]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-
-            try {
-                await cream.signUpMaci(userPubKey, formattedProof, ...args)
-            } catch (error) {
-                assert.equal(error.reason, 'verifier-gte-snark-scalar-field')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should throw for corrupted merkle tree root', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-            const fakeRandomRoot = randomHex(32)
-            const args = [toHex(fakeRandomRoot), toHex(input.nullifierHash)]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-
-            try {
-                await cream.signUpMaci(userPubKey, formattedProof, ...args)
-            } catch (error) {
-                assert.equal(error.reason, 'Cannot find your merkle root')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should reject tampered public input on contract side', async () => {
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-
-            // Use commitment as nullifierHash
-            const args = [toHex(input.root), toHex(deposit.commitment)]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-
-            try {
-                await cream.signUpMaci(userPubKey, formattedProof, ...args)
-            } catch (error) {
-                assert.equal(error.reason, 'Invalid deposit proof')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
+      await expectSingleEvent(tx, 'PublishMessage')
     })
 
-    describe('publishMessage', () => {
-        let userKeypair
-        let signUpTx
-        beforeEach(async () => {
-            userKeypair = new Keypair()
-            // Do signUpMaci process
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
+    it('should be able to submit message batch', async () => {
+      let nonce
+      const messages = []
+      const encPubKeys = []
+      const numMessages = 2
+      const userStateIndex = 1
 
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
+      for (
+        let recipientIndex = 1;
+        recipientIndex < numMessages + 1;
+        recipientIndex++
+      ) {
+        nonce = recipientIndex
+        const [message, encPubKey] = createMessage(
+          userStateIndex,
+          userEdDSAKeypair,
+          null,
+          coordinatorEdDSAKeypair.pubKey,
+          recipientIndex,
+          null,
+          0,
+          nonce
+        )
+        messages.push(message.asContractParam())
+        encPubKeys.push(encPubKey.asContractParam())
+      }
 
-            const args = [toHex(input.root), toHex(input.nullifierHash)]
+      await cream.submitMessageBatch(messages, encPubKeys)
+    })
+  })
 
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
+  describe('publishTallyHash', () => {
+    let cream: Contract
+    let maci: Contract
+    let signers: { [name: string]: SignerWithAddress }
 
-            signUpTx = await cream.signUpMaci(
-                userPubKey,
-                formattedProof,
-                ...args
-            )
-        })
+    before(async () => {
+      const {
+        cream: _cream,
+        maci: _maci,
+        signers: _signers,
+      } = await setupTest()
 
-        it('should correctly publishMessage', async () => {
-            const userStateIndex = 1
-            const recipientIndex = 0
-            const nonce = 1
-            const [message, encPubKey] = createMessage(
-                userStateIndex,
-                userKeypair,
-                null,
-                coordinator.pubKey,
-                recipientIndex,
-                null,
-                nonce
-            )
-
-            const tx = await maci.publishMessage(
-                message.asContractParam(),
-                encPubKey.asContractParam()
-            )
-
-            truffleAssert.eventEmitted(tx, 'PublishMessage')
-        })
-
-        it('should correctly publish key change message', async () => {
-            const newUserKeyPair = new Keypair()
-            const userStateIndex = 1
-            const nonce = 1
-            const [message, encPubKey] = createMessage(
-                userStateIndex,
-                userKeypair,
-                newUserKeyPair,
-                coordinator.pubKey,
-                null,
-                null,
-                nonce
-            )
-
-            const tx = await maci.publishMessage(
-                message.asContractParam(),
-                encPubKey.asContractParam()
-            )
-
-            truffleAssert.eventEmitted(tx, 'PublishMessage')
-        })
-
-        it('should be able to submit an invalid message', async () => {
-            const newUserKeyPair = new Keypair()
-            const userStateIndex = 1
-            const recipientIndex = 0
-            const nonce = 1
-            const [message1, encPubKey1] = createMessage(
-                userStateIndex,
-                userKeypair,
-                newUserKeyPair,
-                coordinator.pubKey,
-                null,
-                null,
-                nonce
-            )
-            const tx1 = await maci.publishMessage(
-                message1.asContractParam(),
-                encPubKey1.asContractParam()
-            )
-
-            const [message2, encPubKey2] = createMessage(
-                userStateIndex,
-                userKeypair,
-                null,
-                coordinator.pubKey,
-                recipientIndex,
-                null,
-                nonce + 1
-            )
-            const tx2 = await maci.publishMessage(
-                message2.asContractParam(),
-                encPubKey2.asContractParam()
-            )
-
-            truffleAssert.eventEmitted(tx1, 'PublishMessage')
-            truffleAssert.eventEmitted(tx2, 'PublishMessage')
-        })
-
-        it('should be able to submit an invalid recipient index', async () => {
-            const newUserKeyPair = new Keypair()
-            const userStateIndex = 1
-            const recipientIndex = 99
-            const nonce = 1
-            const [message, encPubKey] = createMessage(
-                userStateIndex,
-                userKeypair,
-                null,
-                coordinator.pubKey,
-                recipientIndex,
-                null,
-                nonce
-            )
-            const tx = await maci.publishMessage(
-                message.asContractParam(),
-                encPubKey.asContractParam()
-            )
-
-            truffleAssert.eventEmitted(tx, 'PublishMessage')
-        })
-
-        it('should be able to submit message batch', async () => {
-            let nonce
-            const messages = []
-            const encPubKeys = []
-            const numMessages = 2
-            const userStateIndex = 1
-
-            for (
-                let recipientIndex = 1;
-                recipientIndex < numMessages + 1;
-                recipientIndex++
-            ) {
-                nonce = recipientIndex
-                const [message, encPubKey] = createMessage(
-                    userStateIndex,
-                    userKeypair,
-                    null,
-                    coordinator.pubKey,
-                    recipientIndex,
-                    null,
-                    nonce
-                )
-                messages.push(message.asContractParam())
-                encPubKeys.push(encPubKey.asContractParam())
-            }
-
-            await cream.submitMessageBatch(messages, encPubKeys)
-        })
+      cream = _cream
+      maci = _maci
+      signers = _signers
     })
 
-    describe('publishTallyHash', () => {
-        it('should correctly publish tally hash', async () => {
-            const hash = 'hash'
-            const tx = await cream.publishTallyHash(hash, {
-                from: coordinatorAddress,
-            })
-            truffleAssert.eventEmitted(tx, 'TallyPublished')
-        })
-
-        it('should revert if non-coordinator try to publish tally hash', async () => {
-            const hash = 'hash'
-            try {
-                await cream.publishTallyHash(hash)
-            } catch (error) {
-                assert.equal(error.reason, 'Sender is not the coordinator')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should revert with an empty string', async () => {
-            try {
-                await cream.publishTallyHash('', { from: coordinatorAddress })
-            } catch (error) {
-                assert.equal(error.reason, 'Tally hash cannot be empty string')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
+    it('should correctly publish tally hash', async () => {
+      const hash = 'hash'
+      const tx = await cream.connect(signers.coordinator).publishTallyHash(hash)
+      await expectSingleEvent(tx, 'TallyPublished')
     })
 
-    describe('withdraw', () => {
-        beforeEach(async () => {
-            const userKeypair = new Keypair()
-            const deposit = createDeposit(rbigInt(31), rbigInt(31))
-            tree.insert(deposit.commitment)
-            await cream.deposit(toHex(deposit.commitment), { from: voter })
-            const root = tree.root
-            const merkleProof = tree.getPathUpdate(0)
-            const input = {
-                root,
-                nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31))
-                    .babyJubX,
-                nullifier: deposit.nullifier,
-                secret: deposit.secret,
-                path_elements: merkleProof[0],
-                path_index: merkleProof[1],
-            }
-
-            const { proof } = await genProofAndPublicSignals(
-                input,
-                `${process.env.NODE_ENV}/vote.circom`,
-                'build/vote.zkey',
-                'circuits/vote.wasm'
-            )
-
-            const args = [toHex(input.root), toHex(input.nullifierHash)]
-
-            const userPubKey = userKeypair.pubKey.asContractParam()
-            const formattedProof = formatProofForVerifierContract(proof)
-            await cream.signUpMaci(userPubKey, formattedProof, ...args)
-
-            const userStateIndex = 1
-            const recipientIndex = 0
-            const nonce = 1
-            const [message, encPubKey] = createMessage(
-                userStateIndex,
-                userKeypair,
-                null,
-                coordinator.pubKey,
-                recipientIndex,
-                null,
-                nonce
-            )
-
-            await maci.publishMessage(
-                message.asContractParam(),
-                encPubKey.asContractParam()
-            )
-
-            const hash = 'hash'
-            await cream.publishTallyHash(hash, { from: coordinatorAddress })
-        })
-
-        it('should revert if non-owner try to aproove', async () => {
-            try {
-                await cream.approveTally({ from: coordinatorAddress })
-            } catch (error) {
-                assert.equal(error.reason, 'Ownable: caller is not the owner')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should tally be approved', async () => {
-            const tx = await cream.approveTally()
-            truffleAssert.eventEmitted(tx, 'TallyApproved')
-            assert.isTrue(await cream.approved())
-        })
-
-        it('should revert before approval', async () => {
-            try {
-                await cream.withdraw(1, { from: coordinatorAddress })
-            } catch (error) {
-                assert.equal(error.reason, 'Tally result is not approved yet')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should revert if non-coordinator try to withdraw', async () => {
-            await cream.approveTally()
-            try {
-                await cream.withdraw(1, { from: voter })
-            } catch (error) {
-                assert.equal(error.reason, 'Sender is not the coordinator')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should correctly work and emit event', async () => {
-            await cream.approveTally()
-            const tx = await cream.withdraw(1, { from: coordinatorAddress })
-            truffleAssert.eventEmitted(tx, 'Withdrawal')
-        })
-
-        it('should correctly transfer token to recipient', async () => {
-            await cream.approveTally()
-            const tx = await cream.withdraw(0, { from: coordinatorAddress })
-            const newTokenOwner = await votingToken.ownerOf(1)
-            assert.equal(RECIPIENTS[0], newTokenOwner)
-        })
+    it('should revert if non-coordinator try to publish tally hash', async () => {
+      const hash = 'hash'
+      await expect(cream.publishTallyHash(hash)).to.be.revertedWith(
+        'Sender is not the coordinator'
+      )
     })
 
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
-        tree = new MerkleTree(LEVELS, ZERO_VALUE)
+    it('should revert with an empty string', async () => {
+      await expect(
+        cream.connect(signers.coordinator).publishTallyHash('')
+      ).to.be.revertedWith('Tally hash cannot be empty string')
     })
+  })
+
+  describe('withdraw', () => {
+    const coordinatorEdDSAKeypair = new Keypair(
+      new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    )
+    let cream: Contract
+    let maci: Contract
+    let votingToken: Contract
+    let signers: { [name: string]: SignerWithAddress }
+    let recipients: string[]
+
+    before(async () => {
+      const {
+        cream: _cream,
+        maci: _maci,
+        votingToken: _votingToken,
+        signers: _signers,
+        recipients: _recipients,
+      } = await setupTest()
+
+      cream = _cream
+      maci = _maci
+      votingToken = _votingToken
+      signers = _signers
+      recipients = _recipients
+    })
+
+    let localMerkleTree
+
+    beforeEach(async () => {
+      const localMerkleTree = buildLevel3LocalMerkleTree()
+
+      const userEdDSAKeypair = new Keypair()
+      const deposit = createDeposit(rbigInt(31), rbigInt(31))
+      localMerkleTree.insert(deposit.commitment)
+      await cream.connect(signers.voter).deposit(toHex(deposit.commitment))
+      const root = localMerkleTree.root
+      const merkleProof = localMerkleTree.getPathUpdate(0)
+      const input = {
+        root,
+        nullifierHash: pedersenHash(deposit.nullifier.leInt2Buff(31)).babyJubX,
+        nullifier: deposit.nullifier,
+        secret: deposit.secret,
+        path_elements: merkleProof[0],
+        path_index: merkleProof[1],
+      }
+      const { proof } = await buildProofWithLevel3VoteCircuit(input)
+
+      const args = [toHex(input.root), toHex(input.nullifierHash)]
+
+      const userPubKey = userEdDSAKeypair.pubKey.asContractParam()
+      const formattedProof = buildMaciProof(proof)
+      await cream.signUpMaci(userPubKey, formattedProof, ...args)
+
+      const userStateIndex = 1
+      const recipientIndex = 0
+      const nonce = 1
+      const [message, encPubKey] = createMessage(
+        userStateIndex,
+        userEdDSAKeypair,
+        null, // newUserKeypair
+        coordinatorEdDSAKeypair.pubKey,
+        recipientIndex, // voteOptionIndex
+        null, // voiceCredit
+        0, // pollId
+        nonce
+      )
+
+      const pollAddress = await maci.getPoll(0)
+      const poll = await ethers.getContractAt('Poll', pollAddress)
+      await poll.publishMessage(
+        message.asContractParam(),
+        encPubKey.asContractParam()
+      )
+
+      const hash = 'hash'
+      await cream.connect(signers.coordinator).publishTallyHash(hash)
+    })
+
+    it('should revert if non-owner try to approve', async () => {
+      await expect(
+        cream.connect(signers.coordinator).approveTally()
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+    })
+
+    it('should tally be approved', async () => {
+      const tx = await cream.approveTally()
+      await expectSingleEvent(tx, 'TallyApproved')
+      expect(await cream.approved()).to.true
+    })
+
+    it('should revert before approval', async () => {
+      await expect(
+        cream.connect(signers.coordinator).withdraw(1)
+      ).to.be.revertedWith('Tally result is not approved yet')
+    })
+
+    it('should revert if non-coordinator try to withdraw', async () => {
+      await cream.approveTally()
+      await expect(cream.connect(signers.voter).withdraw(1)).to.be.revertedWith(
+        'Sender is not the coordinator'
+      )
+    })
+
+    it('should correctly work and emit event', async () => {
+      await cream.approveTally()
+      const tx = await cream.connect(signers.coordinator).withdraw(1)
+      await expectSingleEvent(tx, 'Withdrawal')
+    })
+
+    it('should correctly transfer token to recipient', async () => {
+      await cream.approveTally()
+      await cream.connect(signers.coordinator).withdraw(0)
+      const newTokenOwner = await votingToken.ownerOf(1)
+      expect(recipients[0]).to.equal(newTokenOwner)
+    })
+  })
 })

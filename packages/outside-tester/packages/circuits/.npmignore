@@ -1,0 +1,6 @@
+ts/__tests__
+build/**
+build/__tests__
+build/*.ptau
+build/*.zkey
+build/*.json
