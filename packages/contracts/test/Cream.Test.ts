@@ -280,6 +280,36 @@ contract('Cream', (accounts) => {
             assert.equal(2, balance)
         })
 
+        it('should revert if weight is out of range > 10', async () => {
+            try {
+                await votingToken.giveToken(voter, 101, {
+                    from: contractOwner,
+                })
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'Error: weight range must be between 1 and 100'
+                )
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
+        it('should revert if weight is out of range = 0', async () => {
+            try {
+                await votingToken.giveToken(voter, 0, {
+                    from: contractOwner,
+                })
+            } catch (error) {
+                assert.equal(
+                    error.reason,
+                    'Error: weight range must be between 1 and 100'
+                )
+                return
+            }
+            assert.fail('Expected revert not received')
+        })
+
         it('should throw an error for same commitment submittion', async () => {
             const deposit = createDeposit(rbigInt(31), rbigInt(31))
             await cream.deposit(toHex(deposit.commitment), { from: voter })

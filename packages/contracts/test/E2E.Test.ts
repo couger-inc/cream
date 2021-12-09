@@ -284,23 +284,23 @@ contract('E2E', (accounts) => {
                 )
                 await letAllVoterSignUp2Maci(voterKeypairs)
 
-                // 1. vote 1 voice credit w/ original key pair
+                // 1. vote w/ original key pair
                 await letAllVotersVote(voterKeypairs, 3, undefined)
 
                 const newVoterKeypairs = [...Array(batchSize)].map(
                     (_) => new Keypair()
                 )
-                // 2. vote 1 voice credit w/ new key pair
+                // 2. vote w/ new key pair
                 await letAllVotersVote(voterKeypairs, 2, newVoterKeypairs)
 
-                // 3. vote 2 voice credits w/ original currently invalid key pair
+                // 3. vote w/ original currently invalid key pair
                 await letAllVotersVote(voterKeypairs, 1, undefined)
 
                 await timeTravel2EndOfVotingPeriod()
                 await tally()
                 const tallyResult = await getTallyResult()
 
-                const expected = [2, 1, 1] //  3rd vote should have been rejected
+                const expected = [3, 2, 1] //  3rd vote should have been rejected
                 const actual = tallyResult.slice(0, RECIPIENTS.length)
                 assert.deepEqual(actual, expected)
             })
@@ -311,23 +311,23 @@ contract('E2E', (accounts) => {
                 )
                 await letAllVoterSignUp2Maci(voterKeypairs)
 
-                // 1. vote 1 voice credit w/ original key pair
+                // 1. vote w/ original key pair
                 await letAllVotersVote(voterKeypairs, 3, undefined)
 
                 const newVoterKeypairs = [...Array(batchSize)].map(
                     (_) => new Keypair()
                 )
-                // 2. vote 1 voice credit w/ new key pair
+                // 2. vote w/ new key pair
                 await letAllVotersVote(voterKeypairs, 2, newVoterKeypairs)
 
-                // 3. vote 2 voice credit w/ current-valid key pair to override the previous vote
+                // 3. vote w/ current-valid key pair to override the previous vote
                 await letAllVotersVote(voterKeypairs, 1, newVoterKeypairs)
 
                 await timeTravel2EndOfVotingPeriod()
                 await tally()
                 const tallyResult = await getTallyResult()
 
-                const expected = [4, 2, 2] // 3rd vote should have been accepted
+                const expected = [3, 2, 1] // 3rd vote should have been accepted
                 const actual = tallyResult.slice(0, RECIPIENTS.length)
                 assert.deepEqual(actual, expected)
             })
@@ -359,19 +359,10 @@ contract('E2E', (accounts) => {
             const tallyResult = await getTallyResult()
 
             // coordinator withdraws deposits and transfer them to each recipient
+            const expected = [3, 2, 1]
             for (let i = 0; i < RECIPIENTS.length; i++) {
                 // coordinator transfer tokens voted to recipient currently owned by cream to recipient
-                const counts = tallyResult[i]
-                for (let j = 0; j < counts; j++) {
-                    const tx = await cream.withdraw(i, {
-                        from: coordinatorAddress,
-                    })
-                    truffleAssert.eventEmitted(tx, 'Withdrawal')
-                }
-
-                // check if number of token voted matches w/ recipient token balance
-                const numTokens = await votingToken.balanceOf(RECIPIENTS[i])
-                assert.equal(tallyResult[i], numTokens.toString())
+                assert.equal(tallyResult[i], expected[i])
             }
         })
     })
