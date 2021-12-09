@@ -33,6 +33,7 @@ contract('CreamFactory', (accounts) => {
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
+    const weight = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
 
     before(async () => {
         creamFactory = await CreamFactory.deployed()
@@ -143,7 +144,7 @@ contract('CreamFactory', (accounts) => {
         })
 
         it('should be able to deploy another cream contract', async () => {
-            await votingToken.giveToken(voter)
+            await votingToken.giveToken(voter, weight)
             await votingToken.setApprovalForAll(creamAddress, true, {
                 from: voter,
             })

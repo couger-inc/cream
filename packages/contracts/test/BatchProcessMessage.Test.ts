@@ -76,6 +76,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
     const voteOptionTreeDepth = config.maci.merkleTrees.voteOptionTreeDepth // 2
     const voteOptionsMaxIndex = config.maci.voteOptionsMaxLeafIndex // 3
     const quadVoteTallyBatchSize = config.maci.quadVoteTallyBatchSize // 4
+    const weight = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
 
     const contractOwner = accounts[0]
     const coordinatorAddress = accounts[1]
@@ -176,7 +177,7 @@ contract('Maci(BatchProcessMessage)', (accounts) => {
             totalVoteWeight += BigInt(voteWeight) * BigInt(voteWeight)
             totalVotes += voteWeight
 
-            await votingToken.giveToken(voter.wallet)
+            await votingToken.giveToken(voter.wallet, weight)
             await votingToken.setApprovalForAll(cream.address, true, {
                 from: voter.wallet,
             })
