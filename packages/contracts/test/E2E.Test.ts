@@ -68,6 +68,14 @@ contract('E2E', (accounts) => {
         const voiceCredit_1 = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
         const voiceCredit_2 = 4 // bnSqrt(BigNumber.from(4)) = 0x02, BigNumber
 
+        // weights for voter2, voter3, voter4, voter5
+        const weights = [
+            voiceCredit_1,
+            voiceCredit_2,
+            voiceCredit_1,
+            voiceCredit_2,
+        ]
+
         const setupEnvironment = async () => {
             // contract owner deploys maci factory
             maciFactory = await MACIFactory.deployed()
@@ -113,7 +121,7 @@ contract('E2E', (accounts) => {
 
         const signUp2Maci = async (voter, voterIndex, keypair) => {
             // give 1 voting token to voter
-            await votingToken.giveToken(voter)
+            await votingToken.giveToken(voter, weights[voterIndex])
             await votingToken.setApprovalForAll(creamAddress, true, {
                 from: voter,
             })
@@ -167,14 +175,16 @@ contract('E2E', (accounts) => {
 
         const letAllVotersVote = async (
             voterKeypairs,
-            voiceCredits,
             nonce,
             newVoterKeypairs
         ) => {
             for (let i = 0; i < batchSize; i++) {
                 const voter = getVoter(i)
-                const voiceCreditsBN = BigNumber.from(voiceCredits)
-                const voiceCreditsSqrtNum = bnSqrt(voiceCreditsBN).toNumber()
+                const weight = await votingToken.getTokenWeight(voter, {
+                    from: voter,
+                })
+                const weightBN = BigNumber.from(weight.toNumber())
+                const voiceCreditsSqrtNum = bnSqrt(weightBN).toNumber()
                 const voterKeypair = voterKeypairs[i]
                 const newVoterKeypair = newVoterKeypairs
                     ? newVoterKeypairs[i]
@@ -190,7 +200,7 @@ contract('E2E', (accounts) => {
                     newVoterKeypair,
                     coordinator.pubKey,
                     voteRecipient,
-                    voiceCreditsBN,
+                    weightBN,
                     nonce,
                     genRandomSalt()
                 )
@@ -275,31 +285,16 @@ contract('E2E', (accounts) => {
                 await letAllVoterSignUp2Maci(voterKeypairs)
 
                 // 1. vote 1 voice credit w/ original key pair
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_1,
-                    3,
-                    undefined
-                )
+                await letAllVotersVote(voterKeypairs, 3, undefined)
 
                 const newVoterKeypairs = [...Array(batchSize)].map(
                     (_) => new Keypair()
                 )
                 // 2. vote 1 voice credit w/ new key pair
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_1,
-                    2,
-                    newVoterKeypairs
-                )
+                await letAllVotersVote(voterKeypairs, 2, newVoterKeypairs)
 
                 // 3. vote 2 voice credits w/ original currently invalid key pair
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_2,
-                    1,
-                    undefined
-                )
+                await letAllVotersVote(voterKeypairs, 1, undefined)
 
                 await timeTravel2EndOfVotingPeriod()
                 await tally()
@@ -317,31 +312,16 @@ contract('E2E', (accounts) => {
                 await letAllVoterSignUp2Maci(voterKeypairs)
 
                 // 1. vote 1 voice credit w/ original key pair
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_1,
-                    3,
-                    undefined
-                )
+                await letAllVotersVote(voterKeypairs, 3, undefined)
 
                 const newVoterKeypairs = [...Array(batchSize)].map(
                     (_) => new Keypair()
                 )
                 // 2. vote 1 voice credit w/ new key pair
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_1,
-                    2,
-                    newVoterKeypairs
-                )
+                await letAllVotersVote(voterKeypairs, 2, newVoterKeypairs)
 
                 // 3. vote 2 voice credit w/ current-valid key pair to override the previous vote
-                await letAllVotersVote(
-                    voterKeypairs,
-                    voiceCredit_2,
-                    1,
-                    newVoterKeypairs
-                )
+                await letAllVotersVote(voterKeypairs, 1, newVoterKeypairs)
 
                 await timeTravel2EndOfVotingPeriod()
                 await tally()
@@ -358,7 +338,7 @@ contract('E2E', (accounts) => {
                 (_) => new Keypair()
             )
             await letAllVoterSignUp2Maci(voterKeypairs)
-            await letAllVotersVote(voterKeypairs, voiceCredit_1, 1, undefined)
+            await letAllVotersVote(voterKeypairs, 1, undefined)
             await timeTravel2EndOfVotingPeriod()
             await tally()
             const tallyResult = await getTallyResult()
@@ -373,7 +353,7 @@ contract('E2E', (accounts) => {
                 (_) => new Keypair()
             )
             await letAllVoterSignUp2Maci(voterKeypairs)
-            await letAllVotersVote(voterKeypairs, voiceCredit_1, 1, undefined)
+            await letAllVotersVote(voterKeypairs, 1, undefined)
             await timeTravel2EndOfVotingPeriod()
             await tally()
             const tallyResult = await getTallyResult()

@@ -57,6 +57,7 @@ contract('Cream', (accounts) => {
     const coordinator = new Keypair(
         new PrivKey(BigInt(config.maci.coordinatorPrivKey))
     )
+    const weight = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
 
     // recipient index
     let recipient = 0
@@ -98,7 +99,7 @@ contract('Cream', (accounts) => {
     })
 
     beforeEach(async () => {
-        await votingToken.giveToken(voter)
+        await votingToken.giveToken(voter, weight)
         await votingToken.setApprovalForAll(cream.address, true, {
             from: voter,
         })
@@ -193,7 +194,7 @@ contract('Cream', (accounts) => {
             })
 
             // voter 2 deposit
-            await votingToken.giveToken(voter2)
+            await votingToken.giveToken(voter2, weight)
             await votingToken.setApprovalForAll(cream.address, true, {
                 from: voter2,
             })
@@ -250,7 +251,7 @@ contract('Cream', (accounts) => {
 
         // voter and bad user collude pattern
         it('should throw an error for more than two tokens holder', async () => {
-            await votingToken.giveToken(badUser)
+            await votingToken.giveToken(badUser, weight)
             await votingToken.setApprovalForAll(cream.address, true, {
                 from: badUser,
             })
