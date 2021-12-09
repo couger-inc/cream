@@ -68,7 +68,7 @@ contract('E2E', (accounts) => {
         const voiceCredit_1 = 2 // bnSqrt(BigNumber.from(2)) = 0x01, BigNumber
         const voiceCredit_2 = 4 // bnSqrt(BigNumber.from(4)) = 0x02, BigNumber
 
-        // weights for voter2, voter3, voter4, voter5
+        // weights for voter1, voter2, voter3, voter4
         const weights = [
             voiceCredit_1,
             voiceCredit_2,
