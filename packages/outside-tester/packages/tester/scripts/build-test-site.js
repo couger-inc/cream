@@ -20,11 +20,13 @@ const generateR1csWitnessGen = (dir) => {
     execSync(`cd ${circuitDir} && PATH=$HOME/.cargo/bin:$PATH circom --r1cs --c ${x}.circom`)
 
     console.log(`Building witness generator of "${x}"...`)
-    execSync(`${circuitDir}/${x}_cpp && make`)
+    execSync(`cd ${circuitDir}/${x}_cpp && make`)
 
-    execSync(`ln -s ${circuitDir}/${x}_cpp/${x} ${dir}/${x}`)
-    execSync(`ln -s ${circuitDir}/${x}_cpp/${x}.dat ${dir}/${x}.dat`)
-    execSync(`ln -s ${circuitDir}/${x}.r1cs ${dir}/${x}.r1cs`)
+    const wrap = (simlink, makeSimlink) => `if [ ! -f ${simlink} ]; then ${makeSimlink}; fi`
+
+    execSync(wrap(`${dir}/${x}`, `ln -s ${circuitDir}/${x}_cpp/${x} ${dir}/${x}`))
+    execSync(wrap(`${dir}/${x}.dat`, `ln -s ${circuitDir}/${x}_cpp/${x}.dat ${dir}/${x}.dat`))
+    execSync(wrap(`${dir}/${x}.r1cs`, `ln -s ${circuitDir}/${x}.r1cs ${dir}/${x}.r1cs`))
   })
 }
 
