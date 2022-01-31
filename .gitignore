@@ -11,7 +11,10 @@ migrations
 # exported files
 *ABI.json
 *Networks.json
-Verifier.sol
 
 # macos generated files
 ._*
+
+# hardhat generated files
+artifacts
+cache
