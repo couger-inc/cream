@@ -24,7 +24,7 @@ jobs:
       run: |
         npm install -g yarn
         npm install -g lerna
-        lerna bootstrap
+        lerna bootstrap -- --ignore-engines
         lerna run build
         ./packages/circuits/scripts/installZkutil.sh
         
