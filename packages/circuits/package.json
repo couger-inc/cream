@@ -39,7 +39,7 @@
     "circomlib": "^0.5.2",
     "cream-merkle-tree": "^0.1.1",
     "ffjavascript": "^0.2.35",
-    "libcream": "^0.1.5",
+    "libcream": "^0.2.0",
     "maci-circuits": "1.0.2",
     "maci-cli": "1.0.2",
     "snarkjs": "^0.3.34",

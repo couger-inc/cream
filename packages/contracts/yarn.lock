@@ -3459,14 +3459,13 @@ circomlib@0.5.1:
     ffjavascript "0.1.0"
     web3-utils "^1.3.0"
 
-circomlib@0.5.2:
+circomlib@0.5.2, "circomlib@git://github.com/weijiekoh/circomlib.git#24ed08eee0bb613b8c0135d66c1013bd9f78d50a":
   version "0.5.2"
-  resolved "https://registry.yarnpkg.com/circomlib/-/circomlib-0.5.2.tgz#5bfd47466cffcb215d707f36c8b8f76de7c703e0"
-  integrity sha512-xH1XLTQp6i1ifK13ZG4BbtjpaNkrfK8iK5ipqpi490aAxjK/P9nTidZaPTW6OtIODy1LzJSIGcr9TkyEgwK1Ag==
+  resolved "git://github.com/weijiekoh/circomlib.git#24ed08eee0bb613b8c0135d66c1013bd9f78d50a"
   dependencies:
     blake-hash "^1.1.0"
     blake2b "^2.1.3"
-    circom "0.5.33"
+    circom "0.5.45"
     ffjavascript "0.1.0"
     web3-utils "^1.3.0"
 
@@ -3484,16 +3483,6 @@ circomlib@^0.5.1, circomlib@^0.5.2:
 "circomlib@git://github.com/weijiekoh/circomlib.git#0e78dde8c813b95f4585b0613927e9c4269de500":
   version "0.5.2"
   resolved "git://github.com/weijiekoh/circomlib.git#0e78dde8c813b95f4585b0613927e9c4269de500"
-  dependencies:
-    blake-hash "^1.1.0"
-    blake2b "^2.1.3"
-    circom "0.5.45"
-    ffjavascript "0.1.0"
-    web3-utils "^1.3.0"
-
-"circomlib@git://github.com/weijiekoh/circomlib.git#24ed08eee0bb613b8c0135d66c1013bd9f78d50a":
-  version "0.5.2"
-  resolved "git://github.com/weijiekoh/circomlib.git#24ed08eee0bb613b8c0135d66c1013bd9f78d50a"
   dependencies:
     blake-hash "^1.1.0"
     blake2b "^2.1.3"
@@ -5114,7 +5103,7 @@ ethereumjs-wallet@0.6.5:
     utf8 "^3.0.0"
     uuid "^3.3.2"
 
-ethers@^4.0.40, ethers@^4.0.45:
+ethers@^4.0.40:
   version "4.0.49"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-4.0.49.tgz#0eb0e9161a0c8b4761be547396bbe2fb121a8894"
   integrity sha512-kPltTvWiyu+OktYy1IStSO16i2e7cS9D9OxZ81q2UUaiNPVrm/RTcbxamCXF9VUSKzJIdJV68EAIhTEVBalRWg==
@@ -8390,19 +8379,20 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-libcream@^0.1.5:
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.1.5.tgz#f2f93de02a1acc4c5e1141503dff06284640c6e4"
-  integrity sha512-ItRIZb4NObGNrT7Ifoh/SEpdZ1D02Qx1xAUcJrBxy6IzCCphNWbsZSE8IunJzVTbCFHR/6No1GFyK0/IjMAt+A==
+libcream@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/libcream/-/libcream-0.2.0.tgz#b9f8cc836a14fdb87de3f37858a1d8d8fd5d8388"
+  integrity sha512-g1Wtvdgifqo5s2/EeHLFtMF9bZIp3Hb+WtC0K6M1qrK+Msb7Zk7Bebzel6taJL54w6IpD+ffJkYkzsimbhu7fQ==
   dependencies:
     "@ethersproject/bignumber" "^5.0.14"
     axios "^0.21.1"
     circomlib "^0.5.2"
     cream-merkle-tree "^0.1.1"
     lint-staged "^10.5.4"
-    maci-crypto "^0.6.6"
-    maci-domainobjs "^0.6.6"
+    maci-crypto "^1.0.2"
+    maci-domainobjs "^1.0.2"
     typescript "^3.9.9"
+    xmlhttprequest "^1.8.0"
 
 libp2p-crypto@^0.19.0:
   version "0.19.7"
@@ -8742,15 +8732,6 @@ maci-crypto@1.0.2:
     ffjavascript "0.2.35"
     incrementalquintree "^1.0.3"
 
-maci-crypto@^0.6.6:
-  version "0.6.7"
-  resolved "https://registry.yarnpkg.com/maci-crypto/-/maci-crypto-0.6.7.tgz#b58bb745a0e05086c165574aa86c3a0cf196df60"
-  integrity sha512-4u2y2V8vH1Gq7zNoBiZRt0+oUk5NqtMMewjI02EQvLEN+RMOScb1adCh8KgxnS66UIY+u7OaFPAs0uH4f8KbEg==
-  dependencies:
-    circomlib "0.5.1"
-    ethers "^4.0.45"
-    ffjavascript "0.2.35"
-
 maci-crypto@^1.0.2, maci-crypto@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/maci-crypto/-/maci-crypto-1.0.4.tgz#8392ea02c7cd93f70bd95b2834d91ae97f8857c3"
@@ -8768,11 +8749,6 @@ maci-domainobjs@1.0.2:
   integrity sha512-hBTCkJkSaDXVpdkgZnSCkZyNcYnfeTjjqZyILTDYRCC/b+zeYYNGpq7Y/KOH3odnPnLI8MWaQhJgDhyVLnb1Eg==
   dependencies:
     base64url "^3.0.1"
-
-maci-domainobjs@^0.6.6:
-  version "0.6.7"
-  resolved "https://registry.yarnpkg.com/maci-domainobjs/-/maci-domainobjs-0.6.7.tgz#e1e9c3f5bf4819376e5b6636722ca403a2df3626"
-  integrity sha512-3qUocaOJLUZmiV/AsrOZ3kLg2GetBPjLRA2rWw6Ngni6XSoBkX9e4kiTdKvIW9jxCtrujl7RVkVEBAKvYHiyJQ==
 
 maci-domainobjs@^1.0.2, maci-domainobjs@^1.0.4:
   version "1.0.4"
@@ -13416,7 +13392,7 @@ xmlchars@^2.2.0:
   resolved "https://registry.yarnpkg.com/xmlchars/-/xmlchars-2.2.0.tgz#060fe1bcb7f9c76fe2a17db86a9bc3ab894210cb"
   integrity sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==
 
-xmlhttprequest@1.8.0:
+xmlhttprequest@1.8.0, xmlhttprequest@^1.8.0:
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/xmlhttprequest/-/xmlhttprequest-1.8.0.tgz#67fe075c5c24fef39f9d65f5f7b7fe75171968fc"
   integrity sha1-Z/4HXFwk/vOfnWX197f+dRcZaPw=
