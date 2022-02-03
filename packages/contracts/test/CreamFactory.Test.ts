@@ -1,183 +1,314 @@
-const truffleAssert = require('truffle-assertions')
-const { config } = require('@cream/config')
-const { createDeposit, rbigInt } = require('libcream')
-const { revertSnapshot, takeSnapshot, RECIPIENTS } = require('./TestUtil')
-const { Keypair, PrivKey } = require('maci-domainobjs')
+import 'hardhat-deploy' // need this for ambient module declarations
+import hre from 'hardhat'
+import { expect } from 'chai'
+import {
+  getUnnamedAccounts,
+  extractEventsOfName,
+  extractSingleEventArg1,
+  coordinatorEdDSAKeypair,
+  IPFS_HASH,
+  LEVELS,
+  BALANCE,
+} from './TestUtil'
+import { Contract, ContractFactory } from '@ethersproject/contracts'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers'
 
-const CreamFactory = artifacts.require('CreamFactory')
-const CreamVerifier = artifacts.require('CreamVerifier')
-const VotingToken = artifacts.require('VotingToken')
-const SignUpToken = artifacts.require('SignUpToken')
-const Cream = artifacts.require('Cream')
-const MACIFactory = artifacts.require('MACIFactory')
-const MACI = artifacts.require('MACI')
+const ethers = hre.ethers
+const deployments = hre.deployments
 
-contract('CreamFactory', (accounts) => {
-    let creamFactory
-    let votingToken
-    let signUpToken
-    let tx
-    let creamAddress
-    let cream
-    let snapshotId
-    let coordinatorPubKey
-    let maciFactory
-    let maciAddress
-    let maci
+describe('CreamFactory', () => {
+  const setupTest = deployments.createFixture(async () => {
+    await deployments.fixture()
 
-    const BALANCE = config.maci.initialVoiceCreditBalance
-    const LEVELS = config.cream.merkleTrees
-    const IPFS_HASH = 'QmPChd2hVbrJ6bfo3WBcTW4iZnpHm8TEzWkLHmLpXhF68A'
-    const voter = accounts[1]
-    const coordinatorAddress = accounts[2]
-    const coordinator = new Keypair(
-        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    const creamFactory = await ethers.getContract('CreamFactory')
+    const poseidon = await ethers.getContract('Poseidon')
+    const poseidonT3 = await ethers.getContract('PoseidonT3')
+    const poseidonT4 = await ethers.getContract('PoseidonT4')
+    const poseidonT5 = await ethers.getContract('PoseidonT5')
+    const poseidonT6 = await ethers.getContract('PoseidonT6')
+    const creamVerifier = await ethers.getContract('CreamVerifier')
+    const votingToken = await ethers.getContract('VotingToken')
+    const signUpToken = await ethers.getContract('SignUpToken')
+    const maciFactory = await ethers.getContract('MACIFactory')
+
+    const [
+      contractOwner,
+      coordinator,
+      voter,
+      recipient1,
+      recipient2,
+      recipient3,
+      recipient4,
+      recipient5,
+    ] = await getUnnamedAccounts(hre)
+    const recipients = [
+      recipient1.address,
+      recipient2.address,
+      recipient3.address,
+    ]
+    const recipients2 = [recipient4.address, recipient5.address]
+
+    const Cream = await hre.ethers.getContractFactory('Cream', {
+      libraries: {
+        Poseidon: poseidon.address,
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+    const Maci = await ethers.getContractFactory('MACI', {
+      libraries: {
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+    const Poll = await ethers.getContractFactory('Poll', {
+      libraries: {
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+    const SignUpToken = await ethers.getContractFactory('SignUpToken')
+
+    return {
+      signers: {
+        contractOwner,
+        coordinator,
+        voter,
+      },
+      recipients,
+      recipients2,
+      creamFactory,
+      Poll,
+      Cream,
+      Maci,
+      votingToken,
+      creamVerifier,
+      signUpToken,
+      SignUpToken,
+      maciFactory,
+      poseidon,
+      poseidonT3,
+      poseidonT4,
+      poseidonT5,
+      poseidonT6,
+    }
+  })
+
+  let creamFactory: Contract
+  let creamVerifier: Contract
+  let votingToken: Contract
+  let signUpToken: Contract
+  let maciFactory: Contract
+  let signers: { [name: string]: SignerWithAddress }
+  let recipients: string[]
+  let recipients2: string[]
+  let cream: Contract
+  let maci: Contract
+  let Poll: ContractFactory
+  let Cream: ContractFactory
+  let able2CreateCream = false
+
+  before(async () => {
+    const createCreamMaci = async (
+      _coordinatorAddr: string,
+      _Cream: ContractFactory,
+      _creamFactory: Contract,
+      _creamVerifierAddr: string,
+      _Maci: ContractFactory,
+      _recipients: string[],
+      _SignUpToken: ContractFactory,
+      _signUpTokenAddr: string,
+      _votingTokenAddr: string
+    ) => {
+
+      const tx = await _creamFactory.createCream(
+        _creamVerifierAddr,
+        _votingTokenAddr,
+        _signUpTokenAddr,
+        BALANCE,
+        LEVELS,
+        _recipients,
+        IPFS_HASH,
+        coordinatorEdDSAKeypair.pubKey.asContractParam(),
+        _coordinatorAddr
+      )
+      const creamAddress = await extractSingleEventArg1(tx, 'CreamCreated')
+      able2CreateCream = true
+      const cream = await _Cream.attach(creamAddress)
+      const maciAddress = await cream.maci()
+      const maci = await _Maci.attach(maciAddress)
+
+      // const signUpToken = await _SignUpToken.attach(_signUpTokenAddr)
+      // await signUpToken.transferOwnership(cream.address)
+      // await cream.setMaci(maci.address, signUpToken.address)
+
+      return { cream, maci }
+    }
+
+    const {
+      creamFactory: _creamFactory,
+      creamVerifier: _creamVerifier,
+      votingToken: _votingToken,
+      signUpToken: _signUpToken,
+      SignUpToken: _SignUpToken,
+      maciFactory: _maciFactory,
+      signers: _signers,
+      recipients: _recipients,
+      recipients2: _recipients2,
+      Poll: _Poll,
+      Cream: _Cream,
+      Maci,
+    } = await setupTest()
+
+    creamFactory = _creamFactory
+    creamVerifier = _creamVerifier
+    votingToken = _votingToken
+    signUpToken = _signUpToken
+    maciFactory = _maciFactory
+    votingToken = _votingToken
+    signers = _signers
+    Poll = _Poll
+    Cream = _Cream
+    recipients = _recipients
+    recipients2 = _recipients2
+
+    await maciFactory.transferOwnership(creamFactory.address)
+
+    const { cream: _cream, maci: _maci } = await createCreamMaci(
+      signers.coordinator.address,
+      Cream,
+      creamFactory,
+      creamVerifier.address,
+      Maci,
+      recipients,
+      _SignUpToken,
+      signUpToken.address,
+      votingToken.address
     )
+    cream = _cream
+    maci = _maci
+  })
 
-    before(async () => {
-        creamFactory = await CreamFactory.deployed()
-        creamVerifier = await CreamVerifier.deployed()
-        votingToken = await VotingToken.deployed()
-        signUpToken = await SignUpToken.deployed()
-        maciFactory = await MACIFactory.deployed()
-        await maciFactory.transferOwnership(creamFactory.address)
-        tx = await creamFactory.createCream(
-            creamVerifier.address,
-            votingToken.address,
-            signUpToken.address,
-            BALANCE,
-            LEVELS,
-            RECIPIENTS,
-            IPFS_HASH,
-            coordinator.pubKey.asContractParam(),
-            coordinatorAddress
-        )
-        creamAddress = tx.logs[4].args[0]
-        cream = await Cream.at(creamAddress)
-        maciAddress = await cream.maci()
-        maci = await MACI.at(maciAddress)
-        snapshotId = await takeSnapshot()
+  describe('initialize', () => {
+    it('should correctly initialize ownership', async () => {
+      expect(await creamFactory.owner()).to.equal(signers.contractOwner.address)
     })
 
-    describe('initialize', () => {
-        it('should correctly initialize ownership', async () => {
-            assert.notEqual(await creamFactory.owner(), accounts[1])
-        })
+    ///////////// DO NOT INCLUDE
+    // removed onlyOwner at the moment since anyone should be able to deploy new cream contract
+    //
+    // it('should fail when non owner tried to create Cream contract', async () => {
+    //     try {
+    //         await creamFactory.createCream(
+    //             votingToken.address,
+    //             signUpToken.address,
+    //             BALANCE,
+    //             LEVELS,
+    //             RECIPIENTS,
+    //             IPFS_HASH,
+    //             coordinator.pubKey.asContractParam(),
+    //             coordinatorAddress,
+    //             { from: voter }
+    //         )
+    //     } catch (error) {
+    //         assert.equal(error.reason, 'Ownable: caller is not the owner')
+    //         return
+    //     }
+    //     assert.fail('Expected revert not received')
+    // })
+    ///////////// DO NOT INCLUDE
 
-        // removed onlyOwner at the moment since anyone should be able to deploy new cream contract
-        //
-        // it('should fail when non owner tried to create Cream contract', async () => {
-        //     try {
-        //         await creamFactory.createCream(
-        //             votingToken.address,
-        //             signUpToken.address,
-        //             BALANCE,
-        //             LEVELS,
-        //             RECIPIENTS,
-        //             IPFS_HASH,
-        //             coordinator.pubKey.asContractParam(),
-        //             coordinatorAddress,
-        //             { from: voter }
-        //         )
-        //     } catch (error) {
-        //         assert.equal(error.reason, 'Ownable: caller is not the owner')
-        //         return
-        //     }
-        //     assert.fail('Expected revert not received')
-        // })
+    it('should be able to set MACI parameters from CreamFactory', async () => {
+      // due to a bug in 1.0.2, tree depth needs to be <= 3
+      const _intStateTreeDepth = 3
+      const _messageTreeSubDepth = 2
+      const _messageTreeDepth = 3
+      const _voteOptionTreeDepth = 3
+      const _signUpDuration = 86400
+      const _votingDuration = 86400
 
-        it('should correctly set maci contract from CreamFactory', async () => {
-            const creamCoordinatorPubKey = await maci.coordinatorPubKey()
-            assert(
-                creamCoordinatorPubKey.x,
-                coordinator.pubKey.asContractParam().x
-            )
-            assert(
-                creamCoordinatorPubKey.y,
-                coordinator.pubKey.asContractParam().y
-            )
-        })
-
-        it('should be able to set MACI parameters from CreamFactory', async () => {
-            const _stateTreeDepth = 8
-            const _messageTreeDepth = 12
-            const _voteOptionTreeDepth = 4
-            const _tallyBatchSize = await maci.tallyBatchSize()
-            const _messageBatchSize = await maci.messageBatchSize()
-            const _signUpDuration = await maci.signUpDurationSeconds()
-            const _votingDuration = 86400
-            const _batchUstVerifier = await maciFactory.batchUstVerifier()
-            const _qvtVerifier = await maciFactory.qvtVerifier()
-
-            await creamFactory.setMaciParameters(
-                _stateTreeDepth,
-                _messageTreeDepth,
-                _voteOptionTreeDepth,
-                _tallyBatchSize,
-                _messageBatchSize,
-                _batchUstVerifier,
-                _qvtVerifier,
-                _signUpDuration,
-                _votingDuration
-            )
-        })
+      await creamFactory.setMaciParameters(
+        _intStateTreeDepth,
+        _messageTreeSubDepth,
+        _messageTreeDepth,
+        _voteOptionTreeDepth,
+        _signUpDuration,
+        _votingDuration
+      )
     })
 
-    describe('contract deploy', () => {
-        it('should be able to deploy cream contract', async () => {
-            truffleAssert.eventEmitted(tx, 'CreamCreated')
-        })
-
-        it('should be able to reveive correct value from mapped contract address', async () => {
-            assert.equal(
-                await creamFactory.electionDetails(creamAddress),
-                IPFS_HASH
-            )
-        })
-
-        it('should be able to reveive correct value from cream contract side', async () => {
-            assert.equal(await cream.verifier(), creamVerifier.address)
-            assert.equal(await cream.votingToken(), votingToken.address)
-            assert.equal(await cream.recipients(0), RECIPIENTS[0])
-            assert.equal(await cream.coordinator(), coordinatorAddress)
-        })
-
-        it('should be able to deploy another cream contract', async () => {
-            await votingToken.giveToken(voter)
-            await votingToken.setApprovalForAll(creamAddress, true, {
-                from: voter,
-            })
-
-            votingToken = await VotingToken.new()
-            const newVerifier = await CreamVerifier.new()
-            const NEW_RECIPIENTS = [accounts[4], accounts[5]]
-            tx = await creamFactory.createCream(
-                newVerifier.address,
-                votingToken.address,
-                signUpToken.address,
-                BALANCE,
-                LEVELS,
-                NEW_RECIPIENTS,
-                IPFS_HASH,
-                coordinator.pubKey.asContractParam(),
-                coordinatorAddress
-            )
-            const newCreamAddress = tx.logs[4].args[0]
-            const newCream = await Cream.at(newCreamAddress)
-            assert.equal(
-                await creamFactory.electionDetails(creamAddress),
-                IPFS_HASH
-            )
-            assert.equal(
-                await creamFactory.electionDetails(newCreamAddress),
-                IPFS_HASH
-            )
-        })
+    it('should correctly set maci contract from CreamFactory', async () => {
+      const pollAddress = await maci.getPoll(0)
+      const poll = Poll.attach(pollAddress)
+      const creamCoordinatorPubKey = await poll.coordinatorPubKey()
+      expect(creamCoordinatorPubKey.x).to.equal(
+        coordinatorEdDSAKeypair.pubKey.asContractParam().x
+      )
+      expect(creamCoordinatorPubKey.y).to.equal(
+        coordinatorEdDSAKeypair.pubKey.asContractParam().y
+      )
     })
 
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
+  })
+
+  describe('contract deploy', () => {
+    it('should be able to deploy cream contract', async () => {
+      expect(able2CreateCream).to.be.true
     })
+
+    it('should be able to receive correct value from mapped contract address', async () => {
+      expect(await creamFactory.electionDetails(cream.address)).to.equal(
+        IPFS_HASH
+      )
+    })
+
+    it('should be able to receive correct value from cream contract side', async () => {
+      expect(await cream.verifier()).to.equal(creamVerifier.address)
+      expect(await cream.votingToken()).to.equal(votingToken.address)
+      expect(await cream.recipients(0)).to.equal(recipients[0])
+      expect(await cream.coordinator()).to.equal(signers.coordinator.address)
+    })
+
+    it('should be able to deploy another cream contract', async () => {
+      await votingToken.giveToken(signers.voter.address)
+      await votingToken
+        .connect(signers.voter)
+        .setApprovalForAll(cream.address, true)
+
+      const VotingToken = await ethers.getContractFactory('VotingToken')
+      votingToken = await VotingToken.deploy()
+
+      const CreamVerifier = await ethers.getContractFactory('CreamVerifier')
+      const newVerifier = await CreamVerifier.deploy()
+
+      const NEW_RECIPIENTS = recipients2
+      const tx = await creamFactory.createCream(
+        newVerifier.address,
+        votingToken.address,
+        signUpToken.address,
+        BALANCE,
+        LEVELS,
+        NEW_RECIPIENTS,
+        IPFS_HASH,
+        coordinatorEdDSAKeypair.pubKey.asContractParam(),
+        signers.coordinator.address
+      )
+      const events = await extractEventsOfName(tx, 'CreamCreated')
+      expect(events.length).to.equal(1)
+      const newCreamAddress = events[0].args[0]
+      const newCream = await Cream.attach(newCreamAddress)
+      expect(await creamFactory.electionDetails(cream.address)).to.equal(
+        IPFS_HASH
+      )
+      expect(await creamFactory.electionDetails(newCreamAddress)).to.equal(
+        IPFS_HASH
+      )
+    })
+  })
 })

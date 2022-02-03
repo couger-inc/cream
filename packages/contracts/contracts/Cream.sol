@@ -6,7 +6,7 @@
 *
 */
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.2;
 pragma experimental ABIEncoderV2;
 
 import "./MerkleTreeWithHistory.sol";
@@ -16,21 +16,22 @@ import "@openzeppelin/contracts/token/ERC721/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "maci-contracts/sol/MACI.sol";
-import "maci-contracts/sol/MACISharedObjs.sol";
-import "maci-contracts/sol/gatekeepers/SignUpGatekeeper.sol";
-import "maci-contracts/sol/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
+import "maci-contracts/contracts/MACI.sol";
+import "maci-contracts/contracts/DomainObjs.sol";
+import "maci-contracts/contracts/gatekeepers/SignUpGatekeeper.sol";
+import "maci-contracts/contracts/initialVoiceCreditProxy/InitialVoiceCreditProxy.sol";
 
-abstract contract IVerifier {
+// the counterpart of this on the MACI side is SnarkVerifier
+interface IVerifier {
     function verifyProof(
         uint256[2] calldata a,
         uint256[2][2] calldata b,
         uint256[2] calldata c,
         uint256[2] memory _input
-    ) public virtual returns (bool);
+    ) external view returns (bool);
 }
 
-contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
+contract Cream is MerkleTreeWithHistory, ERC721Holder, DomainObjs, SignUpGatekeeper, InitialVoiceCreditProxy, ReentrancyGuard, Ownable {
     mapping(bytes32 => bool) public nullifierHashes;
     mapping(bytes32 => bool) public commitments;
 
@@ -42,26 +43,34 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     address public coordinator;
     string public tallyHash;
     bool public approved;
+    uint256 public votingDuration;
+
+    // cover sign-up priod check on the cream side until MACI supports this again
+    uint256 signUpDeadline;
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
     event Withdrawal(address recipient);
     event TallyPublished(string tallyHash);
     event TallyApproved(uint256 timestamp);
 
-
     constructor(
         IVerifier _verifier,
         VotingToken _votingToken,
         uint32 _merkleTreeHeight,
         address[] memory _recipients,
-        address _coordinator
-    ) public MerkleTreeWithHistory(_merkleTreeHeight) {
+        address _coordinator,
+        uint256 _signUpDuration,
+        uint256 _votingDuration
+
+    ) MerkleTreeWithHistory(_merkleTreeHeight) {
         require(_recipients.length > 0, "Recipients number be more than one");
         verifier = _verifier;
         votingToken = _votingToken;
         recipients = _recipients;
         coordinator = _coordinator;
         approved = false;
+        signUpDeadline = block.timestamp + _signUpDuration;
+        votingDuration = _votingDuration;
     }
 
     modifier isMaciReady() {
@@ -70,7 +79,14 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     }
 
     modifier isBeforeVotingDeadline() {
-        require(block.timestamp < maci.calcVotingDeadline(), "the voting period has passed");
+        Poll poll = maci.getPoll(0);
+        (uint256 deployTime, uint256 duration) = poll.getDeployTimeAndDuration();
+        require(block.timestamp < deployTime + duration, "the voting period has passed");
+        _;
+    }
+
+    modifier isBeforeSignUpDeadline() {
+        require(block.timestamp < signUpDeadline, "the sign-up period has passed");
         _;
     }
 
@@ -92,8 +108,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
 
     function deposit(
         bytes32 _commitment
-    ) external payable nonReentrant isMaciReady isBeforeVotingDeadline {
-        require(block.timestamp < maci.calcSignUpDeadline(), "the sign-up period has passed");
+    ) external payable nonReentrant isMaciReady isBeforeSignUpDeadline {
         require(!commitments[_commitment], "Already submitted");
         require(votingToken.balanceOf(msg.sender) == 1, "Sender does not own appropreate amount of token");
         uint32 insertedIndex = _insert(_commitment);
@@ -124,11 +139,31 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         require(address(maci) == address(0), "Already linked to MACI instance");
         require(address(signUpToken) == address(0), "Already linked to SignUpToken instance");
         require(
-            _maci.calcSignUpDeadline() > block.timestamp,
+            signUpDeadline > block.timestamp,
             "Signup deadline must be in the future"
         );
+
         maci = _maci;
         signUpToken = _signUpToken;
+    }
+
+    // copied from MACI.sol 0.7.2 since verifiers in MACI 1.0.2 dropped this
+    // function and takes uint256[8] proof directly
+    function unpackProof(
+        uint256[8] memory _proof
+    ) public pure returns (
+        uint256[2] memory,
+        uint256[2][2] memory,
+        uint256[2] memory
+    ) {
+        return (
+            [_proof[0], _proof[1]],
+            [
+                [_proof[2], _proof[3]],
+                [_proof[4], _proof[5]]
+            ],
+            [_proof[6], _proof[7]]
+        );
     }
 
     function signUpMaci(
@@ -136,7 +171,7 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
         uint256[8] memory _proof,
         bytes32 _root,
         bytes32 _nullifierHash
-    ) external nonReentrant {
+    ) external nonReentrant isBeforeSignUpDeadline {
         require(!nullifierHashes[_nullifierHash], "The nullifier Has Been Already Spent");
         require(isKnownRoot(_root), "Cannot find your merkle root");
 
@@ -144,9 +179,10 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
             uint256[2] memory a,
             uint256[2][2] memory b,
             uint256[2] memory c
-        ) = maci.unpackProof(_proof);
+        ) = unpackProof(_proof);
 
-        require(verifier.verifyProof(a, b, c, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
+        require(verifier.verifyProof(
+            a, b, c, [uint256(_root), uint256(_nullifierHash)]), "Invalid deposit proof");
 
         nullifierHashes[_nullifierHash] = true;
 
@@ -181,7 +217,8 @@ contract Cream is MerkleTreeWithHistory, ERC721Holder, MACISharedObjs, SignUpGat
     ) external isMaciReady {
         uint256 _batchSize = _messages.length;
         for (uint8 i = 0; i < _batchSize; i++) {
-            maci.publishMessage(_messages[i], _encPubKeys[i]);
+            Poll poll = maci.getPoll(0);
+            poll.publishMessage(_messages[i], _encPubKeys[i]);
         }
     }
 

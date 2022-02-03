@@ -1,9 +1,9 @@
-include "../../../node_modules/circomlib/circuits/mux1.circom";
-include "../../../node_modules/circomlib/circuits/poseidon.circom";
+pragma circom 2.0.0;
 
-// TODO: remove param
-// Computes MiMC([left, right])
-template HashLeftRight(length) {
+include "../node_modules/circomlib/circuits/mux1.circom";
+include "../node_modules/circomlib/circuits/poseidon.circom";
+
+template HashLeftRight() {
     signal input left;
     signal input right;
     signal output hash;
@@ -11,7 +11,6 @@ template HashLeftRight(length) {
     component hasher = Poseidon(2);
     hasher.inputs[0] <== left;
     hasher.inputs[1] <== right;
-    //hasher.k <== 0;
     hash <== hasher.out;
 }
 
@@ -34,7 +33,7 @@ template MerkleTree(levels) {
     for (var i = 0; i < levels; i++) {
         path_index[i] * (1 - path_index[i]) === 0;
 
-        hashers[i] = HashLeftRight(2);
+        hashers[i] = HashLeftRight();
         mux[i] = MultiMux1(2);
 
         mux[i].c[0][0] <== levelHashes[i];
@@ -62,8 +61,8 @@ template LeafExists(levels) {
   // levels is depth of tree
   signal input leaf;
 
-  signal private input path_elements[levels];
-  signal private input path_index[levels];
+  signal input path_elements[levels];  // was private
+  signal input path_index[levels];  // was private
 
   signal input root;
 
@@ -105,7 +104,7 @@ template CheckRoot(levels) {
     var numIntermediateHashers = numLeafHashers - 1;
 
     // Inputs to the snark
-    signal private input leaves[totalLeaves];
+    signal input leaves[totalLeaves];  // was private
 
     // The output
     signal output root;
@@ -117,7 +116,7 @@ template CheckRoot(levels) {
     // Instantiate all hashers
     var i;
     for (i=0; i < numHashers; i++) {
-        hashers[i] = HashLeftRight(2);
+        hashers[i] = HashLeftRight();
     }
 
     // Wire the leaf values into the leaf hashers

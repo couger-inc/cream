@@ -6,61 +6,52 @@ Zero-Knowledge Confidential Reliable Ethereum Anonymous Mixer
 
 ## Requirement
 
-* `node` >=v11.x
+* `node` >= v14.0
+* `circom` >= v2.0.0
+* Following C++ libraries:
+  - [nlohmann/json](https://github.com/nlohmann/json)
+  - libgmp-dev
+  - nasm
+
+## Contained MACI packages
+This monorepo contains a snapshot of packages from [MACI](https://github.com/appliedzkp/maci) v1 branch (6e2b1011198e59f61ca80404c97705b813a655c4) to be based on MACI 1.0.4 that uses Circom 2.0 based circuits.
 
 ## Setup
 
 ### Config file
-Check out [packages/config/test.yml](./packages/config/test.yml) file how to configure settings:
+Adjust [packages/config/prod.ts](./packages/config/prod.ts) as needed:
 
-```yml
-cream:
-  merkleTrees: 4
-  zeroValue: "2558267815324835836571784235309882327407732303445109280607932348234378166811"
+Make sure that you use the same merkle tree level in [packages/config/prod.ts](./packages/config/prod.ts) and [packages/circuits/prod/vote.circom](./packages/circuits/circom/prod/vote.circom).
 
-maci:
-  initialVoiceCreditBalance: 100
-  signUpDurationInSeconds: 180 # 3 min
-  votingDurationInSeconds: 120 # 2 min
-  coordinatorPrivKey: "2222222222263902553431241761119057960280734584214105336279476766401963593688"
-  tallyBatchsize: 4
-  messageBatchSize: 4
-  quadVoteTallyBatchSize: 4
-  voteOptionsMaxLeafIndex: 3
-
-  merkleTrees:
-    stateTreeDepth: 4
-    messageTreeDepth: 4
-    voteOptionTreeDepth: 2
-
-chain:
-  privateKeysPath: './'
-
-snarkParamsPath: '../params'
-```
-
-### Circuit
-Make sure you set the same value of merkleTrees depth on both [packages/config/test.yml](./packages/config/test.yml) and [packages/circuits/circom.circom](./packages/circuits/circom/vote.circom).
-
-After finished setting, you can run:
+### Building Cream
 
 ```bash
-
-$ yarn
-$ yarn bulid
-$ yarn ganache-cli // or cd packages/contracts && yarn ganache
-
-# In up another terminal
-$ cd packages/contracts && yarn migrate
+$ npx lerna bootstrap
+$ npx lerna run build
 ```
 
-## Test
+## Running Tests
+1. Install circom 2 following [circom documentation](https://docs.circom.io/getting-started/installation/)
 
-```bash
-# after finished setting:
-$ docker-compose -f docker/docker-compose.yml up -d # run ipfs container
-$ yarn test
+1. Build test-sites
+   ```
+   $ npx lerna run build:test-site
+   ```
 
-# after finished test:
-$ docker-compose -f docker/docker-compose.yml down
+1. Start IPFS docker container
+   ```
+   $ yarn start:ipfs
+   ```
+
+1. Run tests:
+   ```
+   $ npx lerna run test
+   ```
+
+## Cleaning up all generated files
 ```
+$ yarn clean
+```
+
+## TODO upon MACI 1.0.4 release
+- call ./scripts/compileSol.sh in maci-contracts before running E2E tests

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 // heavily inspired by https://github.com/tornadocash/tornado-core/blob/master/contracts/MerkleTreeWithHistory.sol
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.2;
 
 library Poseidon {
   function poseidon(uint256[2] memory inputs) public pure returns (uint256 output) {}
@@ -19,7 +19,7 @@ contract MerkleTreeWithHistory {
     uint32 public constant ROOT_HISTORY_SIZE = 100;
     bytes32[ROOT_HISTORY_SIZE] public roots;
 
-    constructor(uint32 _treeLevels) public {
+    constructor(uint32 _treeLevels) {
         require(_treeLevels > 0, "must be greater than 0");
         require(_treeLevels < 32, "must be less than 32");
         levels = _treeLevels;

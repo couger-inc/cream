@@ -1,3 +1,5 @@
+pragma circom 2.0.0;
+
 include "../merkleTree.circom";
 
-component main = HashLeftRight(2);
+component main = HashLeftRight();

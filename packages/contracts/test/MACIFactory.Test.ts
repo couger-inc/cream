@@ -1,171 +1,184 @@
-const { revertSnapshot, takeSnapshot, RECIPIENTS } = require('./TestUtil')
-const { bigInt } = require('libcream')
-const { config } = require('@cream/config')
-const { Keypair, PrivKey } = require('maci-domainobjs')
-const truffleAssert = require('truffle-assertions')
+import 'hardhat-deploy' // need this for ambient module declarations
+import { config } from '@cream/config'
+import hre from 'hardhat'
+import { expect } from 'chai'
+import { Keypair, PrivKey } from 'maci-domainobjs'
+import { getUnnamedAccounts, extractEventsOfName } from './TestUtil'
+import { Contract, ContractFactory } from '@ethersproject/contracts'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers'
 
-const MACIFactory = artifacts.require('MACIFactory')
-const BatchUpdateStateTreeVerifier = artifacts.require(
-    'BatchUpdateStateTreeVerifier'
-)
-const Cream = artifacts.require('Cream')
-const VotingToken = artifacts.require('VotingToken')
-const CreamVerifier = artifacts.require('CreamVerifier')
-const Poseidon = artifacts.require('Poseidon')
+describe('MACIFactory', () => {
+  const coordinatorEdDSAKeyPair = new Keypair(
+    new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+  )
+  const ethers = hre.ethers
+  const deployments = hre.deployments
 
-const LEVELS = config.cream.merkleTrees
-const ZERO_VALUE = config.cream.zeroValue
-const recipient = RECIPIENTS[0]
+  const setupTest = deployments.createFixture(async () => {
+    await deployments.fixture()
 
-contract('MACIFactory', (accounts) => {
-    let maciFactory
-    let snapshotId
-    let creamVerifier
-    let poseidon
-    let batchUstVerifierMaciFactory
-    let votingToken
-    let cream
-    const coordinatorAddress = accounts[1]
-    const coordinator = new Keypair(
-        new PrivKey(BigInt(config.maci.coordinatorPrivKey))
+    const poseidonT3 = await ethers.getContract('PoseidonT3')
+    const poseidonT4 = await ethers.getContract('PoseidonT4')
+    const poseidonT5 = await ethers.getContract('PoseidonT5')
+    const poseidonT6 = await ethers.getContract('PoseidonT6')
+    const maciFactory = await ethers.getContract('MACIFactory')
+
+    const SignUpTokenGatekeeper = await ethers.getContractFactory(
+      'SignUpTokenGatekeeper'
+    )
+    const signUpToken = await ethers.getContract('SignUpToken')
+    const signUpTokenGatekeeper = await SignUpTokenGatekeeper.deploy(
+      signUpToken.address
     )
 
-    before(async () => {
-        maciFactory = await MACIFactory.deployed()
-        batchUstVerifierMaciFactory = await BatchUpdateStateTreeVerifier.deployed()
-        creamVerifier = await CreamVerifier.deployed()
-        poseidon = await Poseidon.deployed()
-        votingToken = await VotingToken.deployed()
-        await Cream.link(Poseidon.contractName, poseidon.address)
-        cream = await Cream.new(
-            creamVerifier.address,
-            votingToken.address,
-            LEVELS,
-            RECIPIENTS,
-            coordinatorAddress
+    const ConstantInitialVoiceCreditProxy = await ethers.getContractFactory(
+      'ConstantInitialVoiceCreditProxy'
+    )
+    const constantInitialVoiceCreditProxy =
+      await ConstantInitialVoiceCreditProxy.deploy(
+        config.maci.initialVoiceCreditBalance
+      )
+
+    const [contractOwner, coordinator, voter] = await getUnnamedAccounts(hre)
+
+    const Maci = await ethers.getContractFactory('MACI', {
+      libraries: {
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+    const Poll = await ethers.getContractFactory('Poll', {
+      libraries: {
+        PoseidonT3: poseidonT3.address,
+        PoseidonT4: poseidonT4.address,
+        PoseidonT5: poseidonT5.address,
+        PoseidonT6: poseidonT6.address,
+      },
+    })
+
+    return {
+      signers: {
+        contractOwner,
+        coordinator,
+        voter,
+      },
+      Maci,
+      maciFactory,
+      constantInitialVoiceCreditProxy,
+      signUpTokenGatekeeper,
+    }
+  })
+
+  let constantInitialVoiceCreditProxy: Contract
+  let signUpTokenGatekeeper: Contract
+  let maciFactory: Contract
+  let signers: { [name: string]: SignerWithAddress }
+  let Maci: ContractFactory
+
+  before(async () => {
+    const {
+      constantInitialVoiceCreditProxy: _constantInitialVoiceCreditProxy,
+      signUpTokenGatekeeper: _signUpTokenGatekeeper,
+      maciFactory: _maciFactory,
+      signers: _signers,
+      Maci: _Maci,
+    } = await setupTest()
+
+    constantInitialVoiceCreditProxy = _constantInitialVoiceCreditProxy
+    signUpTokenGatekeeper = _signUpTokenGatekeeper
+    maciFactory = _maciFactory
+    signers = _signers
+    Maci = _Maci
+  })
+
+  describe('initialize', () => {
+    it('should correctly initialized', async () => {
+      const { maciFactory } = await setupTest()
+      const votingDuration = await maciFactory.votingDuration()
+      const expectedDuration = config.maci.votingDurationInSeconds
+      expect(expectedDuration).to.equal(votingDuration)
+    })
+
+    it('should be able to deploy MACI', async () => {
+      const tx = await maciFactory.deployMaci(
+        signUpTokenGatekeeper.address,
+        constantInitialVoiceCreditProxy.address,
+        coordinatorEdDSAKeyPair.pubKey.asContractParam()
+      )
+      const events = await extractEventsOfName(tx, 'MaciDeployed')
+      expect(events.length).to.equal(1)
+    })
+
+    it('should revert if non owner try to deploy MACI', async () => {
+      const f = maciFactory
+        .connect(signers.voter)
+        .deployMaci(
+          signUpTokenGatekeeper.address,
+          constantInitialVoiceCreditProxy.address,
+          coordinatorEdDSAKeyPair.pubKey.asContractParam()
         )
-        snapshotId = await takeSnapshot()
+      await expect(f).to.be.revertedWith('Ownable: caller is not the owner')
     })
 
-    describe('initialize', () => {
-        it('should correctly initialized', async () => {
-            const batchUstVerifierAddress = await maciFactory.batchUstVerifier()
-            const votingDuration = await maciFactory.votingDuration()
-            const expectedDuration = config.maci.votingDurationInSeconds
-            assert.equal(
-                batchUstVerifierAddress,
-                batchUstVerifierMaciFactory.address
-            )
-            assert.equal(expectedDuration, votingDuration)
-        })
+    it('should be able to set MACI parameters', async () => {
+      const tx = await maciFactory.deployMaci(
+        signUpTokenGatekeeper.address,
+        constantInitialVoiceCreditProxy.address,
+        coordinatorEdDSAKeyPair.pubKey.asContractParam()
+      )
+      const events = await extractEventsOfName(tx, 'MaciDeployed')
+      expect(events.length).to.equal(1)
 
-        it('should be able to deploy MACI', async () => {
-            const tx = await maciFactory.deployMaci(
-                cream.address,
-                cream.address,
-                coordinator.pubKey.asContractParam(),
-                coordinatorAddress
-            )
-            truffleAssert.eventEmitted(tx, 'MaciDeployed')
-        })
+      const _intStateTreeDepth = 3
+      const _messageTreeDepth = 3
+      const _messageTreeSubDepth = 3
+      const _voteOptionTreeDepth = 3
+      const _signUpDuration = 86400
+      const _votingDuration = 86400
 
-        it('should revert if non owner try to deploy MACI', async () => {
-            try {
-                const tx = await maciFactory.deployMaci(
-                    cream.address,
-                    cream.address,
-                    coordinator.pubKey.asContractParam(),
-                    coordinatorAddress,
-                    { from: accounts[2] }
-                )
-            } catch (error) {
-                assert.equal(error.reason, 'Ownable: caller is not the owner')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-
-        it('should be able to set MACI parameters', async () => {
-            const MACI = artifacts.require('MACI')
-            const tx = await maciFactory.deployMaci(
-                cream.address,
-                cream.address,
-                coordinator.pubKey.asContractParam(),
-                coordinatorAddress
-            )
-
-            const maciAddress = tx.logs[2].args[0]
-            const maci = await MACI.at(maciAddress)
-
-            const _stateTreeDepth = 8
-            const _messageTreeDepth = 12
-            const _voteOptionTreeDepth = 4
-            const _tallyBatchSize = await maci.tallyBatchSize()
-            const _messageBatchSize = await maci.messageBatchSize()
-            const _signUpDuration = await maci.signUpDurationSeconds()
-            const _votingDuration = 86400
-            const _batchUstVerifier = await maciFactory.batchUstVerifier()
-            const _qvtVerifier = await maciFactory.qvtVerifier()
-            const tx2 = await maciFactory.setMaciParameters(
-                _stateTreeDepth,
-                _messageTreeDepth,
-                _voteOptionTreeDepth,
-                _tallyBatchSize,
-                _messageBatchSize,
-                _batchUstVerifier,
-                _qvtVerifier,
-                _signUpDuration,
-                _votingDuration
-            )
-            truffleAssert.eventEmitted(tx2, 'MaciParametersChanged')
-        })
-
-        it('should fail if non owner try to set MACI pamameter', async () => {
-            const MACI = artifacts.require('MACI')
-            const tx = await maciFactory.deployMaci(
-                cream.address,
-                cream.address,
-                coordinator.pubKey.asContractParam(),
-                coordinatorAddress
-            )
-
-            const maciAddress = tx.logs[2].args[0]
-            const maci = await MACI.at(maciAddress)
-
-            const _stateTreeDepth = 8
-            const _messageTreeDepth = 12
-            const _voteOptionTreeDepth = 4
-            const _tallyBatchSize = await maci.tallyBatchSize()
-            const _messageBatchSize = await maci.messageBatchSize()
-            const _signUpDuration = await maci.signUpDurationSeconds()
-            const _votingDuration = 86400
-            const _batchUstVerifier = await maciFactory.batchUstVerifier()
-            const _qvtVerifier = await maciFactory.qvtVerifier()
-
-            try {
-                const tx2 = await maciFactory.setMaciParameters(
-                    _stateTreeDepth,
-                    _messageTreeDepth,
-                    _voteOptionTreeDepth,
-                    _tallyBatchSize,
-                    _messageBatchSize,
-                    _batchUstVerifier,
-                    _qvtVerifier,
-                    _signUpDuration,
-                    _votingDuration,
-                    { from: accounts[2] }
-                )
-            } catch (error) {
-                assert.equal(error.reason, 'Ownable: caller is not the owner')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
+      const tx2 = await maciFactory.setMaciParameters(
+        _intStateTreeDepth,
+        _messageTreeSubDepth,
+        _messageTreeDepth,
+        _voteOptionTreeDepth,
+        _signUpDuration,
+        _votingDuration
+      )
+      const events2 = await extractEventsOfName(tx2, 'MaciParametersChanged')
+      expect(events2.length).to.equal(1)
     })
 
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
+    it('should fail if non owner try to set MACI pamameter', async () => {
+      const tx = await maciFactory.deployMaci(
+        signUpTokenGatekeeper.address,
+        constantInitialVoiceCreditProxy.address,
+        coordinatorEdDSAKeyPair.pubKey.asContractParam()
+      )
+      const events = await extractEventsOfName(tx, 'MaciDeployed')
+      expect(events.length).to.equal(1)
+      const maciAddress = events[0].args[0]
+      const maci = await Maci.attach(maciAddress)
+
+      const _intStateTreeDepth = 3
+      const _messageTreeDepth = 3
+      const _messageTreeSubDepth = 3
+      const _voteOptionTreeDepth = 3
+      const _signUpDuration = 86400
+      const _votingDuration = 86400
+
+      const f = maciFactory
+        .connect(signers.voter)
+        .setMaciParameters(
+          _intStateTreeDepth,
+          _messageTreeSubDepth,
+          _messageTreeDepth,
+          _voteOptionTreeDepth,
+          _signUpDuration,
+          _votingDuration
+        )
+      await expect(f).to.be.revertedWith('Ownable: caller is not the owner')
     })
+  })
 })

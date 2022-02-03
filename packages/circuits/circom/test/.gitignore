@@ -1,0 +1,5 @@
+*_js/
+*.sym
+*.r1cs
+*_cpp/
+*.wasm
