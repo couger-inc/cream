@@ -27,9 +27,17 @@ jobs:
         lerna bootstrap -- --ignore-engines
         lerna run build
         ./packages/circuits/scripts/installZkutil.sh
+        lerna run build:test-site
+
+    - name: Start container
+      run: docker-compose -f "docker/docker-compose.yml" up -d
         
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
       run: |
         yarn test
+
+    - name: Stop container
+      if: always()
+      run: docker-compose -f "docker/docker-compose.yml" down
