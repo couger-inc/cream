@@ -19,6 +19,12 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://registry.npmjs.org'
+
+    - name: Install circom
+      run: |
+        git clone https://github.com/iden3/circom.git
+        cargo build --release
+        cargo install --path circom
         
     - name: Install and prepare
       run: |
@@ -26,7 +32,6 @@ jobs:
         npm install -g lerna
         lerna bootstrap -- --ignore-engines
         lerna run build
-        ./packages/circuits/scripts/installZkutil.sh
         lerna run build:test-site
 
     - name: Start container
