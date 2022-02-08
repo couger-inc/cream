@@ -8,14 +8,11 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 13.x, 14.x]
+        node-version: [14.x, 15.x, 16.x]
 
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    
-    - name: Start container
-      run: docker-compose -f "docker/docker-compose.yml" up -d
 
     - name: Setup node-version ${{ matrix.node-version }}
       uses: actions/setup-node@v1
@@ -26,8 +23,9 @@ jobs:
     - name: Install and prepare
       run: |
         npm install -g yarn
-        yarn
-        yarn build
+        npm install -g lerna
+        lerna bootstrap -- --ignore-engines
+        lerna run build
         ./packages/circuits/scripts/installZkutil.sh
         
     - name: Test
@@ -35,7 +33,3 @@ jobs:
         NODE_OPTIONS: --experimental-worker
       run: |
         yarn test
-        
-    - name: Stop container
-      if: always()
-      run: docker-compose -f "docker/docker-compose.yml" down
