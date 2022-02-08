@@ -585,6 +585,8 @@ export interface ProofAndPublicSignals {
   publicSignals: SnarkJsPublicSignals,
 }
 
+const snarkjs = `${__dirname}/../node_modules/.bin/snarkjs`
+
 export const prepare4VoteCircuitTests = (testDir: string) => {
   const circuit = 'vote_test'
   const ptau = 'pot19_final.ptau'
@@ -643,10 +645,10 @@ export const prepare4VoteCircuitTests = (testDir: string) => {
     process.chdir(testDir)
     console.log(`Generating zkey for "${circuit}"...`)
     if (!fs.existsSync(`${testDir}/${circuit}.zkey`)) {
-      execSync(`snarkjs zkn ${circuit}.r1cs ${ptau} ${circuit}.zkey`)
+      execSync(`${snarkjs} zkn ${circuit}.r1cs ${ptau} ${circuit}.zkey`)
     }
     console.log(`Generating vkey for "${circuit}"...`)
-    execSync(`snarkjs zkev ${circuit}.zkey ${circuit}.vkey`)
+    execSync(`${snarkjs} zkev ${circuit}.zkey ${circuit}.vkey`)
   }
   try {
     buildTestDir()
@@ -662,7 +664,6 @@ const voteCircuit = 'vote_test'
 const voteProofJsonOf = (ext: string) => `${voteCircuit}-${ext}-proof.json`
 const votePublicSigsJsonOf = (ext: string) => `${voteCircuit}-${ext}-public.json`
 const voteWitnessOf = (ext: string) => `${voteCircuit}-${ext}.wtns`
-const snarkjs = `${__dirname}/../node_modules/.bin/snarkjs`
 
 export const buildVoteCircuitProof: (
   testDir: string,
