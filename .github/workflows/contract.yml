@@ -27,6 +27,10 @@ jobs:
         sh rust.sh -y
         rm rust.sh
         source $HOME/.cargo/env
+    
+    - name: Install C++ libs
+      run: |
+        sudo apt install -y nlohmann-json3-dev libgmp-dev nasm
 
     - name: Install circom
       run: |
