@@ -21,6 +21,6 @@ module.exports = {
   },
   solidity: '0.7.2',
   mocha: {
-    timeout: 50000,
+    timeout: 1200000,
   },
 }
