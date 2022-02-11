@@ -2331,12 +2331,6 @@ circom_runtime@0.1.8:
     ffjavascript "0.2.10"
     fnv-plus "^1.3.1"
 
-"circom_runtime@git://github.com/exfinen/circom_runtime.git#c20f2628202386f05ff64a5bbf22f2cc8b75522b":
-  version "0.1.17"
-  resolved "git://github.com/exfinen/circom_runtime.git#c20f2628202386f05ff64a5bbf22f2cc8b75522b"
-  dependencies:
-    ffjavascript "0.2.48"
-
 circomlib@0.5.1:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/circomlib/-/circomlib-0.5.1.tgz#97927e240e48028bdb8bdedd179f233de9fa7131"
@@ -3744,7 +3738,7 @@ ffjavascript@0.2.39:
     wasmcurves "0.0.14"
     web-worker "^1.0.0"
 
-ffjavascript@0.2.48, ffjavascript@^0.2.30, ffjavascript@^0.2.35, ffjavascript@^0.2.38:
+ffjavascript@^0.2.30, ffjavascript@^0.2.35, ffjavascript@^0.2.38:
   version "0.2.48"
   resolved "https://registry.yarnpkg.com/ffjavascript/-/ffjavascript-0.2.48.tgz#0ca408471d7b18bfc096a9631aa3ef3549c8c82b"
   integrity sha512-uNrWP+odLofNmmO+iCCPi/Xt/sJh1ku3pVKmKWVWCLFfdCP69hvRrogKUIGnsdiINcWn0lGxcEh5oEjStMFXQQ==

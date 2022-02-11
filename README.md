@@ -13,8 +13,9 @@ Zero-Knowledge Confidential Reliable Ethereum Anonymous Mixer
   - libgmp-dev
   - nasm
 
-## Contained MACI packages
-This monorepo contains a snapshot of packages from [MACI](https://github.com/appliedzkp/maci) v1 branch (6e2b1011198e59f61ca80404c97705b813a655c4) to be based on MACI 1.0.4 that uses Circom 2.0 based circuits.
+## Contained external packages
+- A modified version of [MACI](https://github.com/appliedzkp/maci) v1 branch (6e2b1011198e59f61ca80404c97705b813a655c4)
+- A modified version of [circom_runtime](https://github.com/iden3/circom_runtime) 0.1.17 (afce802d66a1c26c4220e529b699fda22057b8e9)
 
 ## Setup
 

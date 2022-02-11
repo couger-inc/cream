@@ -5,6 +5,7 @@
     "packages/config",
     "packages/contracts",
     "packages/tester",
+    "packages/circom_runtime",
     "packages/maci-circuits",
     "packages/maci-cli",
     "packages/maci-contracts",
