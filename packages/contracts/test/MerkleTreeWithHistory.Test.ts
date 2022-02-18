@@ -1,76 +1,81 @@
-const { config } = require('@cream/config')
-const { toHex } = require('libcream')
+import 'hardhat-deploy' // for ambient module declarations
+import { config } from '@cream/config'
+import { expect } from 'chai'
+import hre from 'hardhat'
+import { getUnnamedAccounts } from './TestUtil'
+
 const { MerkleTree } = require('cream-merkle-tree')
-const { revertSnapshot, takeSnapshot } = require('./TestUtil')
+const { toHex } = require('libcream')
 
-const MerkleTreeContract = artifacts.require('MerkleTreeWithHistoryMock')
-const Poseidon = artifacts.require('Poseidon')
+const ethers = hre.ethers
+const deployments = hre.deployments
 
-contract('MerkleTreeWithHistory', (accounts) => {
-    let tree
-    let poseidon
-    let merkleTree
-    let snapshotId
-    let LEVELS = config.cream.merkleTrees
-    const ZERO_VALUE = config.cream.zeroValue
+describe('MerkleTreeWithHistory', () => {
+  const LEVELS = 4 // using 4 since config.cream.merkleTreeDepth (10) takes too much time for testing
+  const ZERO_VALUE = config.cream.zeroValue
+  const merkleTreeClass = new MerkleTree(LEVELS, ZERO_VALUE)
 
-    before(async () => {
-        tree = new MerkleTree(LEVELS, ZERO_VALUE)
-        poseidon = await Poseidon.deployed()
-        await MerkleTreeContract.link(Poseidon.contractName, poseidon.address)
-        merkleTree = await MerkleTreeContract.new(LEVELS)
-        snapshotId = await takeSnapshot()
+  const setupTest = deployments.createFixture(async () => {
+    await deployments.fixture()
+
+    const poseidon = await ethers.getContract('Poseidon')
+    const MerkleTreeWithHistory4Test = await ethers.getContractFactory(
+      'MerkleTreeWithHistoryMock',
+      {
+        libraries: {
+          Poseidon: poseidon.address,
+        },
+      }
+    )
+    const merkleTreeContract = await MerkleTreeWithHistory4Test.deploy(LEVELS)
+    const [deployer] = await getUnnamedAccounts(hre)
+
+    return {
+      deployer,
+      merkleTreeContract,
+      MerkleTreeWithHistory4Test,
+    }
+  })
+
+  describe('initialze', () => {
+    it('should correctly initialze', async () => {
+      const { merkleTreeContract } = await setupTest()
+      const zeroValue = await merkleTreeContract.ZERO_VALUE()
+      const firstSubtree = await merkleTreeContract.filledSubtrees(0)
+      const firstZero = await merkleTreeContract.zeros(0)
+      const rootFromContract = await merkleTreeContract.getLastRoot()
+
+      expect(firstSubtree).to.equal(toHex(zeroValue))
+      expect(firstZero, toHex(zeroValue))
+      expect(toHex(merkleTreeClass.root)).to.equal(rootFromContract.toString())
+    })
+  })
+
+  describe('insert', () => {
+    it('should correctly insert', async () => {
+      const { merkleTreeContract, deployer } = await setupTest()
+
+      for (let i = 1; i < LEVELS; i++) {
+        await merkleTreeContract.connect(deployer).insert(toHex(i))
+        merkleTreeClass.insert(i)
+        const root = merkleTreeClass.root
+        const rootFromContract = await merkleTreeContract.getLastRoot()
+
+        expect(toHex(root)).to.equal(rootFromContract.toString())
+      }
     })
 
-    describe('initialze', () => {
-        it('should correctly initialze', async () => {
-            const zeroValue = await merkleTree.ZERO_VALUE()
-            const firstSubtree = await merkleTree.filledSubtrees(0)
-            const firstZero = await merkleTree.zeros(0)
-            const rootFromContract = await merkleTree.getLastRoot()
+    it('should reject if tree is full', async () => {
+      const { MerkleTreeWithHistory4Test } = await setupTest()
+      const merkleTreeContract = await MerkleTreeWithHistory4Test.deploy(LEVELS)
 
-            assert.equal(firstSubtree, toHex(zeroValue))
-            assert.equal(firstZero, toHex(zeroValue))
-            assert.equal(toHex(tree.root), rootFromContract.toString())
-        })
+      for (let i = 0; i < 2 ** LEVELS; i++) {
+        await merkleTreeContract.insert(toHex(i + 42))
+      }
+
+      await expect(merkleTreeContract.insert(toHex(1))).to.be.revertedWith(
+        'Merkle tree is full'
+      )
     })
-
-    describe('insert', () => {
-        it('should correctly insert', async () => {
-            let rootFromContract
-
-            for (let i = 1; i < LEVELS; i++) {
-                await merkleTree.insert(toHex(i), { from: accounts[0] })
-                tree.insert(i)
-                const root = tree.root
-                rootFromContract = await merkleTree.getLastRoot()
-
-                assert.equal(toHex(root), rootFromContract.toString())
-            }
-        })
-
-        it('should reject if tree is full', async () => {
-            LEVELS = 6
-            merkleTree = await MerkleTreeContract.new(LEVELS)
-
-            for (let i = 0; i < 2 ** LEVELS; i++) {
-                await merkleTree.insert(toHex(i + 42))
-            }
-
-            try {
-                await merkleTree.insert(toHex(1))
-            } catch (error) {
-                assert.equal(error.reason, 'Merkle tree is full')
-                return
-            }
-            assert.fail('Expected revert not received')
-        })
-    })
-
-    afterEach(async () => {
-        await revertSnapshot(snapshotId.result)
-        // eslint-disable-next-line require-atomic-updates
-        snapshotId = await takeSnapshot()
-        tree = new MerkleTree(LEVELS, ZERO_VALUE)
-    })
+  })
 })

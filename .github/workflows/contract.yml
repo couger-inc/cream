@@ -8,34 +8,54 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 13.x, 14.x]
+        node-version: [14.x, 15.x, 16.x]
 
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    
-    - name: Start container
-      run: docker-compose -f "docker/docker-compose.yml" up -d
 
     - name: Setup node-version ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
         registry-url: 'https://registry.npmjs.org'
+
+    - name: Install Rust
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rust.sh
+        chmod a+x rust.sh
+        sh rust.sh -y
+        rm rust.sh
+        source $HOME/.cargo/env
+    
+    - name: Install C++ libs
+      run: |
+        sudo apt install -y nlohmann-json3-dev libgmp-dev nasm
+
+    - name: Install circom
+      run: |
+        git clone https://github.com/iden3/circom.git
+        cd circom
+        cargo build --release
+        cargo install --path circom
         
     - name: Install and prepare
       run: |
         npm install -g yarn
-        yarn
-        yarn build
-        ./packages/circuits/scripts/installZkutil.sh
+        npm install -g lerna
+        lerna bootstrap -- --ignore-engines
+        lerna run build
+        lerna run build:test-site
+
+    - name: Start container
+      run: docker-compose -f "docker/docker-compose.yml" up -d
         
     - name: Test
       env:
         NODE_OPTIONS: --experimental-worker
       run: |
         yarn test
-        
+
     - name: Stop container
       if: always()
       run: docker-compose -f "docker/docker-compose.yml" down

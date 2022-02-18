@@ -2,6 +2,7 @@ config/default.json
 **/config/default.json
 **/build/
 node_modules
+yarn-error.log
 
 # typechain generated files
 types
@@ -10,7 +11,13 @@ migrations
 # exported files
 *ABI.json
 *Networks.json
-Verifier.sol
 
 # macos generated files
 ._*
+
+# Hardhat generated files
+artifacts
+cache
+
+# test-related
+test-site
